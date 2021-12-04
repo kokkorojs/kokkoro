@@ -1,0 +1,22 @@
+{
+  "name": "kokkoro-core",
+  "version": "0.0.0",
+  "description": "Core features for kokkoro.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kokkorojs/kokkoro-core.git"
+  },
+  "keywords": [
+    "kokkoro"
+  ],
+  "author": "rumicchi",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kokkorojs/kokkoro-core/issues"
+  },
+  "homepage": "https://github.com/kokkorojs/kokkoro-core#readme"
+}
