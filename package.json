@@ -1,8 +1,12 @@
 {
   "name": "kokkoro-core",
-  "version": "0.0.0",
+  "version": "0.0.1",
+  "upday": "2021/12/05",
   "description": "Core features for kokkoro.",
-  "main": "index.js",
+  "main": "./dist/index.js",
+  "engines": {
+    "node": ">= v14"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -18,5 +22,13 @@
   "bugs": {
     "url": "https://github.com/kokkorojs/kokkoro-core/issues"
   },
-  "homepage": "https://github.com/kokkorojs/kokkoro-core#readme"
+  "homepage": "https://github.com/kokkorojs/kokkoro-core#readme",
+  "dependencies": {
+    "lowdb": "^1.0.0",
+    "oicq": "^2.1.4"
+  },
+  "devDependencies": {
+    "@types/lowdb": "^1.0.11",
+    "@types/node": "^16.11.11"
+  }
 }
