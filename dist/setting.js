@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getList = exports.handleSetting = exports.getSetting = exports.getAllSetting = void 0;
+exports.setOption = exports.getOption = exports.getList = exports.handleSetting = exports.getSetting = exports.getAllSetting = void 0;
 const path_1 = require("path");
 const promises_1 = require("fs/promises");
 const config_1 = require("./config");
@@ -25,6 +25,56 @@ function getSetting(uin) {
     return all_setting.get(uin);
 }
 exports.getSetting = getSetting;
+// #endregion
+// #dregion 获取当前插件的群聊选项
+function getOption(uin, group_id, plugin_name) {
+    const setting = all_setting.get(uin);
+    return setting[group_id].plugin[plugin_name] || {};
+}
+exports.getOption = getOption;
+// #endregion
+// #dregion 获取当前插件的群聊选项
+async function setOption(uin, group_id, params) {
+    const [plugin_name, option_name, value] = params;
+    let message;
+    switch (true) {
+        case !plugin_name:
+            message = '插件名不能为空';
+            break;
+        case !option_name:
+            message = '插件选项不能为空';
+            break;
+        case !value:
+            message = '参数不能为空';
+            break;
+    }
+    if (message) {
+        return message;
+    }
+    const option = getOption(uin, group_id, plugin_name);
+    const setting = all_setting.get(uin);
+    const plugin = setting[group_id].plugin;
+    if (Object.keys(option).includes(option_name)) {
+        switch (true) {
+            case ['true', 'false'].includes(value):
+                setting[group_id].plugin[plugin_name][option_name] = value === 'true';
+                break;
+            case !isNaN(value):
+                setting[group_id].plugin[plugin_name][option_name] = Number(value);
+                break;
+            default:
+                setting[group_id].plugin[plugin_name][option_name] = value;
+                break;
+        }
+        all_setting.set(uin, setting);
+        await setSetting(uin);
+        return `${plugin_name} {\n  ${option_name}: ${value}\n}`;
+    }
+    else {
+        return `Error: ${plugin[plugin_name] ? option_name : plugin_name} is not defined`;
+    }
+}
+exports.setOption = setOption;
 // #endregion
 // #dregion 写入群聊插件设置
 function setSetting(uin) {

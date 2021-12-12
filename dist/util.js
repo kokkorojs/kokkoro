@@ -3,13 +3,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.message = exports.checkCommand = exports.lowdb = exports.logger = exports.axios = exports.tips = exports.colors = void 0;
+exports.message = exports.checkCommand = exports.lowdb = exports.logger = exports.tips = exports.colors = void 0;
 const axios_1 = __importDefault(require("axios"));
-exports.axios = axios_1.default;
 const lowdb_1 = __importDefault(require("lowdb"));
 const FileSync_1 = __importDefault(require("lowdb/adapters/FileSync"));
 const log4js_1 = require("log4js");
 const oicq_1 = require("oicq");
+axios_1.default.defaults.timeout = 10000;
 //#region colorful
 /**
  * @description 控制台彩色打印
@@ -30,8 +30,6 @@ const tips = {
     warn: colors.yellow('Warn:'), success: colors.green('Success:'),
 };
 exports.tips = tips;
-// axios
-axios_1.default.defaults.timeout = 10000;
 /**
  * 目前 lowdb 版本为 1.0.0 ，因为 2.x 开始就不再支持 commonjs ，node 对于 ems 的支持又不太友好 orz
  * 相关 README 说明: https://github.com/typicode/lowdb/blob/a0048766e75cec31c8d8b74ed44fc1a88284a493/README.md
@@ -75,7 +73,7 @@ function image(url, flash = false) {
             return resolve(!flash ? oicq_1.segment.image(url) : oicq_1.segment.flash(url));
         await axios_1.default.get(url, { responseType: 'arraybuffer' })
             .then((response) => {
-            const image_base64 = Buffer.from(response.data, 'binary').toString('base64');
+            const image_base64 = `base64://${Buffer.from(response.data, 'binary').toString('base64')}`;
             resolve(!flash ? oicq_1.segment.image(image_base64) : oicq_1.segment.flash(image_base64));
         })
             .catch((error) => {

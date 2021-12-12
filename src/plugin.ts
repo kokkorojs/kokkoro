@@ -38,19 +38,18 @@ class Plugin {
     const { gl } = bot;
 
     gl.forEach((value: GroupInfo, group_id: number) => {
-      const default_option: Group = {
-        name: value.group_name,
-        plugin: {
-          [this.name]: Object.assign({ lock: false, switch: true }, this.option),
-        },
+      const default_option: Option = {
+        lock: false,
+        switch: true
       }
 
       Object.assign(
-        default_option.plugin[this.name],
+        default_option,
+        this.option,
         setting[group_id] ? setting[group_id].plugin[this.name] : {}
-      );
+      )
 
-      setting[group_id] = default_option;
+      setting[group_id].plugin[this.name] = default_option;
     });
 
     return writeFile(setting_path, `${JSON.stringify(setting, null, 2)}`);
@@ -299,7 +298,7 @@ async function findAllPlugins() {
   }
 
   for (let file of modules) {
-    if (file.isDirectory() && file.name.startsWith("kokkoro-")) {
+    if (file.isDirectory() && file.name.startsWith('kokkoro-') && file.name !== 'kokkoro-core') {
       try {
         require.resolve(`${__workname}/node_modules/${file.name}`);
         node_modules.push(file.name);
@@ -319,12 +318,13 @@ async function findAllPlugins() {
  * @returns Map<string, Plugin>
  */
 async function restorePlugins(bot: Client): Promise<Map<string, Plugin>> {
-  const dir = join(bot.dir, 'setting.json');
+  const setting_path = join(bot.dir, 'setting.json');
 
   try {
-    const config = require(dir);
+    const setting = require(setting_path);
+    const { all_plugin } = setting as Setting;
 
-    for (let name of config.plugin) {
+    for (let name of all_plugin) {
       try {
         const plugin = await importPlugin(name);
 
