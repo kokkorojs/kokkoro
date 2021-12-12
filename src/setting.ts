@@ -29,6 +29,64 @@ function getSetting(uin: number) {
 }
 // #endregion
 
+// #dregion 获取当前插件的群聊选项
+function getOption(uin: number, group_id: number, plugin_name: string) {
+  const setting = all_setting.get(uin) as Setting;
+
+  return setting[group_id].plugin[plugin_name] || {};
+}
+// #endregion
+
+// #dregion 获取当前插件的群聊选项
+async function setOption(uin: number, group_id: number, params: ReturnType<typeof parseCommandline>['params']) {
+  const [plugin_name, option_name, value] = params;
+
+  let message;
+
+  switch (true) {
+    case !plugin_name:
+      message = '插件名不能为空';
+      break;
+    case !option_name:
+      message = '插件选项不能为空';
+      break;
+    case !value:
+      message = '参数不能为空';
+      break;
+  }
+
+  if (message) {
+    return message;
+  }
+
+  const option = getOption(uin, group_id, plugin_name);
+  const setting = all_setting.get(uin) as Setting;
+  const plugin = setting[group_id].plugin;
+
+  if (Object.keys(option).includes(option_name)) {
+    switch (true) {
+      case ['true', 'false'].includes(value):
+        setting[group_id].plugin[plugin_name][option_name] = value === 'true';
+        break;
+
+      case !isNaN(value as any):
+        setting[group_id].plugin[plugin_name][option_name] = Number(value);
+        break;
+
+      default:
+        setting[group_id].plugin[plugin_name][option_name] = value;
+        break;
+    }
+    all_setting.set(uin, setting);
+
+    await setSetting(uin);
+    return `${plugin_name} {\n  ${option_name}: ${value}\n}`;
+  } else {
+    return `Error: ${plugin[plugin_name] ? option_name : plugin_name} is not defined`;
+  }
+}
+// #endregion
+
 // #dregion 写入群聊插件设置
 function setSetting(uin: number) {
   const setting_path = resolve(__workname, `data/bots/${uin}/setting.json`);
@@ -59,5 +117,5 @@ async function getList(self_id: number, group_id: number): Promise<string> {
 // #endregion
 
 export {
-  getAllSetting, getSetting, handleSetting, getList
+  getAllSetting, getSetting, handleSetting, getList, getOption, setOption
 }
