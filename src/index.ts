@@ -36,4 +36,5 @@ export async function linkStart() {
   });
 }
 
-export { colors, tips, axios, logger, lowdb, checkCommand, message, } from './util';
+export { getOption } from './setting';
+export { colors, tips, logger, lowdb, checkCommand, message } from './util';
