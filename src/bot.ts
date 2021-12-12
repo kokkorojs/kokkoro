@@ -6,6 +6,7 @@ import { Client, createClient, Config, PrivateMessageEvent, GroupMessageEvent, D
 
 import { HELP_ALL } from './help';
 import plugin from './plugin';
+import { getList, setOption, handleSetting } from './setting';
 import { getGlobalConfig, parseCommandline, handleConfig, addBot, cutBot } from './config';
 
 // 维护组 QQ
@@ -371,22 +372,31 @@ const cmdHanders: {
     //#endregion
   },
   group: {
-    // //#region setting
-    // async setting(params, event) {
-    //   if (params[0] === 'help') { return help.setting }
+    //#region setting
+    async setting(params, event) {
+      if (params[0] === 'help') { return HELP_ALL.setting }
 
-    //   const { self_id, group_id } = event as any;
-    //   return await setSetting(params, self_id, group_id);
-    // },
-    // //#endregion
+      const { self_id, group_id } = event as any;
+      return await handleSetting(params, self_id, group_id);
+    },
+    //#endregion
 
-    // //#region list
-    // async list(params, event) {
-    //   const { self_id, group_id } = event as any;
+    //#region list
+    async list(params, event) {
+      const { self_id, group_id } = event as any;
 
-    //   return getList(self_id, group_id);
-    // },
-    // //#endregion
+      return getList(self_id, group_id);
+    },
+    //#endregion
+
+
+    //#region option
+    async option(params, event) {
+      const { self_id, group_id } = event as any;
+
+      return setOption(self_id, group_id, params);
+    },
+    //#endregion
   },
   private: {
     //#region help
@@ -430,8 +440,13 @@ const cmdHanders: {
       const uin = this.uin;
       const bot = all_bot.get(uin) as Client;
 
-      await plugin.enable(name, bot);
-      return `${bot.nickname} (${uin}) 启用插件成功`;
+      try {
+        await plugin.enable(name, bot);
+
+        return `${bot.nickname} (${uin}) 启用插件成功`;
+      } catch (error: any) {
+        return error.message;
+      }
     },
     //#endregion
 
@@ -441,8 +456,13 @@ const cmdHanders: {
       const uin = this.uin;
       const bot = all_bot.get(uin) as Client;
 
-      await plugin.disable(name, bot);
-      return `${bot.nickname} (${uin}) 禁用插件成功`;
+      try {
+        await plugin.disable(name, bot);
+
+        return `${bot.nickname} (${uin}) 禁用插件成功`;
+      } catch (error: any) {
+        return error.message;
+      }
     },
     //#endregion
 
@@ -456,7 +476,7 @@ const cmdHanders: {
           const msg = ['可用插件模块列表：'];
 
           for (let name of [...plugin_modules, ...node_modules]) {
-            if (name.startsWith('kokkoro-')) name = name.slice(15)
+            if (name.startsWith('kokkoro-')) name = name.slice(8)
 
             const plugin = plugins.get(name);
             msg.push(`▼ ${name} (${plugin ? '已' : '未'}导入)`);

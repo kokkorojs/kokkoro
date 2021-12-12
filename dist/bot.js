@@ -11,6 +11,7 @@ const promises_1 = require("fs/promises");
 const oicq_1 = require("oicq");
 const help_1 = require("./help");
 const plugin_1 = __importDefault(require("./plugin"));
+const setting_1 = require("./setting");
 const config_1 = require("./config");
 // 维护组 QQ
 const admin = [2225151531];
@@ -304,19 +305,27 @@ const cmdHanders = {
         //#endregion
     },
     group: {
-    // //#region setting
-    // async setting(params, event) {
-    //   if (params[0] === 'help') { return help.setting }
-    //   const { self_id, group_id } = event as any;
-    //   return await setSetting(params, self_id, group_id);
-    // },
-    // //#endregion
-    // //#region list
-    // async list(params, event) {
-    //   const { self_id, group_id } = event as any;
-    //   return getList(self_id, group_id);
-    // },
-    // //#endregion
+        //#region setting
+        async setting(params, event) {
+            if (params[0] === 'help') {
+                return help_1.HELP_ALL.setting;
+            }
+            const { self_id, group_id } = event;
+            return await (0, setting_1.handleSetting)(params, self_id, group_id);
+        },
+        //#endregion
+        //#region list
+        async list(params, event) {
+            const { self_id, group_id } = event;
+            return (0, setting_1.getList)(self_id, group_id);
+        },
+        //#endregion
+        //#region option
+        async option(params, event) {
+            const { self_id, group_id } = event;
+            return (0, setting_1.setOption)(self_id, group_id, params);
+        },
+        //#endregion
     },
     private: {
         //#region help
@@ -352,8 +361,13 @@ const cmdHanders = {
             const name = params[0];
             const uin = this.uin;
             const bot = all_bot.get(uin);
-            await plugin_1.default.enable(name, bot);
-            return `${bot.nickname} (${uin}) 启用插件成功`;
+            try {
+                await plugin_1.default.enable(name, bot);
+                return `${bot.nickname} (${uin}) 启用插件成功`;
+            }
+            catch (error) {
+                return error.message;
+            }
         },
         //#endregion
         //#region disable
@@ -361,8 +375,13 @@ const cmdHanders = {
             const name = params[0];
             const uin = this.uin;
             const bot = all_bot.get(uin);
-            await plugin_1.default.disable(name, bot);
-            return `${bot.nickname} (${uin}) 禁用插件成功`;
+            try {
+                await plugin_1.default.disable(name, bot);
+                return `${bot.nickname} (${uin}) 禁用插件成功`;
+            }
+            catch (error) {
+                return error.message;
+            }
         },
         //#endregion
         //#region plug
@@ -374,7 +393,7 @@ const cmdHanders = {
                     const msg = ['可用插件模块列表：'];
                     for (let name of [...plugin_modules, ...node_modules]) {
                         if (name.startsWith('kokkoro-'))
-                            name = name.slice(15);
+                            name = name.slice(8);
                         const plugin = plugins.get(name);
                         msg.push(`▼ ${name} (${plugin ? '已' : '未'}导入)`);
                         if (plugin) {

@@ -4,6 +4,8 @@ import FileSync from 'lowdb/adapters/FileSync';
 import { getLogger, Logger } from 'log4js';
 import { AtElem, FlashElem, ImageElem, segment } from 'oicq';
 
+axios.defaults.timeout = 10000;
+
 //#region colorful
 
 /**
@@ -26,9 +28,6 @@ const tips = {
   info: colors.cyan('Info:'), error: colors.red('Error:'),
   warn: colors.yellow('Warn:'), success: colors.green('Success:'),
 };
-
-// axios
-axios.defaults.timeout = 10000;
 
 /**
  * 目前 lowdb 版本为 1.0.0 ，因为 2.x 开始就不再支持 commonjs ，node 对于 ems 的支持又不太友好 orz
@@ -75,7 +74,7 @@ function image(url: string, flash: boolean = false): Promise<ImageElem | FlashEl
 
     await axios.get(url, { responseType: 'arraybuffer' })
       .then((response: any) => {
-        const image_base64: string = Buffer.from(response.data, 'binary').toString('base64');
+        const image_base64: string = `base64://${Buffer.from(response.data, 'binary').toString('base64')}`;
 
         resolve(!flash ? segment.image(image_base64) : segment.flash(image_base64));
       })
@@ -100,6 +99,6 @@ const message = {
 
 export {
   colors, tips,
-  axios, logger, lowdb,
+  logger, lowdb,
   checkCommand, message,
 }
