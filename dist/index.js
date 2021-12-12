@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.message = exports.checkCommand = exports.lowdb = exports.logger = exports.axios = exports.tips = exports.colors = exports.linkStart = void 0;
+exports.message = exports.checkCommand = exports.lowdb = exports.logger = exports.tips = exports.colors = exports.getOption = exports.linkStart = void 0;
 global.__workname = process.cwd();
 const util_1 = require("./util");
 const bot_1 = require("./bot");
@@ -30,10 +30,11 @@ async function linkStart() {
     });
 }
 exports.linkStart = linkStart;
+var setting_1 = require("./setting");
+Object.defineProperty(exports, "getOption", { enumerable: true, get: function () { return setting_1.getOption; } });
 var util_2 = require("./util");
 Object.defineProperty(exports, "colors", { enumerable: true, get: function () { return util_2.colors; } });
 Object.defineProperty(exports, "tips", { enumerable: true, get: function () { return util_2.tips; } });
-Object.defineProperty(exports, "axios", { enumerable: true, get: function () { return util_2.axios; } });
 Object.defineProperty(exports, "logger", { enumerable: true, get: function () { return util_2.logger; } });
 Object.defineProperty(exports, "lowdb", { enumerable: true, get: function () { return util_2.lowdb; } });
 Object.defineProperty(exports, "checkCommand", { enumerable: true, get: function () { return util_2.checkCommand; } });
