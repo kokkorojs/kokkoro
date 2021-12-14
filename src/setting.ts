@@ -1,4 +1,5 @@
-import { resolve } from 'path'
+import { resolve } from 'path';
+import { existsSync } from 'fs';
 import { writeFile } from 'fs/promises';
 
 import { GlobalConfig, Setting } from '..';
@@ -6,16 +7,27 @@ import { getGlobalConfig, parseCommandline } from './config';
 
 const all_setting: Map<number, Setting> = new Map();
 
-try {
-  const global_config: GlobalConfig = getGlobalConfig();
-  const uins: string[] = Object.keys(global_config.bots);
+(async () => {
+  try {
+    const global_config: GlobalConfig = getGlobalConfig();
+    const uins: string[] = Object.keys(global_config.bots);
 
-  for (const uin of uins) {
-    const setting_path = resolve(__workname, `data/bots/${uin}/setting.json`);
+    for (const uin of uins) {
+      const setting_path = resolve(__workname, `data/bots/${uin}/setting.json`);
 
-    all_setting.set(Number(uin), require(setting_path))
-  }
-} catch { }
+      if (existsSync(setting_path)) {
+        all_setting.set(Number(uin), require(setting_path));
+      } else {
+        const setting = {
+          all_plugin: [],
+        }
+
+        all_setting.set(Number(uin), setting);
+        await writeFile(setting_path, `${JSON.stringify(setting, null, 2)}`);
+      }
+    }
+  } catch { }
+})();
 
 // #dregion 列出所有群聊插件设置
 function getAllSetting() {

@@ -74,9 +74,7 @@ class Plugin {
       await this._editBotPluginCache(bot, "add");
       this.binds.add(bot);
     } catch (error) {
-      const { message } = error as Error;
-
-      throw new PluginError(`启用插件时遇到错误\n${error} ${message}`);
+      throw new PluginError(`启用插件时遇到错误\n${error}`);
     }
   }
 
