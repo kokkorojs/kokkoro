@@ -56,8 +56,7 @@ class Plugin {
             this.binds.add(bot);
         }
         catch (error) {
-            const { message } = error;
-            throw new PluginError(`启用插件时遇到错误\n${error} ${message}`);
+            throw new PluginError(`启用插件时遇到错误\n${error}`);
         }
     }
     async disable(bot) {
