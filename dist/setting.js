@@ -2,18 +2,30 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.setOption = exports.getOption = exports.getList = exports.handleSetting = exports.getSetting = exports.getAllSetting = void 0;
 const path_1 = require("path");
+const fs_1 = require("fs");
 const promises_1 = require("fs/promises");
 const config_1 = require("./config");
 const all_setting = new Map();
-try {
-    const global_config = (0, config_1.getGlobalConfig)();
-    const uins = Object.keys(global_config.bots);
-    for (const uin of uins) {
-        const setting_path = (0, path_1.resolve)(__workname, `data/bots/${uin}/setting.json`);
-        all_setting.set(Number(uin), require(setting_path));
+(async () => {
+    try {
+        const global_config = (0, config_1.getGlobalConfig)();
+        const uins = Object.keys(global_config.bots);
+        for (const uin of uins) {
+            const setting_path = (0, path_1.resolve)(__workname, `data/bots/${uin}/setting.json`);
+            if ((0, fs_1.existsSync)(setting_path)) {
+                all_setting.set(Number(uin), require(setting_path));
+            }
+            else {
+                const setting = {
+                    all_plugin: [],
+                };
+                all_setting.set(Number(uin), setting);
+                await (0, promises_1.writeFile)(setting_path, `${JSON.stringify(setting, null, 2)}`);
+            }
+        }
     }
-}
-catch { }
+    catch { }
+})();
 // #dregion 列出所有群聊插件设置
 function getAllSetting() {
     return all_setting;
