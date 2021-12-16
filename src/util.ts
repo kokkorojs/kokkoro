@@ -68,11 +68,11 @@ function checkCommand(command: { [key: string]: RegExp }, raw_message: string): 
  * @returns - Promise
  */
 function image(url: string, flash: boolean = false): Promise<ImageElem | FlashElem | string> {
-  return new Promise(async (resolve, reject) => {
+  return new Promise((resolve, reject) => {
     // 判断是否为网络链接
-    if (!/^https?/g.test(url)) return resolve(!flash ? segment.image(url) : segment.flash(url));
+    if (!/^https?/g.test(url)) return resolve(!flash ? segment.image(`file:///${url}`) : segment.flash(`file:///${url}`));
 
-    await axios.get(url, { responseType: 'arraybuffer' })
+    axios.get(url, { responseType: 'arraybuffer' })
       .then((response: any) => {
         const image_base64: string = `base64://${Buffer.from(response.data, 'binary').toString('base64')}`;
 
@@ -85,7 +85,7 @@ function image(url: string, flash: boolean = false): Promise<ImageElem | FlashEl
 }
 
 /**
- * @description 生成 at 成员 CQ 码
+ * @description 生成 at 成员的消息段
  * @param qq 
  * @returns 
  */
