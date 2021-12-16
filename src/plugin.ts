@@ -38,6 +38,14 @@ class Plugin {
     const { gl } = bot;
 
     gl.forEach((value: GroupInfo, group_id: number) => {
+      if (!setting[group_id]) {
+        setting[group_id] = {
+          name: value.group_name, plugin: {},
+        }
+      } else {
+        setting[group_id].name = value.group_name;
+      }
+
       const default_option: Option = {
         lock: false,
         switch: true
