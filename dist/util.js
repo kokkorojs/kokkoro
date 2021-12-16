@@ -67,11 +67,11 @@ exports.checkCommand = checkCommand;
  * @returns - Promise
  */
 function image(url, flash = false) {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
         // 判断是否为网络链接
         if (!/^https?/g.test(url))
-            return resolve(!flash ? oicq_1.segment.image(url) : oicq_1.segment.flash(url));
-        await axios_1.default.get(url, { responseType: 'arraybuffer' })
+            return resolve(!flash ? oicq_1.segment.image(`file:///${url}`) : oicq_1.segment.flash(`file:///${url}`));
+        axios_1.default.get(url, { responseType: 'arraybuffer' })
             .then((response) => {
             const image_base64 = `base64://${Buffer.from(response.data, 'binary').toString('base64')}`;
             resolve(!flash ? oicq_1.segment.image(image_base64) : oicq_1.segment.flash(image_base64));
@@ -82,7 +82,7 @@ function image(url, flash = false) {
     });
 }
 /**
- * @description 生成 at 成员 CQ 码
+ * @description 生成 at 成员的消息段
  * @param qq
  * @returns
  */
