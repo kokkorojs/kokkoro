@@ -31,6 +31,14 @@ class Plugin {
         // 写入群配置
         const { gl } = bot;
         gl.forEach((value, group_id) => {
+            if (!setting[group_id]) {
+                setting[group_id] = {
+                    name: value.group_name, plugin: {},
+                };
+            }
+            else {
+                setting[group_id].name = value.group_name;
+            }
             const default_option = {
                 lock: false,
                 switch: true
