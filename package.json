@@ -1,6 +1,6 @@
 {
   "name": "kokkoro-core",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "upday": "2021/12/16",
   "description": "Core features for kokkoro.",
   "main": "./dist/index.js",
