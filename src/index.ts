@@ -41,5 +41,5 @@ export async function linkStart() {
   });
 }
 
-export { getOption } from './setting';
+export { getOption, setOption } from './setting';
 export { colors, tips, logger, lowdb, checkCommand, message } from './util';

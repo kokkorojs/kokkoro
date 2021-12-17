@@ -6,11 +6,10 @@ import { Client, createClient, Config, PrivateMessageEvent, GroupMessageEvent, D
 
 import { HELP_ALL } from './help';
 import plugin from './plugin';
+import { getUserLevel } from './util';
 import { getList, setOption, handleSetting } from './setting';
 import { getGlobalConfig, parseCommandline, handleConfig, addBot, cutBot } from './config';
 
-// 维护组 QQ
-const admin = [2225151531];
 // 所有机器人实例
 const all_bot: Map<number, Client> = new Map();
 
@@ -65,10 +64,10 @@ async function onMessage(this: Client, event: PrivateMessageEvent | GroupMessage
   const { message_type, raw_message } = event;
   const { user_level, prefix } = getUserLevel(event);
 
-  // 权限判断，群聊指令需要 level 4 以上，私聊指令需要 level 5 以上
+  // 权限判断，群聊指令需要 level 3 以上，私聊指令需要 level 5 以上
   switch (message_type) {
     case 'group':
-      if (user_level < 4 || !raw_message.startsWith(prefix)) return
+      if (user_level < 3 || !raw_message.startsWith(prefix)) return
       break;
     case 'private':
       if (user_level < 5 || !raw_message.startsWith(prefix)) return
@@ -93,57 +92,6 @@ async function onMessage(this: Client, event: PrivateMessageEvent | GroupMessage
 
   event.reply(message);
   this.logger.info(`处理完毕，指令回复: ${message}`);
-}
-
-//#endregion
-
-//#region getUserLevel
-
-/**
- * @description 获取成员等级
- * @param event 群消息事件对象
- * @returns 
- *   level 0 群成员（随活跃度提升）
- *   level 1 群成员（随活跃度提升）
- *   level 2 群成员（随活跃度提升）
- *   level 3 管  理
- *   level 4 群  主
- *   level 5 主  人
- *   level 6 维护组
- */
-function getUserLevel(event: any): { user_level: number, prefix: string } {
-  const { self_id, user_id, sender } = event;
-  const { level = 0, role = 'member' } = sender;
-  const { bots } = getGlobalConfig();
-  const { masters, prefix } = bots[self_id];
-
-  let user_level;
-
-  switch (true) {
-    case admin.includes(user_id):
-      user_level = 6
-      break;
-    case masters.includes(user_id):
-      user_level = 5
-      break;
-    case role === 'owner':
-      user_level = 4
-      break;
-    case role === 'admin':
-      user_level = 3
-      break;
-    case level > 4:
-      user_level = 2
-      break;
-    case level > 2:
-      user_level = 1
-      break;
-    default:
-      user_level = 0
-      break;
-  }
-
-  return { user_level, prefix }
 }
 
 //#endregion
