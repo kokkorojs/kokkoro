@@ -1,7 +1,7 @@
 {
   "name": "kokkoro-core",
   "version": "0.0.4",
-  "upday": "2021/12/16",
+  "upday": "2021/12/17",
   "description": "Core features for kokkoro.",
   "main": "./dist/index.js",
   "engines": {
@@ -23,6 +23,7 @@
     "url": "https://github.com/kokkorojs/kokkoro-core/issues"
   },
   "homepage": "https://github.com/kokkorojs/kokkoro-core#readme",
+  "changelogs": "https://github.com/kokkorojs/kokkoro-core/releases",
   "dependencies": {
     "lowdb": "^1.0.0",
     "oicq": "^2.1.4"

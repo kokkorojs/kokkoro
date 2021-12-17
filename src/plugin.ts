@@ -4,7 +4,7 @@ import { Dirent } from 'fs'
 import { writeFile, readdir, mkdir } from 'fs/promises'
 
 import { tips, logger } from './util'
-import { Group, Option, Setting } from '..'
+import { Option, Setting } from '..'
 import { getSetting } from './setting'
 
 // 所有插件实例
