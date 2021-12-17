@@ -11,10 +11,9 @@ const promises_1 = require("fs/promises");
 const oicq_1 = require("oicq");
 const help_1 = require("./help");
 const plugin_1 = __importDefault(require("./plugin"));
+const util_1 = require("./util");
 const setting_1 = require("./setting");
 const config_1 = require("./config");
-// 维护组 QQ
-const admin = [2225151531];
 // 所有机器人实例
 const all_bot = new Map();
 //#region broadcastOne
@@ -55,11 +54,11 @@ function broadcastAll(message) {
 async function onMessage(event) {
     let message;
     const { message_type, raw_message } = event;
-    const { user_level, prefix } = getUserLevel(event);
-    // 权限判断，群聊指令需要 level 4 以上，私聊指令需要 level 5 以上
+    const { user_level, prefix } = (0, util_1.getUserLevel)(event);
+    // 权限判断，群聊指令需要 level 3 以上，私聊指令需要 level 5 以上
     switch (message_type) {
         case 'group':
-            if (user_level < 4 || !raw_message.startsWith(prefix))
+            if (user_level < 3 || !raw_message.startsWith(prefix))
                 return;
             break;
         case 'private':
@@ -81,51 +80,6 @@ async function onMessage(event) {
     message = message || `Error：未知指令: ${cmd}`;
     event.reply(message);
     this.logger.info(`处理完毕，指令回复: ${message}`);
-}
-//#endregion
-//#region getUserLevel
-/**
- * @description 获取成员等级
- * @param event 群消息事件对象
- * @returns
- *   level 0 群成员（随活跃度提升）
- *   level 1 群成员（随活跃度提升）
- *   level 2 群成员（随活跃度提升）
- *   level 3 管  理
- *   level 4 群  主
- *   level 5 主  人
- *   level 6 维护组
- */
-function getUserLevel(event) {
-    const { self_id, user_id, sender } = event;
-    const { level = 0, role = 'member' } = sender;
-    const { bots } = (0, config_1.getGlobalConfig)();
-    const { masters, prefix } = bots[self_id];
-    let user_level;
-    switch (true) {
-        case admin.includes(user_id):
-            user_level = 6;
-            break;
-        case masters.includes(user_id):
-            user_level = 5;
-            break;
-        case role === 'owner':
-            user_level = 4;
-            break;
-        case role === 'admin':
-            user_level = 3;
-            break;
-        case level > 4:
-            user_level = 2;
-            break;
-        case level > 2:
-            user_level = 1;
-            break;
-        default:
-            user_level = 0;
-            break;
-    }
-    return { user_level, prefix };
 }
 //#endregion
 //#region loginBot
