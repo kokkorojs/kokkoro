@@ -1,7 +1,7 @@
 import { Config } from 'oicq';
 
 // 全局对象
-export declare global {
+declare global {
   // 当前进程目录
   var __workname: string;
 }
@@ -56,4 +56,16 @@ interface Setting {
   all_plugin: string[];
   // 群聊列表
   [group_id: number]: Group
+}
+
+declare module "oicq" {
+  export interface GroupMessageEvent {
+    self_id: number;
+  }
+  export interface PrivateMessageEvent {
+    self_id: number;
+  }
+  export interface DiscussMessageEvent {
+    self_id: number;
+  }
 }
