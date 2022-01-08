@@ -1,6 +1,4 @@
 import axios from 'axios';
-import low from 'lowdb';
-import FileSync from 'lowdb/adapters/FileSync';
 import { getLogger, Logger } from 'log4js';
 import { AtElem, FlashElem, ImageElem, segment } from 'oicq';
 
@@ -8,10 +6,6 @@ import { getGlobalConfig } from './config';
 
 // 维护组 QQ
 const admin = [2225151531];
-
-axios.defaults.timeout = 10000;
-
-//#region colorful
 
 /**
  * @description 控制台彩色打印
@@ -22,24 +16,45 @@ function colorful(code: number): Function {
   return (msg: string) => `\u001b[${code}m${msg}\u001b[0m`
 }
 
-//#endregion
-
 const colors = {
   red: colorful(31), green: colorful(32), yellow: colorful(33),
   blue: colorful(34), magenta: colorful(35), cyan: colorful(36), white: colorful(37),
 };
 
-const tips = {
-  info: colors.cyan('Info:'), error: colors.red('Error:'),
-  warn: colors.yellow('Warn:'), success: colors.green('Success:'),
-};
+/**
+ * @description 生成图片消息段（oicq 无法 catch 网络图片下载失败，所以单独处理）
+ * @param url - 图片 url
+ * @param flash - 是否闪图
+ * @returns - Promise
+ */
+function image(url: string, flash: boolean = false): Promise<ImageElem | FlashElem | string> {
+  return new Promise((resolve, reject) => {
+    // 判断是否为网络链接
+    if (!/^https?/g.test(url)) return resolve(!flash ? segment.image(`file:///${url}`) : segment.flash(`file:///${url}`));
+
+    axios.get(url, { responseType: 'arraybuffer', timeout: 5000, })
+      .then((response: any) => {
+        const image_base64: string = `base64://${Buffer.from(response.data, 'binary').toString('base64')}`;
+
+        resolve(!flash ? segment.image(image_base64) : segment.flash(image_base64));
+      })
+      .catch((error: Error) => {
+        reject(`Error: ${error.message}\n图片下载失败，地址:\n${url}`);
+      })
+  })
+}
 
 /**
- * 目前 lowdb 版本为 1.0.0 ，因为 2.x 开始就不再支持 commonjs ，node 对于 ems 的支持又不太友好 orz
- * 相关 README 说明: https://github.com/typicode/lowdb/blob/a0048766e75cec31c8d8b74ed44fc1a88284a493/README.md
+ * @description 生成 at 成员的消息段
+ * @param qq
+ * @returns
  */
-const lowdb = {
-  low, FileSync
+function at(qq: number): AtElem {
+  return segment.at(qq);
+}
+
+const message = {
+  image, at
 };
 
 // log4js
@@ -48,7 +63,7 @@ logger.level = 'all';
 
 /**
  * 校验指令
- * 
+ *
  * @param command - 指令对象
  * @param raw_message - 收到的消息
  * @returns - 返回 command 对象匹配的方法名
@@ -71,7 +86,7 @@ function checkCommand(command: { [key: string]: RegExp }, raw_message: string): 
 /**
  * @description 获取成员等级
  * @param event 群消息事件对象
- * @returns 
+ * @returns
  *   level 0 群成员（随活跃度提升）
  *   level 1 群成员（随活跃度提升）
  *   level 2 群成员（随活跃度提升）
@@ -80,7 +95,8 @@ function checkCommand(command: { [key: string]: RegExp }, raw_message: string): 
  *   level 5 主  人
  *   level 6 维护组
  */
-function getUserLevel(event: any): { user_level: number, prefix: string } {
+function getUserLevel(event: any) {
+  // event: PrivateMessageEvent | GroupMessageEvent | DiscussMessageEvent
   const { self_id, user_id, sender } = event;
   const { level = 0, role = 'member' } = sender;
   const { bots } = getGlobalConfig();
@@ -118,43 +134,20 @@ function getUserLevel(event: any): { user_level: number, prefix: string } {
 //#endregion
 
 /**
- * @description 生成图片消息段（oicq 无法 catch 网络图片下载失败，所以单独处理）
- * @param url - 图片 url
- * @param flash - 是否闪图
- * @returns - Promise
+ * @description 获取调用栈
+ * @returns - Array
  */
-function image(url: string, flash: boolean = false): Promise<ImageElem | FlashElem | string> {
-  return new Promise((resolve, reject) => {
-    // 判断是否为网络链接
-    if (!/^https?/g.test(url)) return resolve(!flash ? segment.image(`file:///${url}`) : segment.flash(`file:///${url}`));
+function getStack() {
+  const orig = Error.prepareStackTrace;
+  Error.prepareStackTrace = (_, stack) => stack;
 
-    axios.get(url, { responseType: 'arraybuffer' })
-      .then((response: any) => {
-        const image_base64: string = `base64://${Buffer.from(response.data, 'binary').toString('base64')}`;
+  const stack: NodeJS.CallSite[] = new Error().stack as any;
 
-        resolve(!flash ? segment.image(image_base64) : segment.flash(image_base64));
-      })
-      .catch((error: Error) => {
-        reject(`Error: ${error.message}\n图片下载失败，地址:\n${url}`);
-      })
-  })
-}
-
-/**
- * @description 生成 at 成员的消息段
- * @param qq 
- * @returns 
- */
-function at(qq: number): AtElem {
-  return segment.at(qq);
-}
-
-const message = {
-  image, at
+  Error.prepareStackTrace = orig;
+  return stack;
 };
 
 export {
-  colors, tips,
-  logger, lowdb, message,
-  checkCommand, getUserLevel,
+  logger, colors, message,
+  getUserLevel, getStack, checkCommand,
 }

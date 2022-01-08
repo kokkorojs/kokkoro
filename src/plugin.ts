@@ -1,28 +1,27 @@
-import { join } from 'path'
-import { Client, GroupInfo } from 'oicq'
-import { Dirent } from 'fs'
-import { writeFile, readdir, mkdir } from 'fs/promises'
+import { join } from 'path';
+import { Client, GroupInfo } from 'oicq';
+import { Dirent } from 'fs';
+import { writeFile, readdir, mkdir } from 'fs/promises';
 
-import { tips, logger } from './util'
-import { Option, Setting } from '..'
-import { getSetting } from './setting'
+import { logger } from './util';
+import { Option, Setting } from '..';
+import { getSetting } from './setting';
 
 // 所有插件实例
-const plugins = new Map<string, Plugin>()
-const { error } = tips;
+const all_plugin = new Map<string, Plugin>()
 
 class PluginError extends Error {
-  name = "PluginError";
+  name = "PluginError"
 }
 
 // #region Plugin 类
 class Plugin {
-  protected readonly fullpath: string;
+  protected readonly full_path: string;
   readonly option: Option;
   readonly binds = new Set<Client>();
 
   constructor(protected readonly name: string, protected readonly path: string) {
-    this.fullpath = require.resolve(this.path);
+    this.full_path = require.resolve(this.path);
     this.option = require(this.path).default_option;
   }
 
@@ -68,10 +67,10 @@ class Plugin {
       throw new PluginError("这个机器人实例已经启用了此插件");
     }
 
-    const mod = require.cache[this.fullpath];
+    const mod = require.cache[this.full_path];
 
     if (typeof mod?.exports.enable !== "function") {
-      throw new PluginError("此插件未导出 enable 方法，无法启用。");
+      throw new PluginError("此插件未导出 enable 方法，无法启用");
     }
 
     try {
@@ -82,7 +81,9 @@ class Plugin {
       await this._editBotPluginCache(bot, "add");
       this.binds.add(bot);
     } catch (error) {
-      throw new PluginError(`启用插件时遇到错误\n${error}`);
+      const { message } = error as Error;
+
+      throw new PluginError(`启用插件时遇到错误\n${message}`);
     }
   }
 
@@ -91,10 +92,10 @@ class Plugin {
       throw new PluginError(`这个机器人实例尚未启用此插件`);
     }
 
-    const mod = require.cache[this.fullpath];
+    const mod = require.cache[this.full_path];
 
     if (typeof mod?.exports.disable !== "function") {
-      throw new PluginError(`此插件未导出 disable 方法，无法禁用。`);
+      throw new PluginError(`此插件未导出 disable 方法，无法禁用`);
     }
     try {
       const res = mod?.exports.disable(bot);
@@ -106,12 +107,12 @@ class Plugin {
     } catch (error) {
       const { message } = error as Error;
 
-      throw new PluginError(`禁用插件时遇到错误\n${error} ${message}`)
+      throw new PluginError(`禁用插件时遇到错误\n${message}`)
     }
   }
 
   async goDie() {
-    const mod = require.cache[this.fullpath] as NodeModule;
+    const mod = require.cache[this.full_path] as NodeJS.Module;
 
     try {
       for (let bot of this.binds) {
@@ -132,7 +133,7 @@ class Plugin {
       if (require.cache[fullpath]?.id.startsWith(mod.path)) delete require.cache[fullpath];
     }
 
-    delete require.cache[this.fullpath];
+    delete require.cache[this.full_path];
   }
 
   async restart() {
@@ -146,7 +147,7 @@ class Plugin {
     } catch (error) {
       const { message } = error as Error;
 
-      throw new PluginError(`重启插件时遇到错误\n${error} ${message}`);
+      throw new PluginError(`重启插件时遇到错误\n${message}`);
     }
   }
 }
@@ -160,16 +161,17 @@ class Plugin {
  */
 async function importPlugin(name: string): Promise<Plugin> {
   // 加载本地插件
-  if (plugins.has(name)) return plugins.get(name) as Plugin
+  if (all_plugin.has(name)) return all_plugin.get(name) as Plugin
 
   let resolved = "";
   const files = await readdir(join(__workname, '/plugins'), { withFileTypes: true });
 
   for (let file of files) {
-    if ((file.isDirectory() || file.isSymbolicLink()) && file.name === name) {
+    if ((file.isDirectory() || file.isSymbolicLink()) && file.name === name || file.name === "kokkoro-" + name) {
       resolved = join(__workname, '/plugins', name);
     }
   }
+
   // 加载 npm 插件
   if (!resolved) {
     const modules = await readdir(join(__workname, '/node_modules'), { withFileTypes: true });
@@ -186,12 +188,12 @@ async function importPlugin(name: string): Promise<Plugin> {
   try {
     const plugin = new Plugin(name, resolved);
 
-    plugins.set(name, plugin);
+    all_plugin.set(name, plugin);
     return plugin
   } catch (error) {
     const { message } = error as Error;
 
-    throw new PluginError(`导入插件失败，不合法的 package\n${error} ${message}`);
+    throw new PluginError(`导入插件失败，不合法的 package\n${message}`);
   }
 }
 // #endregion
@@ -202,11 +204,11 @@ async function importPlugin(name: string): Promise<Plugin> {
  * @returns - Plugin 对象
  */
 function checkImported(name: string): Plugin {
-  if (!plugins.has(name)) {
-    throw new PluginError("尚未安装此插件")
+  if (!all_plugin.has(name)) {
+    throw new PluginError('尚未启用此插件')
   }
 
-  return plugins.get(name) as Plugin
+  return all_plugin.get(name) as Plugin
 }
 // #endregion
 
@@ -218,7 +220,7 @@ function checkImported(name: string): Plugin {
 async function deletePlugin(name: string): Promise<void> {
   await checkImported(name).goDie();
 
-  plugins.delete(name);
+  all_plugin.delete(name);
 }
 // #endregion
 
@@ -263,8 +265,8 @@ function disable(name: string, bot: Client): Promise<void> {
  * @param bot - bot 实例
  * @returns - void
  */
-async function disableAll(bot: Client): Promise<void> {
-  for (let [_, plugin] of plugins) {
+async function disableAllPlugin(bot: Client): Promise<void> {
+  for (let [_, plugin] of all_plugin) {
     try {
       await plugin.disable(bot);
     } catch { }
@@ -313,7 +315,7 @@ async function findAllPlugins() {
   }
 
   return {
-    plugin_modules, node_modules, plugins
+    plugin_modules, node_modules, all_plugin,
   }
 }
 // #endregion
@@ -343,10 +345,10 @@ async function restorePlugins(bot: Client): Promise<Map<string, Plugin>> {
     }
   } catch { }
 
-  return plugins
+  return all_plugin;
 }
 // #endregion
 
 export default {
-  deletePlugin, restartPlugin, enable, disable, disableAll, findAllPlugins, restorePlugins
+  deletePlugin, restartPlugin, enable, disable, disableAllPlugin, findAllPlugins, restorePlugins,
 }

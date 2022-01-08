@@ -1,26 +1,19 @@
 import { resolve } from 'path';
 import { writeFile } from 'fs/promises';
+import { PrivateMessageEvent } from 'oicq';
 
 import { GlobalConfig } from '..';
-import { Config } from 'oicq';
+import { parseCommand } from './command';
 
 const config_path = resolve(__workname, 'kkrconfig.json');
 const global_config: GlobalConfig = require(config_path);
 
-function setGlobalConfig() {
+async function setGlobalConfig() {
   return writeFile(config_path, `${JSON.stringify(global_config, null, 2)}`);
 }
 
 function getGlobalConfig() {
   return global_config;
-}
-
-function parseCommandline(commandline: string) {
-  const [cmd, ...params] = commandline.split(' ');
-
-  return {
-    cmd, params
-  }
 }
 
 async function addBot(uin: number, master: number) {
@@ -37,142 +30,35 @@ async function addBot(uin: number, master: number) {
     }
   }
 
-  await setGlobalConfig();
+  return setGlobalConfig();
 }
 
 async function cutBot(uin: number) {
   const { bots } = global_config;
 
   delete bots[uin];
-  await setGlobalConfig();
+  return setGlobalConfig();
 }
 
-async function openAutoLogin(self_id: number) {
-  global_config.bots[self_id].auto_login = true;
+async function configHanders(params: ReturnType<typeof parseCommand>['params'], event: PrivateMessageEvent): Promise<string> {
+  const { self_id } = event;
+  let message: string;
 
-  await setGlobalConfig();
-  return `Success: 已开启账号自动登录`;
-}
+  switch (true) {
+    case !params.length:
+      const config = `${self_id}: ${JSON.stringify(global_config.bots[self_id], null, 2)}`;
 
-async function closeAutoLogin(self_id: number) {
-  global_config.bots[self_id].auto_login = false;
+      message = config;
+      break;
 
-  await setGlobalConfig();
-  return `Success: 已关闭账号自动登录`;
-}
-
-async function addMaster(uin: number, self_id: number) {
-  const { masters } = global_config.bots[self_id];
-
-  if (!masters.includes(uin)) {
-    masters.push(uin);
-
-    await setGlobalConfig();
-  }
-  return `Success：当前 master 列表：${masters}`;
-}
-
-async function deleteMaster(uin: number, self_id: number) {
-  const { masters } = global_config.bots[self_id];
-
-  if (!masters.includes(uin)) {
-    return `Error: ${uin} is not defined`;
+    default:
+      message = `Error: 未知参数：${params[0]}`;
+      break;
   }
 
-  const isMaster = (master: number) => master === uin;
-  const index = masters.findIndex(isMaster);
-
-  masters.splice(index, 1);
-
-  await setGlobalConfig();
-  return `Success: 当前 master 列表：${masters}`;
-}
-
-async function setPrefix(prefix: string, self_id: number) {
-  if (prefix) {
-    const { prefix: old_prefix } = global_config.bots[self_id];
-    global_config.bots[self_id].prefix = prefix;
-
-    await setGlobalConfig();
-    return `Success: prefix '${old_prefix}' >>> '${prefix}'`;
-  } else {
-    return `Error: prefix 至少需要一个字符`;
-  }
-}
-
-async function setPlatform(platform: number, self_id: number) {
-  const params = [1, 2, 3, 4, 5];
-
-  if (!params.includes(platform)) return `Error: platform 的合法值为:\n\t[${params.join(', ')}]`
-
-  const { config } = global_config.bots[self_id];
-  const { platform: old_platform } = config;
-
-  global_config.bots[self_id].config.platform = platform;
-
-  await setGlobalConfig();
-  return `Success: platform ${old_platform} >>> ${platform}`
-}
-
-async function setLogLevel(log_level: Config['log_level'], self_id: number) {
-  const params = ['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'mark', 'off', undefined];
-
-  if (!params.includes(log_level)) return `Error: platform 的合法值为:\n\t[${params.join(', ')}]`
-
-  const { config } = global_config.bots[self_id];
-  const { log_level: old_log_level } = config;
-  global_config.bots[self_id].config.log_level = log_level;
-
-  await setGlobalConfig();
-  return `Success: log_level '${old_log_level}' >>> '${log_level}'`
-}
-
-async function handleConfig(params: ReturnType<typeof parseCommandline>['params'], self_id: number) {
-  if (!params[0]) return `${self_id}: ${JSON.stringify(global_config.bots[self_id], null, 2)}`
-
-  let ret: string;
-  try {
-    switch (params[0]) {
-      case 'opn-al':
-        ret = await openAutoLogin(self_id);
-        break;
-
-      case 'cls-al':
-        ret = await closeAutoLogin(self_id);
-        break;
-
-      case 'add-mst':
-        ret = await addMaster(Number(params[1]), self_id);
-        break;
-
-      case 'del-mst':
-        ret = await deleteMaster(Number(params[1]), self_id);
-        break;
-
-      case 'prefix':
-        ret = await setPrefix(params[1], self_id);
-        break;
-
-      case 'platform':
-        ret = await setPlatform(Number(params[1]), self_id);
-        break;
-
-      case 'log_level':
-        ret = await setLogLevel(params[1] as Config['log_level'], self_id);
-        break;
-
-      default:
-        ret = `Error: 未知参数：${params[0]}`;
-        break;
-    }
-  } catch {
-    ret = 'Error: kkrconfig.json 写入失败，请检查是否被其它程序占用';
-  }
-
-  return ret;
+  return message;
 }
 
 export {
-  addBot, cutBot,
-  getGlobalConfig, parseCommandline, handleConfig,
+  configHanders, getGlobalConfig, addBot, cutBot,
 }

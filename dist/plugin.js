@@ -5,8 +5,7 @@ const promises_1 = require("fs/promises");
 const util_1 = require("./util");
 const setting_1 = require("./setting");
 // 所有插件实例
-const plugins = new Map();
-const { error } = util_1.tips;
+const all_plugin = new Map();
 class PluginError extends Error {
     constructor() {
         super(...arguments);
@@ -19,7 +18,7 @@ class Plugin {
         this.name = name;
         this.path = path;
         this.binds = new Set();
-        this.fullpath = require.resolve(this.path);
+        this.full_path = require.resolve(this.path);
         this.option = require(this.path).default_option;
     }
     async _editBotPluginCache(bot, method) {
@@ -52,9 +51,9 @@ class Plugin {
         if (this.binds.has(bot)) {
             throw new PluginError("这个机器人实例已经启用了此插件");
         }
-        const mod = require.cache[this.fullpath];
+        const mod = require.cache[this.full_path];
         if (typeof mod?.exports.enable !== "function") {
-            throw new PluginError("此插件未导出 enable 方法，无法启用。");
+            throw new PluginError("此插件未导出 enable 方法，无法启用");
         }
         try {
             const res = mod?.exports.enable(bot);
@@ -64,16 +63,17 @@ class Plugin {
             this.binds.add(bot);
         }
         catch (error) {
-            throw new PluginError(`启用插件时遇到错误\n${error}`);
+            const { message } = error;
+            throw new PluginError(`启用插件时遇到错误\n${message}`);
         }
     }
     async disable(bot) {
         if (!this.binds.has(bot)) {
             throw new PluginError(`这个机器人实例尚未启用此插件`);
         }
-        const mod = require.cache[this.fullpath];
+        const mod = require.cache[this.full_path];
         if (typeof mod?.exports.disable !== "function") {
-            throw new PluginError(`此插件未导出 disable 方法，无法禁用。`);
+            throw new PluginError(`此插件未导出 disable 方法，无法禁用`);
         }
         try {
             const res = mod?.exports.disable(bot);
@@ -84,11 +84,11 @@ class Plugin {
         }
         catch (error) {
             const { message } = error;
-            throw new PluginError(`禁用插件时遇到错误\n${error} ${message}`);
+            throw new PluginError(`禁用插件时遇到错误\n${message}`);
         }
     }
     async goDie() {
-        const mod = require.cache[this.fullpath];
+        const mod = require.cache[this.full_path];
         try {
             for (let bot of this.binds) {
                 await this.disable(bot);
@@ -107,7 +107,7 @@ class Plugin {
             if (require.cache[fullpath]?.id.startsWith(mod.path))
                 delete require.cache[fullpath];
         }
-        delete require.cache[this.fullpath];
+        delete require.cache[this.full_path];
     }
     async restart() {
         try {
@@ -119,7 +119,7 @@ class Plugin {
         }
         catch (error) {
             const { message } = error;
-            throw new PluginError(`重启插件时遇到错误\n${error} ${message}`);
+            throw new PluginError(`重启插件时遇到错误\n${message}`);
         }
     }
 }
@@ -132,12 +132,12 @@ class Plugin {
  */
 async function importPlugin(name) {
     // 加载本地插件
-    if (plugins.has(name))
-        return plugins.get(name);
+    if (all_plugin.has(name))
+        return all_plugin.get(name);
     let resolved = "";
     const files = await (0, promises_1.readdir)((0, path_1.join)(__workname, '/plugins'), { withFileTypes: true });
     for (let file of files) {
-        if ((file.isDirectory() || file.isSymbolicLink()) && file.name === name) {
+        if ((file.isDirectory() || file.isSymbolicLink()) && file.name === name || file.name === "kokkoro-" + name) {
             resolved = (0, path_1.join)(__workname, '/plugins', name);
         }
     }
@@ -154,12 +154,12 @@ async function importPlugin(name) {
         throw new PluginError(`插件名错误，无法找到此插件`);
     try {
         const plugin = new Plugin(name, resolved);
-        plugins.set(name, plugin);
+        all_plugin.set(name, plugin);
         return plugin;
     }
     catch (error) {
         const { message } = error;
-        throw new PluginError(`导入插件失败，不合法的 package\n${error} ${message}`);
+        throw new PluginError(`导入插件失败，不合法的 package\n${message}`);
     }
 }
 // #endregion
@@ -169,10 +169,10 @@ async function importPlugin(name) {
  * @returns - Plugin 对象
  */
 function checkImported(name) {
-    if (!plugins.has(name)) {
-        throw new PluginError("尚未安装此插件");
+    if (!all_plugin.has(name)) {
+        throw new PluginError('尚未启用此插件');
     }
-    return plugins.get(name);
+    return all_plugin.get(name);
 }
 // #endregion
 // #region 卸载插件
@@ -182,7 +182,7 @@ function checkImported(name) {
  */
 async function deletePlugin(name) {
     await checkImported(name).goDie();
-    plugins.delete(name);
+    all_plugin.delete(name);
 }
 // #endregion
 // #region 重启插件
@@ -222,8 +222,8 @@ function disable(name, bot) {
  * @param bot - bot 实例
  * @returns - void
  */
-async function disableAll(bot) {
-    for (let [_, plugin] of plugins) {
+async function disableAllPlugin(bot) {
+    for (let [_, plugin] of all_plugin) {
         try {
             await plugin.disable(bot);
         }
@@ -271,7 +271,7 @@ async function findAllPlugins() {
         }
     }
     return {
-        plugin_modules, node_modules, plugins
+        plugin_modules, node_modules, all_plugin,
     };
 }
 // #endregion
@@ -297,9 +297,9 @@ async function restorePlugins(bot) {
         }
     }
     catch { }
-    return plugins;
+    return all_plugin;
 }
 // #endregion
 exports.default = {
-    deletePlugin, restartPlugin, enable, disable, disableAll, findAllPlugins, restorePlugins
+    deletePlugin, restartPlugin, enable, disable, disableAllPlugin, findAllPlugins, restorePlugins,
 };
