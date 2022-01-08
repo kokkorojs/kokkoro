@@ -1,7 +1,7 @@
 {
   "name": "kokkoro-core",
-  "version": "0.0.4",
-  "upday": "2021/12/17",
+  "version": "0.1.0",
+  "upday": "2022/1/8",
   "description": "Core features for kokkoro.",
   "main": "./dist/index.js",
   "engines": {
@@ -17,7 +17,7 @@
   "keywords": [
     "kokkoro"
   ],
-  "author": "rumicchi",
+  "author": "dc_yuki",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/kokkorojs/kokkoro-core/issues"
@@ -25,11 +25,9 @@
   "homepage": "https://github.com/kokkorojs/kokkoro-core#readme",
   "changelogs": "https://github.com/kokkorojs/kokkoro-core/releases",
   "dependencies": {
-    "lowdb": "^1.0.0",
-    "oicq": "^2.1.4"
+    "oicq": "^2.1.9"
   },
   "devDependencies": {
-    "@types/lowdb": "^1.0.11",
     "@types/node": "^16.11.11"
   }
 }
