@@ -3,17 +3,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getUserLevel = exports.checkCommand = exports.message = exports.lowdb = exports.logger = exports.tips = exports.colors = void 0;
+exports.checkCommand = exports.getStack = exports.getUserLevel = exports.message = exports.colors = exports.logger = void 0;
 const axios_1 = __importDefault(require("axios"));
-const lowdb_1 = __importDefault(require("lowdb"));
-const FileSync_1 = __importDefault(require("lowdb/adapters/FileSync"));
 const log4js_1 = require("log4js");
 const oicq_1 = require("oicq");
 const config_1 = require("./config");
 // 维护组 QQ
 const admin = [2225151531];
-axios_1.default.defaults.timeout = 10000;
-//#region colorful
 /**
  * @description 控制台彩色打印
  * @param code - ANSI escape code
@@ -22,25 +18,44 @@ axios_1.default.defaults.timeout = 10000;
 function colorful(code) {
     return (msg) => `\u001b[${code}m${msg}\u001b[0m`;
 }
-//#endregion
 const colors = {
     red: colorful(31), green: colorful(32), yellow: colorful(33),
     blue: colorful(34), magenta: colorful(35), cyan: colorful(36), white: colorful(37),
 };
 exports.colors = colors;
-const tips = {
-    info: colors.cyan('Info:'), error: colors.red('Error:'),
-    warn: colors.yellow('Warn:'), success: colors.green('Success:'),
-};
-exports.tips = tips;
 /**
- * 目前 lowdb 版本为 1.0.0 ，因为 2.x 开始就不再支持 commonjs ，node 对于 ems 的支持又不太友好 orz
- * 相关 README 说明: https://github.com/typicode/lowdb/blob/a0048766e75cec31c8d8b74ed44fc1a88284a493/README.md
+ * @description 生成图片消息段（oicq 无法 catch 网络图片下载失败，所以单独处理）
+ * @param url - 图片 url
+ * @param flash - 是否闪图
+ * @returns - Promise
  */
-const lowdb = {
-    low: lowdb_1.default, FileSync: FileSync_1.default
+function image(url, flash = false) {
+    return new Promise((resolve, reject) => {
+        // 判断是否为网络链接
+        if (!/^https?/g.test(url))
+            return resolve(!flash ? oicq_1.segment.image(`file:///${url}`) : oicq_1.segment.flash(`file:///${url}`));
+        axios_1.default.get(url, { responseType: 'arraybuffer', timeout: 5000, })
+            .then((response) => {
+            const image_base64 = `base64://${Buffer.from(response.data, 'binary').toString('base64')}`;
+            resolve(!flash ? oicq_1.segment.image(image_base64) : oicq_1.segment.flash(image_base64));
+        })
+            .catch((error) => {
+            reject(`Error: ${error.message}\n图片下载失败，地址:\n${url}`);
+        });
+    });
+}
+/**
+ * @description 生成 at 成员的消息段
+ * @param qq
+ * @returns
+ */
+function at(qq) {
+    return oicq_1.segment.at(qq);
+}
+const message = {
+    image, at
 };
-exports.lowdb = lowdb;
+exports.message = message;
 // log4js
 const logger = (0, log4js_1.getLogger)('[kokkoro log]');
 exports.logger = logger;
@@ -77,6 +92,7 @@ exports.checkCommand = checkCommand;
  *   level 6 维护组
  */
 function getUserLevel(event) {
+    // event: PrivateMessageEvent | GroupMessageEvent | DiscussMessageEvent
     const { self_id, user_id, sender } = event;
     const { level = 0, role = 'member' } = sender;
     const { bots } = (0, config_1.getGlobalConfig)();
@@ -110,35 +126,15 @@ function getUserLevel(event) {
 exports.getUserLevel = getUserLevel;
 //#endregion
 /**
- * @description 生成图片消息段（oicq 无法 catch 网络图片下载失败，所以单独处理）
- * @param url - 图片 url
- * @param flash - 是否闪图
- * @returns - Promise
+ * @description 获取调用栈
+ * @returns - Array
  */
-function image(url, flash = false) {
-    return new Promise((resolve, reject) => {
-        // 判断是否为网络链接
-        if (!/^https?/g.test(url))
-            return resolve(!flash ? oicq_1.segment.image(`file:///${url}`) : oicq_1.segment.flash(`file:///${url}`));
-        axios_1.default.get(url, { responseType: 'arraybuffer' })
-            .then((response) => {
-            const image_base64 = `base64://${Buffer.from(response.data, 'binary').toString('base64')}`;
-            resolve(!flash ? oicq_1.segment.image(image_base64) : oicq_1.segment.flash(image_base64));
-        })
-            .catch((error) => {
-            reject(`Error: ${error.message}\n图片下载失败，地址:\n${url}`);
-        });
-    });
+function getStack() {
+    const orig = Error.prepareStackTrace;
+    Error.prepareStackTrace = (_, stack) => stack;
+    const stack = new Error().stack;
+    Error.prepareStackTrace = orig;
+    return stack;
 }
-/**
- * @description 生成 at 成员的消息段
- * @param qq
- * @returns
- */
-function at(qq) {
-    return oicq_1.segment.at(qq);
-}
-const message = {
-    image, at
-};
-exports.message = message;
+exports.getStack = getStack;
+;
