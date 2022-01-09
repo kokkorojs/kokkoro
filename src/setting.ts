@@ -68,9 +68,10 @@ function getOption(event: GroupMessageEvent) {
 
 // #dregion 获取当前插件的群聊选项
 async function setOption(params: ReturnType<typeof parseCommand>['params'], event: GroupMessageEvent) {
-  const [plugin_name, option_name, value] = params;
-
   let message;
+  let new_value: string | number | boolean | any[];
+
+  const [plugin_name, option_name, value] = params;
 
   switch (true) {
     case !plugin_name:
@@ -93,28 +94,50 @@ async function setOption(params: ReturnType<typeof parseCommand>['params'], even
   const setting = all_setting.get(self_id) as Setting;
   const option = setting[group_id].plugin[plugin_name] || {};
   const plugin = setting[group_id].plugin;
+  const old_value = plugin[plugin_name][option_name];
 
-  if (Object.keys(option).includes(option_name)) {
-    switch (true) {
-      case ['true', 'false'].includes(value):
-        setting[group_id].plugin[plugin_name][option_name] = value === 'true';
-        break;
+  switch (true) {
+    case ['true', 'false'].includes(value):
+      new_value = value === 'true';
+      break;
 
-      case !isNaN(value as any):
-        setting[group_id].plugin[plugin_name][option_name] = Number(value);
-        break;
+    case /^(-?[1-9]\d*|0)$/.test(value):
+      new_value = Number(value);
+      break;
 
-      default:
-        setting[group_id].plugin[plugin_name][option_name] = value;
-        break;
-    }
-    all_setting.set(self_id, setting);
-
-    await setSetting(self_id);
-    return `${plugin_name} {\n  ${option_name}: ${value}\n}`;
-  } else {
-    return `Error: ${plugin[plugin_name] ? option_name : plugin_name} is not defined`;
+    default:
+      new_value = value;
+      break;
   }
+
+  // 校验参数是否合法
+  switch (true) {
+    case !Array.isArray(old_value) && typeof old_value !== typeof new_value:
+      message = `Error: ${plugin_name}.${option_name} 应为 ${typeof old_value} 类型`;
+      break;
+
+    case Array.isArray(old_value) && !old_value.includes(new_value):
+      message = `Error: 属性 ${option_name} 的合法值为 [${old_value.join(', ')}]`;
+      break;
+  }
+
+  if (message) {
+    return message;
+  }
+
+  if (!Object.keys(option).includes(option_name)) {
+    return `Error: ${option_name} is not defined`;
+  }
+
+  if (Array.isArray(old_value)) {
+    new_value = old_value.sort(i => i === new_value ? -1 : 0)
+  }
+
+  setting[group_id].plugin[plugin_name][option_name] = new_value;
+  all_setting.set(self_id, setting);
+
+  await setSetting(self_id);
+  return `${plugin_name}: {\n  ${option_name}: ${!Array.isArray(new_value) ? new_value : `[${new_value.join(', ')}]`}\n}`;
 }
 // #endregion
 
@@ -143,7 +166,7 @@ async function settingHanders(params: ReturnType<typeof parseCommand>['params'],
       break;
 
     default:
-      message = `Error: 未知参数：${params[0]}`;
+      message = `Error: 未知参数 "${params[0]}"`;
       break;
   }
 

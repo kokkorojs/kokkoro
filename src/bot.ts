@@ -269,7 +269,7 @@ async function onMessage(this: Client, event: PrivateMessageEvent | GroupMessage
     message = await commandHanders[type][cmd].call(this, params, event);
   }
 
-  message ||= `Error：未知指令: ${cmd}`;
+  message ||= `Error：未知指令 "${cmd}"`;
 
   event.reply(message);
   this.logger.info(`处理完毕，指令回复: ${message}`);
