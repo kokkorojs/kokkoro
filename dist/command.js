@@ -159,7 +159,7 @@ commandHanders.private = {
                     msg = '重启插件成功';
                     break;
                 default:
-                    throw new Error(`未知参数：${cmd}`);
+                    throw new Error(`未知参数 "${cmd}"`);
             }
             return `Success: ${msg}`;
         }
@@ -266,7 +266,7 @@ commandHanders.private = {
             return `Sucess：已删除此机器人实例`;
         }
         else {
-            return `Error：未知参数：${cmd}`;
+            return `Error：未知参数 "${cmd}"`;
         }
     }
     //#endregion
@@ -274,7 +274,7 @@ commandHanders.private = {
 // 添加插件
 async function addPluginHanders() {
     const { plugin_modules, node_modules } = await plugin_1.default.findAllPlugins();
-    for (const plugin_name of [...plugin_modules, ...node_modules]) {
+    for (const plugin_name of [...plugin_modules, ...node_modules.map(i => i.replace('kokkoro-', ''))]) {
         commandHanders.group[plugin_name] = async (params, event, plugin = plugin_name) => {
             return (0, setting_1.setOption)([plugin, ...params], event);
         };
