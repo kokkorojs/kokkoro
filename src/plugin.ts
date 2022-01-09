@@ -47,7 +47,7 @@ class Plugin {
 
       const default_option: Option = {
         lock: false,
-        switch: true
+        switch: true,
       }
 
       Object.assign(
