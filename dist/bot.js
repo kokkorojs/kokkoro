@@ -227,7 +227,7 @@ async function onMessage(event) {
         }
         message = await command_1.commandHanders[type][cmd].call(this, params, event);
     }
-    message || (message = `Error：未知指令: ${cmd}`);
+    message || (message = `Error：未知指令 "${cmd}"`);
     event.reply(message);
     this.logger.info(`处理完毕，指令回复: ${message}`);
 }

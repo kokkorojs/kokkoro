@@ -52,7 +52,7 @@ async function configHanders(params: ReturnType<typeof parseCommand>['params'], 
       break;
 
     default:
-      message = `Error: 未知参数：${params[0]}`;
+      message = `Error: 未知参数 "${params[0]}"`;
       break;
   }
 

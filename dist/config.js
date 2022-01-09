@@ -42,7 +42,7 @@ async function configHanders(params, event) {
             message = config;
             break;
         default:
-            message = `Error: 未知参数：${params[0]}`;
+            message = `Error: 未知参数 "${params[0]}"`;
             break;
     }
     return message;
