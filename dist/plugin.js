@@ -40,7 +40,7 @@ class Plugin {
             }
             const default_option = {
                 lock: false,
-                switch: true
+                switch: true,
             };
             Object.assign(default_option, this.option, setting[group_id] ? setting[group_id].plugin[this.name] : {});
             setting[group_id].plugin[this.name] = default_option;

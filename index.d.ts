@@ -48,7 +48,7 @@ interface Option {
   // 插件开关
   switch: boolean;
   // 其它设置
-  [param: string]: string | number | boolean;
+  [param: string]: string | number | boolean | Array;
 }
 
 interface Setting {

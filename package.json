@@ -1,7 +1,7 @@
 {
   "name": "kokkoro-core",
-  "version": "0.1.0",
-  "upday": "2022/1/8",
+  "version": "0.1.1",
+  "upday": "2022/1/9",
   "description": "Core features for kokkoro.",
   "main": "./dist/index.js",
   "engines": {
