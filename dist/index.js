@@ -1,11 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getUserLevel = exports.checkCommand = exports.message = exports.logger = exports.colors = exports.getOption = exports.linkStart = void 0;
+exports.getUserLevel = exports.checkCommand = exports.message = exports.logger = exports.colors = exports.getSetting = exports.getOption = exports.linkStart = void 0;
 global.__workname = process.cwd();
 var bot_1 = require("./bot");
 Object.defineProperty(exports, "linkStart", { enumerable: true, get: function () { return bot_1.linkStart; } });
 var setting_1 = require("./setting");
 Object.defineProperty(exports, "getOption", { enumerable: true, get: function () { return setting_1.getOption; } });
+Object.defineProperty(exports, "getSetting", { enumerable: true, get: function () { return setting_1.getSetting; } });
 var util_1 = require("./util");
 Object.defineProperty(exports, "colors", { enumerable: true, get: function () { return util_1.colors; } });
 Object.defineProperty(exports, "logger", { enumerable: true, get: function () { return util_1.logger; } });

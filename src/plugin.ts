@@ -5,7 +5,7 @@ import { writeFile, readdir, mkdir } from 'fs/promises';
 
 import { logger } from './util';
 import { Option, Setting } from '..';
-import { getSetting } from './setting';
+import { getAllSetting, getSetting, setSetting } from './setting';
 
 // 所有插件实例
 const all_plugin = new Map<string, Plugin>()
@@ -26,16 +26,16 @@ class Plugin {
   }
 
   protected async _editBotPluginCache(bot: Client, method: 'add' | 'delete') {
-    const setting = getSetting(bot.uin) as Setting;
+    const { gl, uin } = bot;
+
+    const all_setting = getAllSetting();
+    const setting = all_setting.get(uin) || { all_plugin: [] };
     const set: Set<string> = new Set(setting.all_plugin);
-    const setting_path = join(bot.dir, 'setting.json');
 
     set[method](this.name);
     setting.all_plugin = [...set];
 
     // 写入群配置
-    const { gl } = bot;
-
     gl.forEach((value: GroupInfo, group_id: number) => {
       if (!setting[group_id]) {
         setting[group_id] = {
@@ -47,7 +47,7 @@ class Plugin {
 
       const default_option: Option = {
         lock: false,
-        switch: true,
+        apply: true,
       }
 
       Object.assign(
@@ -59,7 +59,8 @@ class Plugin {
       setting[group_id].plugin[this.name] = default_option;
     });
 
-    return writeFile(setting_path, `${JSON.stringify(setting, null, 2)}`);
+    all_setting.set(uin, setting);
+    return setSetting(uin);
   }
 
   async enable(bot: Client) {

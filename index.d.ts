@@ -46,7 +46,7 @@ interface Option {
   // 插件锁定
   lock: boolean;
   // 插件开关
-  switch: boolean;
+  apply: boolean;
   // 其它设置
   [param: string]: string | number | boolean | Array;
 }

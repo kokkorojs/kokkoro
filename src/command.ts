@@ -99,7 +99,6 @@ commandHanders.private = {
 
     try {
       await plugin.enable(name, bot);
-
       return `${bot.nickname} (${uin}) 启用插件成功`;
     } catch (error: any) {
       return error.message;
