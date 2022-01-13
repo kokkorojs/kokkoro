@@ -34,13 +34,13 @@ const all_setting: Map<number, Setting> = new Map();
 
 //#region 获取所有群聊插件设置
 function getAllSetting() {
-  return all_setting
+  return all_setting;
 }
 //#endregion
 
 //#region 获取当前群聊插件设置
 function getSetting(uin: number) {
-  return all_setting.get(uin)
+  return all_setting.has(uin) ? all_setting.get(uin) : {};
 }
 
 //#region 写入群聊插件设置
@@ -147,7 +147,7 @@ async function getList(event: GroupMessageEvent): Promise<string> {
   const { plugin } = all_setting.get(self_id)?.[group_id] || { plugin: {} };
   const message = ['// 如要查看更多信息可输入 >setting\n"list": {'];
 
-  for (const key in plugin) message.push(`  "${key}": ${plugin[key].switch}`);
+  for (const key in plugin) message.push(`  "${key}": ${plugin[key].apply}`);
 
   message.push('}');
   return message.join('\n');
@@ -173,5 +173,5 @@ async function settingHanders(params: ReturnType<typeof parseCommand>['params'],
   return message;
 }
 export {
-  getSetting, getAllSetting, getList, getOption, setOption, settingHanders,
+  setSetting, getSetting, getAllSetting, getList, getOption, setOption, settingHanders,
 }
