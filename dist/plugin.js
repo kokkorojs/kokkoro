@@ -22,13 +22,13 @@ class Plugin {
         this.option = require(this.path).default_option;
     }
     async _editBotPluginCache(bot, method) {
-        const setting = (0, setting_1.getSetting)(bot.uin);
+        const { gl, uin } = bot;
+        const all_setting = (0, setting_1.getAllSetting)();
+        const setting = all_setting.get(uin) || { all_plugin: [] };
         const set = new Set(setting.all_plugin);
-        const setting_path = (0, path_1.join)(bot.dir, 'setting.json');
         set[method](this.name);
         setting.all_plugin = [...set];
         // 写入群配置
-        const { gl } = bot;
         gl.forEach((value, group_id) => {
             if (!setting[group_id]) {
                 setting[group_id] = {
@@ -40,12 +40,13 @@ class Plugin {
             }
             const default_option = {
                 lock: false,
-                switch: true,
+                apply: true,
             };
             Object.assign(default_option, this.option, setting[group_id] ? setting[group_id].plugin[this.name] : {});
             setting[group_id].plugin[this.name] = default_option;
         });
-        return (0, promises_1.writeFile)(setting_path, `${JSON.stringify(setting, null, 2)}`);
+        all_setting.set(uin, setting);
+        return (0, setting_1.setSetting)(uin);
     }
     async enable(bot) {
         if (this.binds.has(bot)) {
