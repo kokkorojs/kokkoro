@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.settingHanders = exports.setOption = exports.getOption = exports.getList = exports.getAllSetting = exports.getSetting = void 0;
+exports.settingHanders = exports.setOption = exports.getOption = exports.getList = exports.getAllSetting = exports.getSetting = exports.setSetting = void 0;
 const path_1 = require("path");
 const fs_1 = require("fs");
 const promises_1 = require("fs/promises");
@@ -35,7 +35,7 @@ exports.getAllSetting = getAllSetting;
 //#endregion
 //#region 获取当前群聊插件设置
 function getSetting(uin) {
-    return all_setting.get(uin);
+    return all_setting.has(uin) ? all_setting.get(uin) : {};
 }
 exports.getSetting = getSetting;
 //#region 写入群聊插件设置
@@ -44,6 +44,7 @@ function setSetting(uin) {
     const setting = all_setting.get(uin);
     return (0, promises_1.writeFile)(setting_path, `${JSON.stringify(setting, null, 2)}`);
 }
+exports.setSetting = setSetting;
 //#endregion
 //#region 获取当前插件的群聊选项
 function getOption(event) {
@@ -123,7 +124,7 @@ async function getList(event) {
     const { plugin } = all_setting.get(self_id)?.[group_id] || { plugin: {} };
     const message = ['// 如要查看更多信息可输入 >setting\n"list": {'];
     for (const key in plugin)
-        message.push(`  "${key}": ${plugin[key].switch}`);
+        message.push(`  "${key}": ${plugin[key].apply}`);
     message.push('}');
     return message.join('\n');
 }
