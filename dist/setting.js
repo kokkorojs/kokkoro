@@ -62,13 +62,13 @@ exports.getOption = getOption;
 async function setOption(params, event) {
     let message;
     let new_value;
+    const { self_id, group_id } = event;
     const [plugin_name, option_name, value] = params;
+    const setting = all_setting.get(self_id);
+    const plugin = setting[group_id].plugin;
     switch (true) {
-        case !plugin_name:
-            message = '插件名不能为空';
-            break;
         case !option_name:
-            message = '插件选项不能为空';
+            message = `"${plugin_name}": ${JSON.stringify(plugin[plugin_name], null, 2)}`;
             break;
         case !value:
             message = '参数不能为空';
@@ -77,10 +77,6 @@ async function setOption(params, event) {
     if (message) {
         return message;
     }
-    const { self_id, group_id } = event;
-    const setting = all_setting.get(self_id);
-    const option = setting[group_id].plugin[plugin_name] || {};
-    const plugin = setting[group_id].plugin;
     const old_value = plugin[plugin_name][option_name];
     switch (true) {
         case ['true', 'false'].includes(value):
@@ -96,7 +92,12 @@ async function setOption(params, event) {
     // 校验参数是否合法
     switch (true) {
         case !Array.isArray(old_value) && typeof old_value !== typeof new_value:
-            message = `Error: ${plugin_name}.${option_name} 应为 ${typeof old_value} 类型`;
+            if (old_value) {
+                message = `Error: ${plugin_name}.${option_name} 应为 ${typeof old_value} 类型`;
+            }
+            else {
+                message = `Error: ${option_name} is not defined`;
+            }
             break;
         case Array.isArray(old_value) && !old_value.includes(new_value):
             message = `Error: 属性 ${option_name} 的合法值为 [${old_value.join(', ')}]`;
@@ -104,9 +105,6 @@ async function setOption(params, event) {
     }
     if (message) {
         return message;
-    }
-    if (!Object.keys(option).includes(option_name)) {
-        return `Error: ${option_name} is not defined`;
     }
     if (Array.isArray(old_value)) {
         new_value = old_value.sort(i => i === new_value ? -1 : 0);
