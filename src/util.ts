@@ -44,17 +44,8 @@ function image(url: string, flash: boolean = false): Promise<ImageElem | FlashEl
   })
 }
 
-/**
- * @description 生成 at 成员的消息段
- * @param qq
- * @returns
- */
-function at(qq: number): AtElem {
-  return segment.at(qq);
-}
-
-const message = {
-  image, at
+const section = {
+  image, at: segment.at,
 };
 
 // log4js
@@ -148,6 +139,6 @@ function getStack() {
 };
 
 export {
-  logger, colors, message,
+  logger, colors, section,
   getUserLevel, getStack, checkCommand,
 }
