@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getUserLevel = exports.checkCommand = exports.message = exports.logger = exports.colors = exports.getSetting = exports.getOption = exports.linkStart = void 0;
+exports.getUserLevel = exports.checkCommand = exports.section = exports.logger = exports.colors = exports.getSetting = exports.getOption = exports.linkStart = void 0;
 global.__workname = process.cwd();
 var bot_1 = require("./bot");
 Object.defineProperty(exports, "linkStart", { enumerable: true, get: function () { return bot_1.linkStart; } });
@@ -10,6 +10,6 @@ Object.defineProperty(exports, "getSetting", { enumerable: true, get: function (
 var util_1 = require("./util");
 Object.defineProperty(exports, "colors", { enumerable: true, get: function () { return util_1.colors; } });
 Object.defineProperty(exports, "logger", { enumerable: true, get: function () { return util_1.logger; } });
-Object.defineProperty(exports, "message", { enumerable: true, get: function () { return util_1.message; } });
+Object.defineProperty(exports, "section", { enumerable: true, get: function () { return util_1.section; } });
 Object.defineProperty(exports, "checkCommand", { enumerable: true, get: function () { return util_1.checkCommand; } });
 Object.defineProperty(exports, "getUserLevel", { enumerable: true, get: function () { return util_1.getUserLevel; } });

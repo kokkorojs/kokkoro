@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.checkCommand = exports.getStack = exports.getUserLevel = exports.message = exports.colors = exports.logger = void 0;
+exports.checkCommand = exports.getStack = exports.getUserLevel = exports.section = exports.colors = exports.logger = void 0;
 const axios_1 = __importDefault(require("axios"));
 const log4js_1 = require("log4js");
 const oicq_1 = require("oicq");
@@ -44,18 +44,10 @@ function image(url, flash = false) {
         });
     });
 }
-/**
- * @description 生成 at 成员的消息段
- * @param qq
- * @returns
- */
-function at(qq) {
-    return oicq_1.segment.at(qq);
-}
-const message = {
-    image, at
+const section = {
+    image, at: oicq_1.segment.at,
 };
-exports.message = message;
+exports.section = section;
 // log4js
 const logger = (0, log4js_1.getLogger)('[kokkoro log]');
 exports.logger = logger;
