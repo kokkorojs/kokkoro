@@ -65,6 +65,9 @@ async function setOption(params, event) {
     const { self_id, group_id } = event;
     const [plugin_name, option_name, value] = params;
     const setting = all_setting.get(self_id);
+    if (!setting[group_id] || !setting[group_id].plugin[plugin_name]) {
+        return `Error: ${plugin_name} is not defined, please input ">enable ${plugin_name}" load plugin`;
+    }
     const plugin = setting[group_id].plugin;
     switch (true) {
         case !option_name:
