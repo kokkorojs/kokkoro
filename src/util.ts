@@ -39,7 +39,7 @@ function image(url: string, flash: boolean = false): Promise<ImageElem | FlashEl
         resolve(!flash ? segment.image(image_base64) : segment.flash(image_base64));
       })
       .catch((error: Error) => {
-        reject(`Error: ${error.message}\n图片下载失败，地址:\n${url}`);
+        reject(new Error(`Error: ${error.message}\n图片下载失败，地址:\n${url}`));
       })
   })
 }

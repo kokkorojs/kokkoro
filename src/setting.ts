@@ -73,8 +73,12 @@ async function setOption(params: ReturnType<typeof parseCommand>['params'], even
 
   const { self_id, group_id } = event;
   const [plugin_name, option_name, value] = params;
-
   const setting = all_setting.get(self_id) as Setting;
+
+  if (!setting[group_id] || !setting[group_id].plugin[plugin_name]) {
+    return `Error: ${plugin_name} is not defined, please input ">enable ${plugin_name}" load plugin`;
+  }
+
   const plugin = setting[group_id].plugin;
 
   switch (true) {
