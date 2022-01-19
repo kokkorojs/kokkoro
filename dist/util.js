@@ -40,7 +40,7 @@ function image(url, flash = false) {
             resolve(!flash ? oicq_1.segment.image(image_base64) : oicq_1.segment.flash(image_base64));
         })
             .catch((error) => {
-            reject(`Error: ${error.message}\n图片下载失败，地址:\n${url}`);
+            reject(new Error(`Error: ${error.message}\n图片下载失败，地址:\n${url}`));
         });
     });
 }
