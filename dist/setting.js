@@ -50,7 +50,7 @@ exports.setSetting = setSetting;
 function getOption(event) {
     const { self_id, group_id } = event;
     const stack = (0, util_1.getStack)();
-    const regex = /\w+(?=\\index\.js)/g;
+    const regex = /\w+(?=(\\|\/)index\.js)/g;
     const setting = all_setting.get(self_id);
     const fileName = stack[2].getFileName();
     const [plugin_name] = fileName.match(regex);
