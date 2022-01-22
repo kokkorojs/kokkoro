@@ -1,9 +1,32 @@
 import { resolve } from 'path';
 import { writeFile } from 'fs/promises';
-import { PrivateMessageEvent } from 'oicq';
+import { PrivateMessageEvent, Config } from 'oicq';
 
-import { GlobalConfig } from '..';
 import { parseCommand } from './command';
+
+// kokkoro 全局配置
+interface GlobalConfig {
+  // 服务端口
+  port: number;
+  // bot 插件
+  plugins: string[];
+  // bot 信息
+  bots: {
+    // uin 账号
+    [uin: number]: {
+      // 指令前缀，默认为 '>'
+      prefix: string;
+      // 自动登录，默认 true
+      auto_login: boolean;
+      // 登录模式，默认 qrcode
+      login_mode: 'qrcode' | 'password';
+      // bot 主人
+      masters: number[];
+      // 登录配置
+      config: Config;
+    }
+  }
+}
 
 const config_path = resolve(__workname, 'kkrconfig.json');
 const global_config: GlobalConfig = require(config_path);
@@ -60,5 +83,6 @@ async function configHanders(params: ReturnType<typeof parseCommand>['params'], 
 }
 
 export {
+  GlobalConfig,
   configHanders, getGlobalConfig, addBot, cutBot,
 }

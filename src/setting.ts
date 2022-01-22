@@ -5,8 +5,35 @@ import { GroupMessageEvent } from 'oicq';
 
 import { getStack } from './util';
 import { parseCommand } from './command';
-import { getGlobalConfig } from './config';
-import { GlobalConfig, Setting } from '..';
+import { getGlobalConfig, GlobalConfig } from './config';
+
+// 群聊
+interface Group {
+  // 群名称
+  name: string;
+  // 插件
+  plugin: {
+    // 插件名
+    [plugin_name: string]: Option;
+  }
+}
+
+// 插件选项
+interface Option {
+  // 插件锁定
+  lock: boolean;
+  // 插件开关
+  apply: boolean;
+  // 其它设置
+  [param: string]: string | number | boolean | any[];
+}
+
+interface Setting {
+  // 插件列表
+  all_plugin: string[];
+  // 群聊列表
+  [group_id: number]: Group
+}
 
 const all_setting: Map<number, Setting> = new Map();
 
@@ -121,7 +148,7 @@ async function setOption(params: ReturnType<typeof parseCommand>['params'], even
       break;
 
     case Array.isArray(old_value) && !old_value.includes(new_value):
-      message = `Error: 属性 ${option_name} 的合法值为 [${old_value.join(', ')}]`;
+      message = `Error: 属性 ${option_name} 的合法值为 [${(old_value as any[]).join(', ')}]`;
       break;
   }
 
@@ -173,5 +200,6 @@ async function settingHanders(params: ReturnType<typeof parseCommand>['params'],
   return message;
 }
 export {
+  Option, Setting,
   setSetting, getSetting, getAllSetting, getList, getOption, setOption, settingHanders,
 }
