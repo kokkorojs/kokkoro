@@ -1,9 +1,10 @@
 {
   "name": "kokkoro-core",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "upday": "2022/1/22",
   "description": "Core features for kokkoro.",
-  "main": "./dist/index.js",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "engines": {
     "node": ">= v14"
   },
@@ -29,5 +30,9 @@
   },
   "devDependencies": {
     "@types/node": "^16.11.11"
-  }
+  },
+  "files": [
+    "/lib/*.js",
+    "/lib/*.d.ts"
+  ]
 }
