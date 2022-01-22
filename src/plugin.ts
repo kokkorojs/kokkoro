@@ -4,8 +4,7 @@ import { Dirent } from 'fs';
 import { writeFile, readdir, mkdir } from 'fs/promises';
 
 import { logger } from './util';
-import { Option, Setting } from '..';
-import { getAllSetting, getSetting, setSetting } from './setting';
+import { getAllSetting, getSetting, setSetting, Option, Setting } from './setting';
 
 // 所有插件实例
 const all_plugin = new Map<string, Plugin>()
