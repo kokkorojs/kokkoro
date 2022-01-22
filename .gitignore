@@ -1,3 +1,6 @@
+lib/*.js
+lib/*.d.ts
+
 # Dependency directories
 node_modules/
 package-lock.json
