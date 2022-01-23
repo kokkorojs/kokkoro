@@ -84,10 +84,9 @@ function getOption(event: GroupMessageEvent) {
   const { self_id, group_id } = event;
 
   const stack = getStack();
-  console.log(stack)
   const regex = /\w+(?=(\\|\/)index\.js)/g;
   const setting = all_setting.get(self_id) as Setting;
-  const fileName = stack[2].getFileName() as string;
+  const fileName = stack[2].getFileName()?.replace('/lib/', '/') as string;
   const [plugin_name] = fileName.match(regex) as string[];
 
   return setting[group_id].plugin[plugin_name] || {};
