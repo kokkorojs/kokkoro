@@ -1,7 +1,7 @@
 {
   "name": "kokkoro-core",
-  "version": "0.1.7",
-  "upday": "2022/1/23",
+  "version": "0.2.0",
+  "upday": "2022/2/18",
   "description": "Core features for kokkoro.",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -9,7 +9,7 @@
     "node": ">= v14"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node test/index.js"
   },
   "repository": {
     "type": "git",
@@ -18,18 +18,18 @@
   "keywords": [
     "kokkoro"
   ],
-  "author": "dc_yuki",
+  "author": "yuki",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/kokkorojs/kokkoro-core/issues"
   },
   "homepage": "https://github.com/kokkorojs/kokkoro-core#readme",
   "changelogs": "https://github.com/kokkorojs/kokkoro-core/releases",
-  "dependencies": {
-    "oicq": "^2.1.9"
-  },
   "devDependencies": {
-    "@types/node": "^16.11.11"
+    "@types/node": "^17.0.18"
+  },
+  "dependencies": {
+    "oicq": "^2.2.0"
   },
   "files": [
     "lib"

@@ -1,308 +1,341 @@
 import { join } from 'path';
 import { createHash } from 'crypto';
 import { writeFile, readFile } from 'fs/promises';
-import { Client, Config, createClient, DiscussMessageEvent, GroupMessageEvent, PrivateMessageEvent, segment } from 'oicq';
+import { Client, Config, DiscussMessageEvent, GroupMessageEvent, GroupRole, PrivateMessageEvent } from 'oicq';
 
-import plugin from './plugin';
-import { commandHanders } from './command';
-import { logger, colors, getUserLevel } from './util';
+// import plugin from './plugin';
+// import { commandHanders } from './command';
+import { logger, colors } from './util';
 import { KOKKORO_UPDAY, KOKKORO_VERSION, KOKKORO_CHANGELOGS } from './help';
 
-const { cyan } = colors;
-
 import { getGlobalConfig } from './config';
-import { parseCommand } from './command';
+import { commandHanders, CommandType, parseCommand } from './command';
 
-// 所有机器人实例
-const all_bot: Map<number, Client> = new Map();
+// 维护组 QQ
+const admin = [2225151531];
+// const data_dir = join(__workname, '/data/bots');
 
-function getBot(uin: number) {
-  return all_bot.get(uin);
+export interface KkrConfig {
+  // 指令前缀，默认为 '>'
+  prefix: string;
+  // bot 主人
+  master: number[];
+  // 登录配置
+  conf: Config;
 }
 
-function getAllBot() {
-  return all_bot;
-}
+export class Bot extends Client {
+  readonly master: number[];
+  readonly password_path: string;
 
-// 登录 bot
-async function login() {
-  const { bots } = getGlobalConfig();
+  public prefix: string;
 
-  for (const uin in bots) {
-    const { auto_login, login_mode, config } = bots[uin];
+  constructor(uin: number, kconf?: KkrConfig) {
+    const kkrconfig = {
+      prefix: '>',
+      master: [],
+      ...kconf,
+    }
 
-    // 是否自动登录
-    if (!auto_login) continue;
+    super(uin, kkrconfig.conf);
 
-    const data_dir = join(__workname, '/data/bots');
-    const bot = createClient(Number(uin), { ...config, data_dir });
+    this.prefix = kkrconfig.prefix;
+    this.master = kkrconfig.master;
+    this.password_path = join(this.dir, 'password');
+    this.once('system.online', () => {
+      this.bindMasterEvents();
+      this.logger.info(`可给机器人发送 "${this.prefix}help" 查看指令帮助`);
+    });
+  }
 
-    bot.logger.mark(`正在登录账号: ${uin}`);
+  // 输入密码
+  inputPassword() {
+    this.logger.mark(`首次登录请输入密码：`);
 
-    switch (login_mode) {
-      /**
-       * 扫描登录
-       * 
-       * 优点是不需要过滑块和设备锁
-       * 缺点是万一 token 失效，无法自动登录，需要重新扫码
-       */
-      case 'qrcode':
-        bot
-          .on('system.login.qrcode', function (event) {
-            bot.logger.mark(`扫码完成后拍 "Enter" 键继续...`);
+    process.stdin.once('data', async data => {
+      const input = String(data).trim();
 
-            process.stdin.once('data', () => {
-              this.login();
-            });
-          })
-          .on('system.login.error', function (event) {
-            const { message } = event;
+      if (!input.length) return this.inputPassword();
 
-            this.terminate();
+      const password = createHash('md5').update(input).digest();
 
-            bot.logger.error(message);
-            bot.logger.error(`当前账号无法登录，拍 "Enter" 键继续...`);
-            process.stdin.once('data', () => { });
-          })
-          .login();
-        break;
+      await writeFile(this.password_path, password, { mode: 0o600 });
+      this.login(password);
+    })
+  }
 
+  async linkStart(password?: string) {
+    if (password) {
       /**
        * 密码登录
        * 
        * 优点是一劳永逸
        * 缺点是需要过滑块，可能会报环境异常
        */
-      case 'password':
-        bot
-          // 监听滑动验证码事件
-          .on('system.login.slider', function (event) {
-            bot.logger.mark(`取 ticket 教程：https://github.com/takayama-lily/oicq/wiki/01.滑动验证码和设备锁`);
+      this
+        // 监听滑动验证码事件
+        .on('system.login.slider', (event) => {
+          this.logger.mark(`取 ticket 教程：https://github.com/takayama-lily/oicq/wiki/01.滑动验证码和设备锁`);
 
-            process.stdout.write('ticket: ');
-            process.stdin.once('data', this.submitSlider.bind(this));
-          })
-          // 监听登录保护验证事件
-          .on('system.login.device', function () {
-            bot.logger.mark(`验证完成后拍 "Enter" 键继续...`);
+          process.stdout.write('ticket: ');
+          process.stdin.once('data', this.submitSlider);
+        })
+        // 监听登录保护验证事件
+        .on('system.login.device', () => {
+          this.logger.mark('验证完成后拍回车键继续...');
 
-            process.stdin.once('data', () => this.login());
-          })
-          .on('system.login.error', function (event) {
-            const { message } = event;
+          process.stdin.once('data', this.login);
+        })
+        .on('system.login.error', (event) => {
+          const { message } = event;
 
-            if (message.includes('密码错误')) {
-              inputPassword(bot);
-            } else {
-              this.terminate();
+          if (message.includes('密码错误')) {
+            this.inputPassword();
+          } else {
+            this.terminate();
+            this.logger.error(`${message}当前账号无法登录，拍回车键继续...`);
 
-              bot.logger.error(message);
-              bot.logger.error(`当前账号无法登录，拍 "Enter" 键继续...`);
-
-              process.stdin.once('data', () => { });
-            }
-          })
-
-        try {
-          bot.login(await readFile(join(bot.dir, 'password')));
-        } catch {
-          inputPassword(bot);
-        }
-        break;
-
-      default:
-        bot.logger.error(`你他喵的 login_mode 改错了`);
-        break;
-    }
-
-    all_bot.set(Number(uin), bot);
-  }
-}
-
-//#region inputPassword
-
-// 输入密码
-function inputPassword(bot: Client) {
-  bot.logger.mark(`首次登录请输入密码：`);
-
-  process.stdin.once('data', async data => {
-    const input = String(data).trim();
-
-    if (!input.length) return inputPassword(bot);
-
-    const password = createHash('md5').update(input).digest();
-
-    await writeFile(join(bot.dir, 'password'), password, { mode: 0o600 });
-    bot.login(password);
-  })
-}
-
-//#endregion
-
-//#region createBot
-
-// 创建 bot
-async function createBot(uin: number, delegate: PrivateMessageEvent, parent: Client) {
-  const config: Config = {
-    platform: 5,
-    log_level: 'info',
-    data_dir: join(__workname, '/data/bots'),
-  };
-  const bot: Client = createClient(uin, config);
-
-  bot
-    .on("system.login.qrcode", function (event) {
-      const { image } = event;
-
-      delegate.reply([
-        `>登录流程：扫码完成后输入 "ok"\n>取消登录：输入 "cancel"\n`,
-        segment.image(image)
-      ]);
-
-      // 监听消息
-      parent.on("message.private", function listenLogin(event) {
-        if (event.from_id === delegate.from_id) {
-
-          const { raw_message } = event;
-
-          switch (raw_message) {
-            case 'ok':
-              bot.login();
-              this.off("message.private", listenLogin);
-              break;
-
-            case 'cancel':
-              bot.terminate();
-              delegate.reply(">登录流程：已取消");
-              break;
+            process.stdin.once('data', () => { });
           }
-        }
-      })
-    })
-    .on("system.login.error", function (data) {
-      this.terminate();
-      delegate.reply(`>登录流程遇到错误：${data.message}\n>登录已取消`);
-    })
-    .login();
+        })
 
-  return bot
-}
+      try {
+        const password = await readFile(this.password_path);
+        this.login(password);
+      } catch {
+        this.inputPassword();
+      }
+    } else {
+      /**
+       * 扫描登录
+       * 
+       * 优点是不需要过滑块和设备锁
+       * 缺点是万一 token 失效，无法自动登录，需要重新扫码
+       */
+      this
+        .on('system.login.qrcode', (event) => {
+          this.logger.mark('扫码完成后拍回车键继续...');
 
-//#endregion
+          process.stdin.once('data', this.login);
+        })
+        .on('system.login.error', (event) => {
+          const { message } = event;
 
-/**
- * @description 全部 bot 给全部 master 发消息
- * @param message - 发送的消息文本
- */
-function broadcastAll(message: string) {
-  const { bots } = getGlobalConfig();
+          this.terminate();
+          this.logger.error(`${message}当前账号无法登录，拍回车键继续...`);
 
-  for (const uin in bots) {
-    const { masters } = bots[uin];
-
-    for (const master of masters) {
-
-      all_bot.forEach(bot => bot.isOnline() && bot.sendPrivateMsg(master, `通知：\n　　${message}`));
+          process.stdin.once('data', () => { });
+        })
+        .login();
     }
   }
-}
 
-/**
- * @description 单个 bot 给 masters 发消息
- * @param bot - bot 实例对象
- * @param message - 发送的消息文本
- */
-function broadcastOne(bot: Client, message: string) {
-  const { uin } = bot;
-  const { bots } = getGlobalConfig();
-  const { masters } = bots[uin];
+  /**
+   *  level 0 群成员（随活跃度提升）
+   *  level 1 群成员（随活跃度提升）
+   *  level 2 群成员（随活跃度提升）
+   *  level 3 管  理
+   *  level 4 群  主
+   *  level 5 主  人
+   *  level 6 维护组
+   */
+  getUserLevel(event: PrivateMessageEvent | GroupMessageEvent | DiscussMessageEvent) {
+    const { sender } = event;
+    const { user_id, level = 0, role = 'member' } = sender as { user_id: number, level?: number, role: GroupRole };
 
-  for (const master of masters) bot.sendPrivateMsg(master, `通知：\n　　${message}`);
-}
+    let user_level;
 
-function onOnline(this: Client) {
-  broadcastOne(this, `通知：\n　　该账号刚刚从掉线中恢复，现在一切正常`);
-}
-
-function onOffline(this: Client, event: { message: string; }) {
-  const { message } = event;
-
-  broadcastAll(`通知：\n　　${this.uin} 已离线，${message}`);
-}
-
-/**
- * @description 指令消息监听
- * @param this - bot 实例对象
- * @param data - bot 接收到的消息对象
- */
-async function onMessage(this: Client, event: PrivateMessageEvent | GroupMessageEvent | DiscussMessageEvent) {
-  let message;
-
-  const { message_type, raw_message } = event;
-  const { user_level, prefix } = getUserLevel(event);
-
-  if (!raw_message.startsWith(prefix)) return
-
-  // 权限判断，群聊指令需要 level 3 以上，私聊指令需要 level 5 以上
-  switch (message_type) {
-    case 'group':
-      if (user_level < 3) return
-      break;
-    case 'private':
-      if (user_level < 5) return
-      break;
-  }
-
-  const command = raw_message.replace(prefix, '');
-
-  const { cmd, params } = parseCommand(command);
-  for (const type of ['all', 'group', 'private'] as ['all', 'group', 'private']) {
-    if (!commandHanders[type][cmd]) continue
-
-    this.logger.info(`收到指令，正在处理: ${raw_message}`);
-
-    if (message_type !== type && type !== 'all') {
-      event.reply(`Error：指令 ${cmd} 不支持${message_type === 'group' ? '群聊' : '私聊'}`);
-      return
+    switch (true) {
+      case admin.includes(user_id):
+        user_level = 6
+        break;
+      case this.master.includes(user_id):
+        user_level = 5
+        break;
+      case role === 'owner':
+        user_level = 4
+        break;
+      case role === 'admin':
+        user_level = 3
+        break;
+      case level > 4:
+        user_level = 2
+        break;
+      case level > 2:
+        user_level = 1
+        break;
+      default:
+        user_level = 0
+        break;
     }
 
-    message = await commandHanders[type][cmd].call(this, params, event);
+    return user_level;
   }
 
-  message ||= `Error：未知指令 "${cmd}"`;
-
-  event.reply(message);
-  this.logger.info(`处理完毕，指令回复: ${message}`);
-}
-
-async function bindMasterEvents(bot: Client) {
-  const { uin } = bot;
-
-  all_bot.set(uin, bot);
-  bot.removeAllListeners('system.login.qrcode');
-  bot.removeAllListeners('system.login.slider');
-  bot.removeAllListeners('system.login.device');
-  bot.removeAllListeners('system.login.error');
-  bot.on('message', onMessage);
-  bot.on('system.online', onOnline);
-  bot.on('system.offline', onOffline);
-
-  let number = 0;
-  const plugins = await plugin.restorePlugins(bot);
-
-  for (let [_, plugin] of plugins) {
-    if (plugin.binds.has(bot)) ++number;
+  sendMasterMsg(message: string) {
+    for (const user_id of this.master) {
+      this.sendPrivateMsg(user_id, `通知：\n　　${message}`)
+    }
   }
 
-  setTimeout(() => {
-    const { bots } = getGlobalConfig();
-    const { prefix } = bots[uin];
+  onOnline() {
+    this.logger.info(`${this.nickname} 刚刚从掉线中恢复，现在一切正常`);
+    this.sendMasterMsg(`通知：\n　　该账号刚刚从掉线中恢复，现在一切正常`);
+  }
 
-    broadcastOne(bot, `启动成功，启用了 ${number} 个插件，发送 "${prefix}help" 可以查询 bot 相关指令`);
-  }, 1000);
+  onOffline(event: { message: string }) {
+    const { message } = event;
+
+    this.logger.info(`${this.nickname} 已离线，${message}`);
+    this.sendMasterMsg(`通知：\n　　${this.uin} 已离线，${message}`);
+  }
+
+  async onMessage(event: PrivateMessageEvent | GroupMessageEvent | DiscussMessageEvent) {
+    let message;
+
+    const { message_type, raw_message } = event;
+    const user_level = this.getUserLevel(event);
+
+    if (!raw_message.startsWith(this.prefix)) return;
+
+    // 权限判断，群聊指令需要 level 3 以上，私聊指令需要 level 5 以上
+    switch (message_type) {
+      case 'group':
+        if (user_level < 3) message = '权限不足';
+        break;
+      case 'private':
+        if (user_level < 5) message = '权限不足';
+        break;
+    }
+
+    if (message) return event.reply(message, true);
+
+    const command = raw_message.replace(this.prefix, '');
+    const { cmd, params } = parseCommand(command);
+
+    for (const type of ['all', 'group', 'private'] as CommandType[]) {
+      if (!commandHanders[type][cmd]) continue;
+
+      this.logger.mark(`收到指令，正在处理: ${raw_message}`);
+
+      if (message_type !== type && type !== 'all') {
+        event.reply(`Error：指令 ${cmd} 不支持${message_type === 'private' ? '私聊' : '群聊'}`);
+        return
+      }
+
+      message = await commandHanders[type][cmd].bind(this)(params, event);
+      message ||= `Error：未知指令 "${cmd}"`;
+
+      event.reply(message);
+      this.logger.mark(`处理完毕，指令回复: ${message}`);
+    }
+  }
+
+  bindMasterEvents() {
+    this.removeAllListeners('system.login.slider');
+    this.removeAllListeners('system.login.device');
+    this.removeAllListeners('system.login.qrcode');
+    this.removeAllListeners('system.login.error');
+
+    this.on('message', this.onMessage);
+    this.on('system.online', this.onOnline);
+    this.on('system.offline', this.onOffline);
+  }
 }
 
-function linkStart() {
+// 所有机器人实例
+const all_bot: Map<number, Bot> = new Map();
+
+export function getBot(uin?: number) {
+  return uin ? all_bot.get(uin) : all_bot;
+}
+
+// //#region createBot
+
+// // 创建 bot
+// async function createBot(uin: number, delegate: PrivateMessageEvent, parent: Client) {
+//   const config: Config = {
+//     platform: 5,
+//     log_level: 'info',
+//     data_dir: join(__workname, '/data/bots'),
+//   };
+//   const bot: Client = createClient(uin, config);
+
+//   bot
+//     .on("system.login.qrcode", function (event) {
+//       const { image } = event;
+
+//       delegate.reply([
+//         `>登录流程：扫码完成后输入 "ok"\n>取消登录：输入 "cancel"\n`,
+//         segment.image(image)
+//       ]);
+
+//       // 监听消息
+//       parent.on("message.private", function listenLogin(event) {
+//         if (event.from_id === delegate.from_id) {
+
+//           const { raw_message } = event;
+
+//           switch (raw_message) {
+//             case 'ok':
+//               bot.login();
+//               this.off("message.private", listenLogin);
+//               break;
+
+//             case 'cancel':
+//               bot.terminate();
+//               delegate.reply(">登录流程：已取消");
+//               break;
+//           }
+//         }
+//       })
+//     })
+//     .on("system.login.error", function (data) {
+//       this.terminate();
+//       delegate.reply(`>登录流程遇到错误：${data.message}\n>登录已取消`);
+//     })
+//     .login();
+
+//   return bot
+// }
+
+// //#endregion
+
+
+// /**
+//  * @description 指令消息监听
+//  * @param this - bot 实例对象
+//  * @param data - bot 接收到的消息对象
+//  */
+
+// async function bindMasterEvents(bot: Client) {
+//   const { uin } = bot;
+
+//   all_bot.set(uin, bot);
+//   bot.removeAllListeners('system.login.slider');
+//   bot.removeAllListeners('system.login.device');
+//   bot.removeAllListeners('system.login.qrcode');
+//   bot.removeAllListeners('system.login.error');
+//   bot.on('message', onMessage);
+//   bot.on('system.online', onOnline);
+//   bot.on('system.offline', onOffline);
+
+//   let number = 0;
+//   const plugins = await plugin.restorePlugins(bot);
+
+//   for (let [_, plugin] of plugins) {
+//     if (plugin.binds.has(bot)) ++number;
+//   }
+
+//   setTimeout(() => {
+//     const { bots } = getGlobalConfig();
+//     const { prefix } = bots[uin];
+
+//     broadcastOne(bot, `启动成功，启用了 ${number} 个插件，发送 "${prefix}help" 可以查询 bot 相关指令`);
+//   }, 1000);
+// }
+
+export function startup() {
   // Acsii Font Name: Doh
   const wellcome: string = `———————————————————————————————————————————————————————————————————————————————————————————————————
                   _ _                            _          _         _    _
@@ -313,7 +346,7 @@ function linkStart() {
       \\_/\\_/ \\___|_|_|\\___\\___/|_| |_| |_|\\___|  \\__\\___/  |_|\\_\\___/|_|\\_\\_|\\_\\___/|_|  \\___/
 
 ———————————————————————————————————————————————————————————————————————————————————————————————————`;
-  console.log(cyan(wellcome))
+  console.log(colors.cyan(wellcome))
 
   logger.mark(`----------`);
   logger.mark(`Package Version: kokkoro-core@${KOKKORO_VERSION} (Released on ${KOKKORO_UPDAY})`);
@@ -323,18 +356,22 @@ function linkStart() {
 
   process.title = 'kokkoro';
 
-  login().then(() => {
+  const { bots } = getGlobalConfig();
+
+  for (const uin in bots) {
+    const { config, auto_login, login_mode } = bots[uin];
+    const uin_num = Number(uin);
+    const bot = new Bot(uin_num, config);
+
+    all_bot.set(uin_num, bot);
+
+    if (!auto_login) continue;
     if (!all_bot.size) logger.info(`当前无可登录的账号，请检查是否开启 auto_login`);
 
-    all_bot.forEach(bot => {
-      bot.once('system.online', () => {
-        bindMasterEvents(bot);
-        bot.logger.info(`可给机器人发送 ">help" 查看指令帮助`);
-      });
-    });
-  })
+    bot.linkStart(login_mode);
+  }
 }
 
-export {
-  linkStart, getBot, getAllBot, createBot, bindMasterEvents,
-}
+// export {
+//   linkStart, getBot, getAllBot, createBot, bindMasterEvents,
+// }

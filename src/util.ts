@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { getLogger, Logger } from 'log4js';
-import { AtElem, FlashElem, ImageElem, segment } from 'oicq';
+import { AtElem, FlashElem, ImageElem, segment, DiscussMessageEvent, GroupMessageEvent, PrivateMessageEvent, GroupRole } from 'oicq';
+import { Bot } from './bot';
 
 import { getGlobalConfig } from './config';
 
@@ -16,7 +17,7 @@ function colorful(code: number): Function {
   return (msg: string) => `\u001b[${code}m${msg}\u001b[0m`
 }
 
-const colors = {
+export const colors = {
   red: colorful(31), green: colorful(32), yellow: colorful(33),
   blue: colorful(34), magenta: colorful(35), cyan: colorful(36), white: colorful(37),
 };
@@ -49,7 +50,7 @@ const section = {
 };
 
 // log4js
-const logger: Logger = getLogger('[kokkoro log]');
+export const logger: Logger = getLogger('[kokkoro log]');
 logger.level = 'all';
 
 /**
@@ -72,63 +73,11 @@ function checkCommand(command: { [key: string]: RegExp }, raw_message: string): 
   }
 }
 
-//#region getUserLevel
-
-/**
- * @description 获取成员等级
- * @param event 群消息事件对象
- * @returns
- *   level 0 群成员（随活跃度提升）
- *   level 1 群成员（随活跃度提升）
- *   level 2 群成员（随活跃度提升）
- *   level 3 管  理
- *   level 4 群  主
- *   level 5 主  人
- *   level 6 维护组
- */
-function getUserLevel(event: any) {
-  // event: PrivateMessageEvent | GroupMessageEvent | DiscussMessageEvent
-  const { self_id, user_id, sender } = event;
-  const { level = 0, role = 'member' } = sender;
-  const { bots } = getGlobalConfig();
-  const { masters, prefix } = bots[self_id];
-
-  let user_level;
-
-  switch (true) {
-    case admin.includes(user_id):
-      user_level = 6
-      break;
-    case masters.includes(user_id):
-      user_level = 5
-      break;
-    case role === 'owner':
-      user_level = 4
-      break;
-    case role === 'admin':
-      user_level = 3
-      break;
-    case level > 4:
-      user_level = 2
-      break;
-    case level > 2:
-      user_level = 1
-      break;
-    default:
-      user_level = 0
-      break;
-  }
-
-  return { user_level, prefix }
-}
-
-//#endregion
-
 /**
  * @description 获取调用栈
  * @returns - Array
  */
-function getStack() {
+export function getStack() {
   const orig = Error.prepareStackTrace;
   Error.prepareStackTrace = (_, stack) => stack;
 
@@ -137,8 +86,3 @@ function getStack() {
   Error.prepareStackTrace = orig;
   return stack;
 };
-
-export {
-  logger, colors, section,
-  getUserLevel, getStack, checkCommand,
-}
