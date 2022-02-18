@@ -3,28 +3,20 @@ import { writeFile } from 'fs/promises';
 import { PrivateMessageEvent, Config } from 'oicq';
 
 import { parseCommand } from './command';
+import { KkrConfig } from './bot';
 
 // kokkoro 全局配置
-interface GlobalConfig {
+export interface GlobalConfig {
   // 服务端口
   port: number;
-  // bot 插件
-  plugins: string[];
   // bot 信息
   bots: {
     // uin 账号
     [uin: number]: {
-      // 指令前缀，默认为 '>'
-      prefix: string;
-      // 自动登录，默认 true
-      auto_login: boolean;
-      // 登录模式，默认 qrcode
-      login_mode: 'qrcode' | 'password';
-      // bot 主人
-      masters: number[];
-      // 登录配置
-      config: Config;
-    }
+      auto_login: true,
+      login_mode: 'qrcode',
+      config: KkrConfig,
+    };
   }
 }
 
