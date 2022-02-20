@@ -8,7 +8,7 @@ const HELP_BOT = `--------------------
 >bot ##列出所有机器人实例
 >login <uin> ##登录机器人
 >logout <uin> ##机器人离线
->bot del <uin> ##删除离线机器人
+>delete <uin> ##删除离线机器人
 >bot help ##查看帮助
 ※ <uin> 代表QQ账号
 `;

@@ -6,6 +6,6 @@ declare global {
 
 global.__workname = process.cwd();
 
-export { startup } from './bot';
-export { getOption, getSetting } from './setting';
+export { startup, Bot } from './bot';
+// export { getOption, getSetting } from './setting';
 // export { colors, logger, section, checkCommand, getUserLevel } from './util';

@@ -34,10 +34,8 @@ function image(url: string, flash: boolean = false): Promise<ImageElem | FlashEl
     if (!/^https?/g.test(url)) return resolve(!flash ? segment.image(`file:///${url}`) : segment.flash(`file:///${url}`));
 
     axios.get(url, { responseType: 'arraybuffer', timeout: 5000, })
-      .then((response: any) => {
-        const image_base64: string = `base64://${Buffer.from(response.data, 'binary').toString('base64')}`;
-
-        resolve(!flash ? segment.image(image_base64) : segment.flash(image_base64));
+      .then((response) => {
+        resolve(!flash ? segment.image(response.data) : segment.flash(response.data));
       })
       .catch((error: Error) => {
         reject(new Error(`Error: ${error.message}\n图片下载失败，地址:\n${url}`));
@@ -45,7 +43,7 @@ function image(url: string, flash: boolean = false): Promise<ImageElem | FlashEl
   })
 }
 
-const section = {
+export const section = {
   image, at: segment.at,
 };
 
