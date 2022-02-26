@@ -1,13 +1,12 @@
 import { resolve } from 'path';
+import { readFileSync } from 'fs';
+import { load, dump } from 'js-yaml';
 import { writeFile } from 'fs/promises';
-import { PrivateMessageEvent } from 'oicq';
 
-import { Bot, BotConfig } from './bot';
-import { parseCommand } from './command';
-import { HELP_ALL } from './help';
+import { BotConfig } from './bot';
 
 // kokkoro 全局配置
-export interface GlobalConfig {
+export interface KokkoroConfig {
   // 服务端口
   port: number;
   // bot 信息
@@ -17,45 +16,25 @@ export interface GlobalConfig {
   }
 }
 
-const config_path = resolve(__workname, 'kkrconfig.json');
-const global_config: GlobalConfig = require(config_path);
+const config_path = resolve(__workname, 'kokkoro.yml');
+const config_data = readFileSync(config_path, 'utf8');
+const kokkoro_config = load(config_data) as KokkoroConfig;
 
 export function setBotConfig(uin: number, bot_config: BotConfig) {
-  global_config.bots[uin] = bot_config;
-  return setGlobalConfig();
+  kokkoro_config.bots[uin] = bot_config;
+  return setKokkoroConfig();
 }
 
 export async function cutBotConfig(uin: number) {
-  const { bots } = global_config;
+  const { bots } = kokkoro_config;
   delete bots[uin];
-  return setGlobalConfig();
+  return setKokkoroConfig();
 }
 
-export function setGlobalConfig() {
-  return writeFile(config_path, `${JSON.stringify(global_config, null, 2)}`);
+export function setKokkoroConfig() {
+  return writeFile(config_path, dump(kokkoro_config));
 }
 
-export function getGlobalConfig() {
-  return global_config;
-}
-
-export async function configCommand(this: Bot, params: ReturnType<typeof parseCommand>['params'], event: PrivateMessageEvent): Promise<string> {
-  let message: string;
-
-  const { uin } = this;
-  const [param] = params;
-
-  switch (param) {
-    case undefined:
-      message = `${uin}: ${JSON.stringify(global_config.bots[uin], null, 2)}`;
-      break;
-    case 'help':
-      message = HELP_ALL.config;
-      break;
-    default:
-      message = `Error: 未知参数 "${param}"`;
-      break;
-  }
-
-  return message;
+export function getKokkoroConfig() {
+  return kokkoro_config;
 }

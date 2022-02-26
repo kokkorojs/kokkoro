@@ -1,13 +1,16 @@
 import { join } from 'path';
-import { Client, GroupInfo } from 'oicq';
+import { GroupInfo } from 'oicq';
 import { Dirent } from 'fs';
 import { writeFile, readdir, mkdir } from 'fs/promises';
 
+import { Bot } from './bot';
 import { logger } from './util';
 import { getAllSetting, getSetting, setSetting, Option, Setting } from './setting';
 
+const plugin_dir = join(__workname, '/plugins');
+const module_dir = join(__workname, '/node_modules');
 // 所有插件实例
-const all_plugin = new Map<string, Plugin>()
+const all_plugin = new Map<string, Plugin>();
 
 class PluginError extends Error {
   name = "PluginError"
@@ -17,14 +20,14 @@ class PluginError extends Error {
 class Plugin {
   protected readonly full_path: string;
   readonly option: Option;
-  readonly binds = new Set<Client>();
+  readonly binds = new Set<Bot>();
 
   constructor(protected readonly name: string, protected readonly path: string) {
     this.full_path = require.resolve(this.path);
     this.option = require(this.path).default_option;
   }
 
-  protected async _editBotPluginCache(bot: Client, method: 'add' | 'delete') {
+  protected async _editBotPluginCache(bot: Bot, method: 'add' | 'delete') {
     const { gl, uin } = bot;
 
     const all_setting = getAllSetting();
@@ -62,7 +65,7 @@ class Plugin {
     return setSetting(uin);
   }
 
-  async enable(bot: Client) {
+  async enable(bot: Bot) {
     if (this.binds.has(bot)) {
       throw new PluginError("这个机器人实例已经启用了此插件");
     }
@@ -87,7 +90,7 @@ class Plugin {
     }
   }
 
-  async disable(bot: Client) {
+  async disable(bot: Bot) {
     if (!this.binds.has(bot)) {
       throw new PluginError(`这个机器人实例尚未启用此插件`);
     }
@@ -153,50 +156,48 @@ class Plugin {
 }
 // #endregion
 
-// #region 导入插件
 /**
+ * 导入插件
+ * 
  * @param name - 插件名
  * @returns - Plugin 对象
- * @throws {Error}
  */
-async function importPlugin(name: string): Promise<Plugin> {
-  // 加载本地插件
-  if (all_plugin.has(name)) return all_plugin.get(name) as Plugin
+async function importPlugin(name: string) {
+  if (all_plugin.has(name)) return all_plugin.get(name) as Plugin;
 
-  let resolved = "";
-  const files = await readdir(join(__workname, '/plugins'), { withFileTypes: true });
+  let plugin_path = '';
+  const plugin_dirs = await readdir(plugin_dir, { withFileTypes: true });
 
-  for (let file of files) {
-    if ((file.isDirectory() || file.isSymbolicLink()) && file.name === name || file.name === "kokkoro-" + name) {
-      resolved = join(__workname, '/plugins', name);
+  for (let dir of plugin_dirs) {
+    if ((dir.isDirectory() || dir.isSymbolicLink()) && (dir.name === name || dir.name === "kokkoro-" + name)) {
+      plugin_path = join(plugin_dir, name);
+      break;
     }
   }
 
   // 加载 npm 插件
-  if (!resolved) {
-    const modules = await readdir(join(__workname, '/node_modules'), { withFileTypes: true });
+  if (!plugin_path) {
+    const module_dirs = await readdir(module_dir, { withFileTypes: true });
 
-    for (let file of modules) {
-      if (file.isDirectory() && (file.name === name || file.name === "kokkoro-" + name)) {
-        resolved = join(__workname, '/node_modules', file.name);
+    for (let dir of module_dirs) {
+      if (dir.isDirectory() && (dir.name === name || dir.name === "kokkoro-" + name)) {
+        plugin_path = join(module_dir, name);
+        break;
       }
     }
   }
 
-  if (!resolved) throw new PluginError(`插件名错误，无法找到此插件`)
+  if (!plugin_path) throw new PluginError(`插件名错误，无法找到此插件`);
 
   try {
-    const plugin = new Plugin(name, resolved);
-
+    const plugin = new Plugin(name, plugin_path);
     all_plugin.set(name, plugin);
-    return plugin
-  } catch (error) {
-    const { message } = error as Error;
 
-    throw new PluginError(`导入插件失败，不合法的 package\n${message}`);
+    return plugin
+  } catch (error: any) {
+    throw new PluginError(`导入插件失败，不合法的 package\n${error.message}`);
   }
 }
-// #endregion
 
 // #region 校验导入插件
 /**
@@ -241,7 +242,7 @@ function restartPlugin(name: string): Promise<void> {
  * @param bot - bot 实例
  * @returns - void
  */
-async function enable(name: string, bot: Client): Promise<void> {
+async function enable(name: string, bot: Bot): Promise<void> {
   const plugin = await importPlugin(name);
 
   return plugin.enable(bot);
@@ -255,7 +256,7 @@ async function enable(name: string, bot: Client): Promise<void> {
  * @returns - void
  * @throws {Error}
  */
-function disable(name: string, bot: Client): Promise<void> {
+function disable(name: string, bot: Bot): Promise<void> {
   return checkImported(name).disable(bot)
 }
 // #endregion
@@ -265,7 +266,7 @@ function disable(name: string, bot: Client): Promise<void> {
  * @param bot - bot 实例
  * @returns - void
  */
-async function disableAllPlugin(bot: Client): Promise<void> {
+async function disableAllPlugin(bot: Bot): Promise<void> {
   for (let [_, plugin] of all_plugin) {
     try {
       await plugin.disable(bot);
@@ -300,7 +301,7 @@ async function findAllPlugins() {
   }
 
   try {
-    modules.push(...await readdir(join(__workname, '/node_modules'), { withFileTypes: true }));
+    modules.push(...await readdir(module_dir, { withFileTypes: true }));
   } catch (err) {
     await mkdir(join(__workname, `/node_modules`));
   }
@@ -320,35 +321,28 @@ async function findAllPlugins() {
 }
 // #endregion
 
-// #region bot 启动后恢复它原先绑定的插件
 /**
+ * bot 启动后恢复它原先绑定的插件
+ * 
  * @param bot - bot 实例
  * @returns Map<string, Plugin>
  */
-async function restorePlugins(bot: Client): Promise<Map<string, Plugin>> {
-  const setting_path = join(bot.dir, 'setting.json');
+export async function restorePlugin(bot: Bot) {
+  const setting = getSetting(bot.uin) as Setting;
+  const all_plugin = setting.all_plugin;
 
-  try {
-    const setting = require(setting_path);
-    const { all_plugin } = setting as Setting;
-
-    for (let name of all_plugin) {
-      try {
-        const plugin = await importPlugin(name);
-
-        await plugin.enable(bot);
-      } catch (error) {
-        const { message } = error as Error;
-
-        logger.error(message);
-      }
+  for (let name of all_plugin) {
+    try {
+      const plugin = await importPlugin(name);
+      await plugin.enable(bot);
+    } catch (error: any) {
+      logger.error(error.message);
     }
-  } catch { }
+  }
 
   return all_plugin;
 }
-// #endregion
 
 export default {
-  deletePlugin, restartPlugin, enable, disable, disableAllPlugin, findAllPlugins, restorePlugins,
+  // deletePlugin, restartPlugin, enable, disable, disableAllPlugin, findAllPlugins, restorePlugins,
 }

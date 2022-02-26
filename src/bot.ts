@@ -4,30 +4,16 @@ import { writeFile, readFile } from 'fs/promises';
 import { Client, Config, DiscussMessageEvent, GroupMessageEvent, GroupRole, PrivateMessageEvent, segment } from 'oicq';
 
 // import plugin from './plugin';
-// import { commandHanders } from './command';
 import { logger, colors } from './util';
 import { KOKKORO_UPDAY, KOKKORO_VERSION, KOKKORO_CHANGELOGS } from './help';
 
-import { getGlobalConfig, setBotConfig } from './config';
-import { commandHanders, CommandType, parseCommand } from './command';
+import { setBotConfig, getKokkoroConfig } from './config';
+import { all_command, CommandType, parseCommand } from './command';
 
 // 维护组 QQ
 const admin = [2225151531];
 // 所有机器人实例
 const all_bot: Map<number, Bot> = new Map();
-
-export interface BotConfig {
-  // 指令前缀，默认为 '>'
-  prefix: string;
-  // 自动登录，默认 true
-  auto_login: true;
-  // 登录模式，默认 qrcode
-  login_mode: 'qrcode' | 'password';
-  // bot 主人
-  master: number[];
-  // 协议配置
-  config: Config;
-}
 
 /**
  * 合并 config
@@ -44,6 +30,19 @@ function deepMerge(default_config: any, bot_config: any): BotConfig {
   }
 
   return default_config;
+}
+
+export interface BotConfig {
+  // 指令前缀，默认为 '>'
+  prefix: string;
+  // 自动登录，默认 true
+  auto_login: true;
+  // 登录模式，默认 qrcode
+  login_mode: 'qrcode' | 'password';
+  // bot 主人
+  master: number[];
+  // 协议配置
+  config: Config;
 }
 
 export class Bot extends Client {
@@ -259,20 +258,20 @@ export class Bot extends Client {
     if (message) return event.reply(message);
 
     const command = raw_message.replace(this.prefix, '');
-    const { cmd, params } = parseCommand(command);
+    const { order, param } = parseCommand(command);
 
     for (const type of ['all', 'group', 'private'] as CommandType[]) {
-      if (!commandHanders[type][cmd]) continue;
+      if (!all_command[type][order]) continue;
 
       this.logger.mark(`收到指令，正在处理: ${raw_message}`);
 
       if (message_type !== type && type !== 'all') {
-        message = `Error：指令 ${cmd} 不支持${message_type === 'private' ? '私聊' : '群聊'}`;
+        message = `Error：指令 ${order} 不支持${message_type === 'private' ? '私聊' : '群聊'}`;
         break;
       }
 
       try {
-        message = await commandHanders[type][cmd].bind(this)(params, event);
+        message = await all_command[type][order].bind(this)(param, event);
       } catch (error: any) {
         message = error.message;
       }
@@ -280,7 +279,7 @@ export class Bot extends Client {
       break;
     }
 
-    message ||= `Error：未知指令 "${cmd}"`;
+    message ||= `Error：未知指令 "${order}"`;
     event.reply(message);
   }
 
@@ -360,10 +359,10 @@ export function addBot(this: Bot, uin: number, delegate: PrivateMessageEvent) {
     .once('system.online', () => {
       setBotConfig(uin, bot_config)
         .then(() => {
-          bot.logger.mark('写入 kkrconfig 成功');
+          bot.logger.mark('写入 kokkoro.yml 成功');
         })
         .catch(() => {
-          bot.logger.error('写入 kkrconfig 失败');
+          bot.logger.error('写入 kokkoro.yml 失败');
         })
         .finally(() => {
           all_bot.set(uin, bot);
@@ -372,7 +371,6 @@ export function addBot(this: Bot, uin: number, delegate: PrivateMessageEvent) {
     })
     .login();
 }
-
 
 // async function bindMasterEvents(bot: Client) {
 //   let number = 0;
@@ -383,7 +381,7 @@ export function addBot(this: Bot, uin: number, delegate: PrivateMessageEvent) {
 //   }
 
 //   setTimeout(() => {
-//     const { bots } = getGlobalConfig();
+//     const { bots } = setKokkoroConfig();
 //     const { prefix } = bots[uin];
 
 //     broadcastOne(bot, `启动成功，启用了 ${number} 个插件，发送 "${prefix}help" 可以查询 bot 相关指令`);
@@ -411,7 +409,7 @@ export async function startup() {
 
   process.title = 'kokkoro';
 
-  const { bots } = getGlobalConfig();
+  const { bots } = getKokkoroConfig();
 
   for (const uin in bots) {
     const bot_config = bots[uin];
