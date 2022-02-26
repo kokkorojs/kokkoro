@@ -3,7 +3,7 @@ import { getLogger, Logger } from 'log4js';
 import { AtElem, FlashElem, ImageElem, segment, DiscussMessageEvent, GroupMessageEvent, PrivateMessageEvent, GroupRole } from 'oicq';
 import { Bot } from './bot';
 
-import { getGlobalConfig } from './config';
+import { setKokkoroConfig } from './config';
 
 // 维护组 QQ
 const admin = [2225151531];

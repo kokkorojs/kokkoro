@@ -1,4 +1,5 @@
 import { Logger } from 'log4js';
+import { dump } from 'js-yaml';
 import { spawn } from 'child_process';
 import { Client, Config, DiscussMessageEvent, GroupMessageEvent, PrivateMessageEvent } from 'oicq';
 
@@ -7,16 +8,16 @@ import { HELP_ALL } from './help';
 // import { addBot, configHanders, cutBot } from './config';
 // import { getList, setOption, settingHanders } from './setting';
 import { addBot, Bot, getAllBot, getBot } from './bot';
-import { configCommand } from './config';
+import { getKokkoroConfig } from './config';
 // import { bindMasterEvents, Bot, createBot, getAllBot, getBot } from './bot';
 
 export type CommandType = 'all' | 'group' | 'private';
 
-export const commandHanders: {
+export const all_command: {
   [type in CommandType]: {
     [command: string]: (
       this: Bot,
-      params: ReturnType<typeof parseCommand>['params'],
+      param: ReturnType<typeof parseCommand>['param'],
       event: PrivateMessageEvent | GroupMessageEvent | DiscussMessageEvent
     ) => Promise<string>
   }
@@ -28,44 +29,46 @@ export const commandHanders: {
 
 // 格式化指令字段
 export function parseCommand(command: string) {
-  const [cmd, ...params] = command.split(' ');
+  const [order, ...param] = command.split(' ');
 
   return {
-    cmd, params,
+    order, param,
   };
 }
 
-commandHanders.all = {
-  async echo(params) {
-    return params.join(' ');
+all_command.all = {
+  async echo(param) {
+    return param.join(' ');
   },
 };
 
-commandHanders.group = {
+all_command.group = {
   //   //#region setting
-  //   async setting(params, event) {
-  //     if (params[0] === 'help') { return HELP_ALL.setting }
+  //   async setting(param, event) {
+  //     if (param[0] === 'help') { return HELP_ALL.setting }
 
-  //     return await settingHanders(params, event as GroupMessageEvent);
+  //     return await settingHanders(param, event as GroupMessageEvent);
   //   },
   //   //#endregion
 
   //   //#region list
-  //   async list(params, event) {
+  //   async list(param, event) {
   //     return getList(event as GroupMessageEvent);
   //   },
   //   //#endregion
 };
 
-commandHanders.private = {
+all_command.private = {
   // help
-  async help() {
-    return HELP_ALL.default;
+  async help(param) {
+    const [key] = param;
+    return HELP_ALL[key] || HELP_ALL.default;
   },
 
   // config
-  async config(params, event) {
-    return await configCommand.bind(this)(params, event as PrivateMessageEvent);
+  async config() {
+    const kokkoro_config = getKokkoroConfig();
+    return dump(kokkoro_config.bots[this.uin]);
   },
 
   // restart
@@ -86,8 +89,8 @@ commandHanders.private = {
   },
 
   //   //#region enable
-  //   async enable(params, event) {
-  //     const name = params[0];
+  //   async enable(param, event) {
+  //     const name = param[0];
   //     const uin = this.uin;
   //     const bot = getBot(uin) as Client;
 
@@ -101,8 +104,8 @@ commandHanders.private = {
   //   //#endregion
 
   //   //#region disable
-  //   async disable(params, event) {
-  //     const name = params[0];
+  //   async disable(param, event) {
+  //     const name = param[0];
   //     const uin = this.uin;
   //     const bot = getBot(uin) as Client;
 
@@ -117,8 +120,8 @@ commandHanders.private = {
   //   //#endregion
 
   //   //#region plugin
-  //   async plugin(params, event) {
-  //     const cmd = params[0];
+  //   async plugin(param, event) {
+  //     const cmd = param[0];
 
   //     if (!cmd) {
   //       try {
@@ -148,7 +151,7 @@ commandHanders.private = {
   //       return HELP_ALL.plugin;
   //     }
 
-  //     const name = params[1];
+  //     const name = param[1];
   //     const all_bot = getAllBot();
 
   //     let msg = '';
@@ -190,12 +193,12 @@ commandHanders.private = {
   //   //#endregion
 
   //   // #region set
-  //   async set(params, event) {
+  //   async set(param, event) {
   //     const { self_id } = event as PrivateMessageEvent;
 
   //     let bot = getBot(self_id) as Client;
-  //     let key = params[0] as keyof Config;
-  //     let value = params[1] as any;
+  //     let key = param[0] as keyof Config;
+  //     let value = param[1] as any;
 
   //     if (!key)
   //       return `// 修改输入：>set <key> <value>\n// 修改 platform 需要重新登录\n"${self_id}" ${JSON.stringify(bot.config, null, 2)}`
@@ -228,8 +231,8 @@ commandHanders.private = {
   //   // #endregion
 
   // login
-  async login(params, event) {
-    const uin = Number(params[0]);
+  async login(param, event) {
+    const uin = Number(param[0]);
     const all_bot = getAllBot();
 
     switch (true) {
@@ -250,11 +253,13 @@ commandHanders.private = {
     return `>开始登录流程，账号 ${uin}`;
   },
   // logout
-  async logout(params) {
-    const uin = Number(params[0]);
+  async logout(param) {
+    const uin = Number(param[0]);
     const bot = getBot(uin);
 
     if (!bot) return `Error: 账号输入错误，无法找到该实例`;
+    if (uin === this.uin) return `Error: 该账号为当前 bot 实例，无法下线`;
+
     try {
       await bot.logout();
     } catch (error: any) {
@@ -263,8 +268,8 @@ commandHanders.private = {
     return `Success：已将该账号下线`;
   },
   // delete
-  async delete(params) {
-    const uin = Number(params[0]);
+  async delete(param) {
+    const uin = Number(param[0]);
     const bot = getBot(uin);
 
     if (!bot)
@@ -278,10 +283,10 @@ commandHanders.private = {
     return `Sucess：已删除此机器人实例`;
   },
   // bot
-  async bot(params) {
+  async bot(param) {
     const all_bot = getAllBot();
     const message: string[] = [`当前已登录账号：`];
-    const command = params[0];
+    const command = param[0];
 
     if (command === 'help') {
       return HELP_ALL.bot;
@@ -299,8 +304,8 @@ commandHanders.private = {
 //   const { plugin_modules, node_modules } = await plugin.findAllPlugins();
 
 //   for (const plugin_name of [...plugin_modules, ...node_modules.map(i => i.replace('kokkoro-', ''))]) {
-//     commandHanders.group[plugin_name] = async (params, event, plugin = plugin_name) => {
-//       return setOption([plugin, ...params], <GroupMessageEvent>event);
+//     all_command.group[plugin_name] = async (param, event, plugin = plugin_name) => {
+//       return setOption([plugin, ...param], <GroupMessageEvent>event);
 //     }
 //   }
 // }
@@ -308,5 +313,5 @@ commandHanders.private = {
 // addPluginHanders();
 
 // export {
-//   commandHanders, parseCommand, addPluginHanders,
+//   all_command, parseCommand, addPluginHanders,
 // }
