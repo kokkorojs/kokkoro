@@ -1,7 +1,7 @@
 {
   "name": "kokkoro-core",
   "version": "0.2.0",
-  "upday": "2022/2/18",
+  "upday": "2022/2/26",
   "description": "Core features for kokkoro.",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -26,9 +26,11 @@
   "homepage": "https://github.com/kokkorojs/kokkoro-core#readme",
   "changelogs": "https://github.com/kokkorojs/kokkoro-core/releases",
   "devDependencies": {
+    "@types/js-yaml": "^4.0.5",
     "@types/node": "^17.0.18"
   },
   "dependencies": {
+    "js-yaml": "^4.1.0",
     "oicq": "^2.2.0"
   },
   "files": [

@@ -1,11 +1,12 @@
 import { resolve } from 'path';
 import { existsSync } from 'fs';
-import { writeFile } from 'fs/promises';
+import { dump, load } from 'js-yaml';
+import { writeFile, readFile } from 'fs/promises';
 import { GroupMessageEvent } from 'oicq';
 
-import { getStack } from './util';
+import { getStack, logger } from './util';
 import { parseCommand } from './command';
-import { getGlobalConfig, GlobalConfig } from './config';
+import { KokkoroConfig, getKokkoroConfig } from './config';
 
 // 群聊
 interface Group {
@@ -19,7 +20,7 @@ interface Group {
 }
 
 // 插件选项
-interface Option {
+export interface Option {
   // 插件锁定
   lock: boolean;
   // 插件开关
@@ -28,7 +29,7 @@ interface Option {
   [param: string]: string | number | boolean | any[];
 }
 
-interface Setting {
+export interface Setting {
   // 插件列表
   all_plugin: string[];
   // 群聊列表
@@ -37,169 +38,174 @@ interface Setting {
 
 const all_setting: Map<number, Setting> = new Map();
 
-(async () => {
-  try {
-    const global_config: GlobalConfig = getGlobalConfig();
-    const uins: string[] = Object.keys(global_config.bots);
+(() => {
+  const kokkoro_config: KokkoroConfig = getKokkoroConfig();
+  const uins: string[] = Object.keys(kokkoro_config.bots);
 
-    for (const uin of uins) {
-      const setting_path = resolve(__workname, `data/bots/${uin}/setting.json`);
+  for (const uin of uins) {
+    const setting_path = resolve(__workname, `data/bots/${uin}/setting.yml`);
 
-      if (existsSync(setting_path)) {
-        all_setting.set(Number(uin), require(setting_path));
-      } else {
-        const setting = {
-          all_plugin: [],
+    readFile(setting_path, 'utf8')
+      .then(value => {
+        all_setting.set(Number(uin), load(value) as Setting);
+      })
+      .catch(async error => {
+        if (!error.message.includes('ENOENT: no such file or directory')) {
+          throw error;
         }
+        const setting = { all_plugin: [] };
 
-        all_setting.set(Number(uin), setting);
-        await writeFile(setting_path, `${JSON.stringify(setting, null, 2)}`);
-      }
-    }
-  } catch { }
+        await writeFile(setting_path, dump(setting))
+          .then(() => {
+            all_setting.set(Number(uin), setting);
+            logger.mark(`创建了新的设置文件：data/bots/${uin}/setting.yml`);
+          })
+          .catch(error => {
+            throw error;
+          })
+      })
+  }
 })();
 
-//#region 获取所有群聊插件设置
-function getAllSetting() {
+// 获取所有群聊插件设置
+export function getAllSetting() {
   return all_setting;
 }
-//#endregion
 
-//#region 获取当前群聊插件设置
-function getSetting(uin: number) {
-  return all_setting.has(uin) ? all_setting.get(uin) : {};
+// 获取当前群聊插件设置
+export function getSetting(uin: number) {
+  return all_setting.get(uin);
 }
 
-//#region 写入群聊插件设置
-function setSetting(uin: number) {
-  const setting_path = resolve(__workname, `data/bots/${uin}/setting.json`);
-  const setting = all_setting.get(uin);
+// 写入群聊插件设置
+export function setSetting(uin: number) {
+  //   const setting_path = resolve(__workname, `data/bots/${uin}/setting.yml`);
+  //   const setting = all_setting.get(uin);
 
-  return writeFile(setting_path, `${JSON.stringify(setting, null, 2)}`);
+  //   return writeFile(setting_path, `${JSON.stringify(setting, null, 2)}`);
 }
-//#endregion
 
-//#region 获取当前插件的群聊选项
-function getOption(event: GroupMessageEvent) {
-  const { self_id, group_id } = event;
+// //#region 获取当前插件的群聊选项
+// function getOption(event: GroupMessageEvent) {
+//   const { self_id, group_id } = event;
 
-  const stack = getStack();
-  const regex = /\w+(?=(\\|\/)index\.js)/g;
-  const setting = all_setting.get(self_id) as Setting;
-  const fileName = stack[2].getFileName()?.replace('/lib/', '/') as string;
-  const [plugin_name] = fileName.match(regex) as string[];
+//   const stack = getStack();
+//   const regex = /\w+(?=(\\|\/)index\.js)/g;
+//   const setting = all_setting.get(self_id) as Setting;
+//   const fileName = stack[2].getFileName()?.replace('/lib/', '/') as string;
+//   const [plugin_name] = fileName.match(regex) as string[];
 
-  return setting[group_id].plugin[plugin_name] || {};
-}
-//#endregion
+//   return setting[group_id].plugin[plugin_name] || {};
+// }
+// //#endregion
 
-// #dregion 获取当前插件的群聊选项
-async function setOption(params: ReturnType<typeof parseCommand>['params'], event: GroupMessageEvent) {
-  let message;
-  let new_value: string | number | boolean | any[];
+// // #dregion 获取当前插件的群聊选项
+// async function setOption(params: ReturnType<typeof parseCommand>['params'], event: GroupMessageEvent) {
+//   let message;
+//   let new_value: string | number | boolean | any[];
 
-  const { self_id, group_id } = event;
-  const [plugin_name, option_name, value] = params;
-  const setting = all_setting.get(self_id) as Setting;
+//   const { self_id, group_id } = event;
+//   const [plugin_name, option_name, value] = params;
+//   const setting = all_setting.get(self_id) as Setting;
 
-  if (!setting[group_id] || !setting[group_id].plugin[plugin_name]) {
-    return `Error: ${plugin_name} is not defined, please input ">enable ${plugin_name}" load plugin`;
-  }
+//   if (!setting[group_id] || !setting[group_id].plugin[plugin_name]) {
+//     return `Error: ${plugin_name} is not defined, please input ">enable ${plugin_name}" load plugin`;
+//   }
 
-  const plugin = setting[group_id].plugin;
+//   const plugin = setting[group_id].plugin;
 
-  switch (true) {
-    case !option_name:
-      message = `"${plugin_name}": ${JSON.stringify(plugin[plugin_name], null, 2)}`;
-      break;
-    case !value:
-      message = '参数不能为空';
-      break;
-  }
+//   switch (true) {
+//     case !option_name:
+//       message = `"${plugin_name}": ${JSON.stringify(plugin[plugin_name], null, 2)}`;
+//       break;
+//     case !value:
+//       message = '参数不能为空';
+//       break;
+//   }
 
-  if (message) {
-    return message;
-  }
+//   if (message) {
+//     return message;
+//   }
 
-  const old_value = plugin[plugin_name][option_name];
+//   const old_value = plugin[plugin_name][option_name];
 
-  switch (true) {
-    case ['true', 'false'].includes(value):
-      new_value = value === 'true';
-      break;
+//   switch (true) {
+//     case ['true', 'false'].includes(value):
+//       new_value = value === 'true';
+//       break;
 
-    case /^(-?[1-9]\d*|0)$/.test(value):
-      new_value = Number(value);
-      break;
+//     case /^(-?[1-9]\d*|0)$/.test(value):
+//       new_value = Number(value);
+//       break;
 
-    default:
-      new_value = value;
-      break;
-  }
+//     default:
+//       new_value = value;
+//       break;
+//   }
 
-  // 校验参数是否合法
-  switch (true) {
-    case !Array.isArray(old_value) && typeof old_value !== typeof new_value:
-      if (old_value) {
-        message = `Error: ${plugin_name}.${option_name} 应为 ${typeof old_value} 类型`;
-      } else {
-        message = `Error: ${option_name} is not defined`;
-      }
-      break;
+//   // 校验参数是否合法
+//   switch (true) {
+//     case !Array.isArray(old_value) && typeof old_value !== typeof new_value:
+//       if (old_value) {
+//         message = `Error: ${plugin_name}.${option_name} 应为 ${typeof old_value} 类型`;
+//       } else {
+//         message = `Error: ${option_name} is not defined`;
+//       }
+//       break;
 
-    case Array.isArray(old_value) && !old_value.includes(new_value):
-      message = `Error: 属性 ${option_name} 的合法值为 [${(old_value as any[]).join(', ')}]`;
-      break;
-  }
+//     case Array.isArray(old_value) && !old_value.includes(new_value):
+//       message = `Error: 属性 ${option_name} 的合法值为 [${(old_value as any[]).join(', ')}]`;
+//       break;
+//   }
 
-  if (message) {
-    return message;
-  }
+//   if (message) {
+//     return message;
+//   }
 
-  if (Array.isArray(old_value)) {
-    new_value = old_value.sort(i => i === new_value ? -1 : 0)
-  }
+//   if (Array.isArray(old_value)) {
+//     new_value = old_value.sort(i => i === new_value ? -1 : 0)
+//   }
 
-  setting[group_id].plugin[plugin_name][option_name] = new_value;
-  all_setting.set(self_id, setting);
+//   setting[group_id].plugin[plugin_name][option_name] = new_value;
+//   all_setting.set(self_id, setting);
 
-  await setSetting(self_id);
-  return `${plugin_name}: {\n  ${option_name}: ${!Array.isArray(new_value) ? new_value : `[${new_value.join(', ')}]`}\n}`;
-}
-// #endregion
+//   await setSetting(self_id);
+//   return `${plugin_name}: {\n  ${option_name}: ${!Array.isArray(new_value) ? new_value : `[${new_value.join(', ')}]`}\n}`;
+// }
+// // #endregion
 
-//#region 获取群聊插件列表
-async function getList(event: GroupMessageEvent): Promise<string> {
-  const { self_id, group_id } = event;
-  const { plugin } = all_setting.get(self_id)?.[group_id] || { plugin: {} };
-  const message = ['// 如要查看更多信息可输入 >setting\n"list": {'];
+// //#region 获取群聊插件列表
+// async function getList(event: GroupMessageEvent): Promise<string> {
+//   const { self_id, group_id } = event;
+//   const { plugin } = all_setting.get(self_id)?.[group_id] || { plugin: {} };
+//   const message = ['// 如要查看更多信息可输入 >setting\n"list": {'];
 
-  for (const key in plugin) message.push(`  "${key}": ${plugin[key].apply}`);
+//   for (const key in plugin) message.push(`  "${key}": ${plugin[key].apply}`);
 
-  message.push('}');
-  return message.join('\n');
-}
-//#endregion
+//   message.push('}');
+//   return message.join('\n');
+// }
+// //#endregion
 
-async function settingHanders(params: ReturnType<typeof parseCommand>['params'], event: GroupMessageEvent): Promise<string> {
-  const { group_id, self_id } = event;
-  let message: string;
+// async function settingHanders(params: ReturnType<typeof parseCommand>['params'], event: GroupMessageEvent): Promise<string> {
+//   const { group_id, self_id } = event;
+//   let message: string;
 
-  switch (true) {
-    case !params.length:
-      const setting = `"${group_id}": ${JSON.stringify(all_setting.get(self_id)?.[group_id] || {}, null, 2)}`;
+//   switch (true) {
+//     case !params.length:
+//       const setting = `"${group_id}": ${JSON.stringify(all_setting.get(self_id)?.[group_id] || {}, null, 2)}`;
 
-      message = setting;
-      break;
+//       message = setting;
+//       break;
 
-    default:
-      message = `Error: 未知参数 "${params[0]}"`;
-      break;
-  }
+//     default:
+//       message = `Error: 未知参数 "${params[0]}"`;
+//       break;
+//   }
 
-  return message;
-}
-export {
-  Option, Setting,
-  setSetting, getSetting, getAllSetting, getList, getOption, setOption, settingHanders,
-}
+//   return message;
+// }
+// export {
+//   Option, Setting,
+//   setSetting, getSetting, getAllSetting, getList, getOption, setOption, settingHanders,
+// }
