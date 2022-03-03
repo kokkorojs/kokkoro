@@ -16,17 +16,17 @@ const admin = [2225151531];
 const all_bot: Map<number, Bot> = new Map();
 
 /**
- * 合并 config
- * @param default_config - bot_config 默认对象
- * @param bot_config - bot_config 传入对象
- * @returns - 返回合并后的 config （深度拷贝）
+ * 合并 bot_config
+ * 
+ * @param {BotConfig} default_config - 默认 config 对象
+ * @param {BotConfig} bot_config - 传入 config 对象
+ * @returns {BotConfig} 返回合并后的 config （深度拷贝）
  */
 function deepMerge(default_config: any, bot_config: any): BotConfig {
   for (const key in bot_config) {
-    default_config[key] =
-      typeof default_config[key] === 'object'
-        ? deepMerge(default_config[key], bot_config[key])
-        : bot_config[key];
+    default_config[key] = typeof default_config[key] === 'object'
+      ? deepMerge(default_config[key], bot_config[key])
+      : bot_config[key];
   }
 
   return default_config;
@@ -40,24 +40,24 @@ export interface BotConfig {
   // 登录模式，默认 qrcode
   login_mode: 'qrcode' | 'password';
   // bot 主人
-  master: number[];
+  masters: number[];
   // 协议配置
   config: Config;
 }
 
 export class Bot extends Client {
-  private login_mode: string;
-  private password_path: string;
+  private readonly login_mode: string;
+  private readonly password_path: string;
 
   public prefix: string;
-  public readonly master: number[];
+  public masters: number[];
 
   constructor(uin: number, bot_config?: BotConfig) {
     const default_config: BotConfig = {
       prefix: '>',
       auto_login: true,
       login_mode: 'qrcode',
-      master: [],
+      masters: [],
       config: {
         data_dir: './data/bots',
       },
@@ -67,7 +67,7 @@ export class Bot extends Client {
     super(uin, default_config.config);
 
     this.prefix = default_config.prefix;
-    this.master = default_config.master;
+    this.masters = default_config.masters;
     this.login_mode = default_config.login_mode;
     this.password_path = join(this.dir, 'password');
 
@@ -112,6 +112,7 @@ export class Bot extends Client {
         this
           .on('system.login.qrcode', event => {
             this.logger.mark('扫码完成后拍回车键继续...');
+
             process.stdin.once('data', () => {
               this.login();
             });
@@ -188,6 +189,9 @@ export class Bot extends Client {
    * level 4 群  主
    * level 5 主  人
    * level 6 维护组
+   * 
+   * @param {PrivateMessageEvent|GroupMessageEvent|DiscussMessageEvent} event - 消息 event
+   * @returns {Number}
    */
   getUserLevel(event: PrivateMessageEvent | GroupMessageEvent | DiscussMessageEvent) {
     const { sender } = event;
@@ -199,7 +203,7 @@ export class Bot extends Client {
       case admin.includes(user_id):
         user_level = 6
         break;
-      case this.master.includes(user_id):
+      case this.masters.includes(user_id):
         user_level = 5
         break;
       case role === 'owner':
@@ -223,7 +227,7 @@ export class Bot extends Client {
   }
 
   sendMasterMsg(message: string) {
-    for (const user_id of this.master) {
+    for (const user_id of this.masters) {
       this.sendPrivateMsg(user_id, `通知：\n　　${message}`)
     }
   }
@@ -305,16 +309,17 @@ export function getBot(uin: number) {
 
 /**
  * 添加一个新的 bot 并登录
- * @param this - 被私聊的 bot 对象
- * @param uin - 添加的 uin
- * @param delegate - 私聊消息
+ * 
+ * @param {Bot} this - 被私聊的 bot 对象
+ * @param {number} uin - 添加的 uin
+ * @param {PrivateMessageEvent} delegate - 私聊消息 event
  */
 export function addBot(this: Bot, uin: number, delegate: PrivateMessageEvent) {
   const bot_config: BotConfig = {
     prefix: '>',
     auto_login: true,
     login_mode: 'qrcode',
-    master: [delegate.from_id],
+    masters: [delegate.from_id],
     config: {
       log_level: 'info',
       platform: 1,

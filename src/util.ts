@@ -5,17 +5,12 @@ import { Bot } from './bot';
 
 import { setKokkoroConfig } from './config';
 
-// 维护组 QQ
-const admin = [2225151531];
+export const section = {
+  image, at: segment.at,
+};
 
-/**
- * @description 控制台彩色打印
- * @param code - ANSI escape code
- * @returns - function
- */
-function colorful(code: number): Function {
-  return (msg: string) => `\u001b[${code}m${msg}\u001b[0m`
-}
+export const logger: Logger = getLogger('[kokkoro log]');
+logger.level = 'all';
 
 export const colors = {
   red: colorful(31), green: colorful(32), yellow: colorful(33),
@@ -23,10 +18,21 @@ export const colors = {
 };
 
 /**
- * @description 生成图片消息段（oicq 无法 catch 网络图片下载失败，所以单独处理）
- * @param url - 图片 url
- * @param flash - 是否闪图
- * @returns - Promise
+ * 控制台彩色打印
+ * 
+ * @param {number} code - ANSI escape code
+ * @returns {Function} 
+ */
+function colorful(code: number): Function {
+  return (msg: string) => `\u001b[${code}m${msg}\u001b[0m`
+}
+
+/**
+ * 生成图片消息段（oicq 无法 catch 网络图片下载失败，所以单独处理）
+ * 
+ * @param {string} url - 图片 url
+ * @param {boolean} flash - 是否生成闪图
+ * @returns {Promise} 
  */
 function image(url: string, flash: boolean = false): Promise<ImageElem | FlashElem | string> {
   return new Promise((resolve, reject) => {
@@ -43,22 +49,14 @@ function image(url: string, flash: boolean = false): Promise<ImageElem | FlashEl
   })
 }
 
-export const section = {
-  image, at: segment.at,
-};
-
-// log4js
-export const logger: Logger = getLogger('[kokkoro log]');
-logger.level = 'all';
-
 /**
  * 校验指令
  *
- * @param command - 指令对象
- * @param raw_message - 收到的消息
- * @returns - 返回 command 对象匹配的方法名
+ * @param {Object} command - 指令对象
+ * @param {string} raw_message - 收到的消息
+ * @returns {string|undefined} 返回 command 对象匹配的方法名
  */
-function checkCommand(command: { [key: string]: RegExp }, raw_message: string): string | undefined {
+function checkCommand(command: { [key: string]: RegExp }, raw_message: string) {
   const keys = Object.keys(command);
   const key_length = keys.length;
 
@@ -72,8 +70,9 @@ function checkCommand(command: { [key: string]: RegExp }, raw_message: string): 
 }
 
 /**
- * @description 获取调用栈
- * @returns - Array
+ * 获取调用栈
+ * 
+ * @returns {Array}
  */
 export function getStack() {
   const orig = Error.prepareStackTrace;

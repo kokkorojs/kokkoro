@@ -1,6 +1,6 @@
 import { resolve } from 'path';
 import { existsSync } from 'fs';
-import { dump, load } from 'js-yaml';
+import { stringify, parse } from 'yaml';
 import { writeFile, readFile } from 'fs/promises';
 import { GroupMessageEvent } from 'oicq';
 
@@ -38,6 +38,7 @@ export interface Setting {
 
 const all_setting: Map<number, Setting> = new Map();
 
+// 初始化 setting 数据
 (() => {
   const kokkoro_config: KokkoroConfig = getKokkoroConfig();
   const uins: string[] = Object.keys(kokkoro_config.bots);
@@ -47,7 +48,7 @@ const all_setting: Map<number, Setting> = new Map();
 
     readFile(setting_path, 'utf8')
       .then(value => {
-        all_setting.set(Number(uin), load(value) as Setting);
+        all_setting.set(Number(uin), parse(value) as Setting);
       })
       .catch(async error => {
         if (!error.message.includes('ENOENT: no such file or directory')) {
@@ -55,7 +56,7 @@ const all_setting: Map<number, Setting> = new Map();
         }
         const setting = { all_plugin: [] };
 
-        await writeFile(setting_path, dump(setting))
+        await writeFile(setting_path, stringify(setting))
           .then(() => {
             all_setting.set(Number(uin), setting);
             logger.mark(`创建了新的设置文件：data/bots/${uin}/setting.yml`);
@@ -67,12 +68,21 @@ const all_setting: Map<number, Setting> = new Map();
   }
 })();
 
-// 获取所有群聊插件设置
+/**
+ * 获取所有群聊插件设置
+ * 
+ * @returns {Map} setting 集合
+ */
 export function getAllSetting() {
   return all_setting;
 }
 
-// 获取当前群聊插件设置
+/**
+ * 获取当前群聊插件设置
+ * 
+ * @param {number} uin - 群号
+ * @returns {Setting} setting 对象
+ */
 export function getSetting(uin: number) {
   return all_setting.get(uin);
 }
@@ -95,7 +105,7 @@ export function setSetting(uin: number) {
 //   const fileName = stack[2].getFileName()?.replace('/lib/', '/') as string;
 //   const [plugin_name] = fileName.match(regex) as string[];
 
-//   return setting[group_id].plugin[plugin_name] || {};
+//   return setting[group_id].plugin[plugin_name] ?? {};
 // }
 // //#endregion
 
@@ -109,7 +119,7 @@ export function setSetting(uin: number) {
 //   const setting = all_setting.get(self_id) as Setting;
 
 //   if (!setting[group_id] || !setting[group_id].plugin[plugin_name]) {
-//     return `Error: ${plugin_name} is not defined, please input ">enable ${plugin_name}" load plugin`;
+//     return `Error: ${plugin_name} is not defined, please input ">enable ${plugin_name}" parse plugin`;
 //   }
 
 //   const plugin = setting[group_id].plugin;
@@ -177,7 +187,7 @@ export function setSetting(uin: number) {
 // //#region 获取群聊插件列表
 // async function getList(event: GroupMessageEvent): Promise<string> {
 //   const { self_id, group_id } = event;
-//   const { plugin } = all_setting.get(self_id)?.[group_id] || { plugin: {} };
+//   const { plugin } = all_setting.get(self_id)?.[group_id] ?? { plugin: {} };
 //   const message = ['// 如要查看更多信息可输入 >setting\n"list": {'];
 
 //   for (const key in plugin) message.push(`  "${key}": ${plugin[key].apply}`);
@@ -193,7 +203,7 @@ export function setSetting(uin: number) {
 
 //   switch (true) {
 //     case !params.length:
-//       const setting = `"${group_id}": ${JSON.stringify(all_setting.get(self_id)?.[group_id] || {}, null, 2)}`;
+//       const setting = `"${group_id}": ${JSON.stringify(all_setting.get(self_id)?.[group_id] ?? {}, null, 2)}`;
 
 //       message = setting;
 //       break;

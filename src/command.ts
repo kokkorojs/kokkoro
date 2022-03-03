@@ -1,5 +1,5 @@
 import { Logger } from 'log4js';
-import { dump } from 'js-yaml';
+import { stringify } from 'yaml';
 import { spawn } from 'child_process';
 import { Client, Config, DiscussMessageEvent, GroupMessageEvent, PrivateMessageEvent } from 'oicq';
 
@@ -27,7 +27,12 @@ export const all_command: {
   private: {},
 };
 
-// 格式化指令字段
+/**
+ * 解析指令字段
+ * 
+ * @param {string} command - 命令行
+ * @returns {Object}
+ */
 export function parseCommand(command: string) {
   const [order, ...param] = command.split(' ');
 
@@ -62,13 +67,13 @@ all_command.private = {
   // help
   async help(param) {
     const [key] = param;
-    return HELP_ALL[key] || HELP_ALL.default;
+    return HELP_ALL[key] ?? HELP_ALL.default;
   },
 
   // config
   async config() {
     const kokkoro_config = getKokkoroConfig();
-    return dump(kokkoro_config.bots[this.uin]);
+    return stringify(kokkoro_config.bots[this.uin]);
   },
 
   // restart
