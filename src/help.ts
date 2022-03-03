@@ -5,10 +5,10 @@ const KOKKORO_VERSION = version;
 const KOKKORO_CHANGELOGS = changelogs;
 
 const HELP_BOT = `--------------------
->bot            ##列出所有机器人实例
->login <uin>    ##登录机器人
->logout <uin>   ##机器人离线
->delete <uin>   ##删除离线机器人
+>bot            ## 列出所有机器人实例
+>login <uin>    ## 登录机器人
+>logout <uin>   ## 机器人离线
+>delete <uin>   ## 删除离线机器人
 
 ※ <uin> 代表 QQ 账号
 `;
