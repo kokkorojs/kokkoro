@@ -38,35 +38,41 @@ export interface Setting {
 
 const all_setting: Map<number, Setting> = new Map();
 
-// 初始化 setting 数据
 (() => {
   const kokkoro_config: KokkoroConfig = getKokkoroConfig();
   const uins: string[] = Object.keys(kokkoro_config.bots);
 
-  for (const uin of uins) {
-    const setting_path = resolve(__workname, `data/bots/${uin}/setting.yml`);
-
-    readFile(setting_path, 'utf8')
-      .then(value => {
-        all_setting.set(Number(uin), parse(value) as Setting);
-      })
-      .catch(async error => {
-        if (!error.message.includes('ENOENT: no such file or directory')) {
-          throw error;
-        }
-        const setting = { all_plugin: [] };
-
-        await writeFile(setting_path, stringify(setting))
-          .then(() => {
-            all_setting.set(Number(uin), setting);
-            logger.mark(`创建了新的设置文件：data/bots/${uin}/setting.yml`);
-          })
-          .catch(error => {
-            throw error;
-          })
-      })
-  }
+  for (const uin of uins) initSetting(uin);
 })();
+
+/**
+ * 初始化 setting 数据
+ * 
+ * @param {string} uin 机器人账号
+ */
+function initSetting(uin: string) {
+  const setting_path = resolve(__workname, `data/bots/${uin}/setting.yml`);
+
+  readFile(setting_path, 'utf8')
+    .then(value => {
+      all_setting.set(Number(uin), parse(value) as Setting);
+    })
+    .catch(async error => {
+      if (!error.message.includes('ENOENT: no such file or directory')) {
+        throw error;
+      }
+      const setting = { all_plugin: [] };
+
+      await writeFile(setting_path, stringify(setting))
+        .then(() => {
+          all_setting.set(Number(uin), setting);
+          logger.mark(`创建了新的设置文件：data/bots/${uin}/setting.yml`);
+        })
+        .catch(error => {
+          throw error;
+        })
+    })
+}
 
 /**
  * 获取所有群聊插件设置
