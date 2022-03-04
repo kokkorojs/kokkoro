@@ -17,101 +17,95 @@ class PluginError extends Error {
 }
 
 class Plugin {
-  //   protected readonly full_path: string;
+  readonly path: string;
   readonly option: Option;
-  //   readonly binds = new Set<Bot>();
+  readonly apply = new Set<Bot>();
 
   constructor(name: string, path: string) {
-    //     this.full_path = require.resolve(this.path);
-    // this.option = require(this.path).default_option;
+    this.path = require.resolve(path);
+    this.option = require(path).default_option;
   }
 
-  //   protected async _editBotPluginCache(bot: Bot, method: 'add' | 'delete') {
-  //     const { gl, uin } = bot;
+  async _editBotPluginCache(bot: Bot, method: 'add' | 'delete') {
+    const { gl, uin } = bot;
+    const setting = getSetting(uin) as Setting;
+    const set: Set<string> = new Set(setting.all_plugin);
 
-  //     const all_setting = getAllSetting();
-  //     const setting = all_setting.get(uin) || { all_plugin: [] };
-  //     const set: Set<string> = new Set(setting.all_plugin);
+    //     set[method](this.name);
+    //     setting.all_plugin = [...set];
 
-  //     set[method](this.name);
-  //     setting.all_plugin = [...set];
+    //     // 写入群配置
+    //     gl.forEach((value: GroupInfo, group_id: number) => {
+    //       if (!setting[group_id]) {
+    //         setting[group_id] = {
+    //           name: value.group_name, plugin: {},
+    //         }
+    //       } else {
+    //         setting[group_id].name = value.group_name;
+    //       }
 
-  //     // 写入群配置
-  //     gl.forEach((value: GroupInfo, group_id: number) => {
-  //       if (!setting[group_id]) {
-  //         setting[group_id] = {
-  //           name: value.group_name, plugin: {},
-  //         }
-  //       } else {
-  //         setting[group_id].name = value.group_name;
-  //       }
+    //       const default_option: Option = {
+    //         lock: false,
+    //         apply: true,
+    //       }
 
-  //       const default_option: Option = {
-  //         lock: false,
-  //         apply: true,
-  //       }
+    //       Object.assign(
+    //         default_option,
+    //         this.option,
+    //         setting[group_id] ? setting[group_id].plugin[this.name] : {}
+    //       )
 
-  //       Object.assign(
-  //         default_option,
-  //         this.option,
-  //         setting[group_id] ? setting[group_id].plugin[this.name] : {}
-  //       )
+    //       setting[group_id].plugin[this.name] = default_option;
+    //     });
 
-  //       setting[group_id].plugin[this.name] = default_option;
-  //     });
+    //     all_setting.set(uin, setting);
+    //     return setSetting(uin);
+  }
 
-  //     all_setting.set(uin, setting);
-  //     return setSetting(uin);
-  //   }
+  async enable(bot: Bot) {
+    if (this.apply.has(bot)) {
+      throw new PluginError("这个机器人实例已经启用了此插件");
+    }
+    const module = require.cache[this.path];
 
-  //   async enable(bot: Bot) {
-  //     if (this.binds.has(bot)) {
-  //       throw new PluginError("这个机器人实例已经启用了此插件");
-  //     }
+    if (typeof module?.exports.enable !== "function") {
+      throw new PluginError("此插件未导出 enable 方法，无法启用");
+    }
 
-  //     const mod = require.cache[this.full_path];
+    try {
+      const enable_func = module?.exports.enable(bot);
 
-  //     if (typeof mod?.exports.enable !== "function") {
-  //       throw new PluginError("此插件未导出 enable 方法，无法启用");
-  //     }
+      if (enable_func instanceof Promise) await enable_func;
 
-  //     try {
-  //       const res = mod?.exports.enable(bot);
+      //       await this._editBotPluginCache(bot, "add");
+      this.apply.add(bot);
+    } catch (error) {
+      const { message } = error as PluginError;
+      throw new PluginError(`启用插件时遇到错误\n${message}`);
+    }
+  }
 
-  //       if (res instanceof Promise) await res;
+  async disable(bot: Bot) {
+    if (!this.apply.has(bot)) {
+      throw new PluginError(`这个机器人实例尚未启用此插件`);
+    }
+    const module = require.cache[this.path];
 
-  //       await this._editBotPluginCache(bot, "add");
-  //       this.binds.add(bot);
-  //     } catch (error) {
-  //       const { message } = error as Error;
+    if (typeof module?.exports.disable !== "function") {
+      throw new PluginError(`此插件未导出 disable 方法，无法禁用`);
+    }
+    try {
+      const disable_func = module?.exports.disable(bot);
 
-  //       throw new PluginError(`启用插件时遇到错误\n${message}`);
-  //     }
-  //   }
+      if (disable_func instanceof Promise) await disable_func;
 
-  //   async disable(bot: Bot) {
-  //     if (!this.binds.has(bot)) {
-  //       throw new PluginError(`这个机器人实例尚未启用此插件`);
-  //     }
-
-  //     const mod = require.cache[this.full_path];
-
-  //     if (typeof mod?.exports.disable !== "function") {
-  //       throw new PluginError(`此插件未导出 disable 方法，无法禁用`);
-  //     }
-  //     try {
-  //       const res = mod?.exports.disable(bot);
-
-  //       if (res instanceof Promise) await res;
-
-  //       await this._editBotPluginCache(bot, "delete");
-  //       this.binds.delete(bot);
-  //     } catch (error) {
-  //       const { message } = error as Error;
-
-  //       throw new PluginError(`禁用插件时遇到错误\n${message}`)
-  //     }
-  //   }
+      //       await this._editBotPluginCache(bot, "delete");
+      this.apply.delete(bot);
+    } catch (error) {
+      const { message } = error as PluginError;
+      throw new PluginError(`禁用插件时遇到错误\n${message}`)
+    }
+  }
 
   //   async goDie() {
   //     const mod = require.cache[this.full_path] as NodeJS.Module;
