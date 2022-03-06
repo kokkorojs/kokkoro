@@ -3,7 +3,7 @@ import { createHash } from 'crypto';
 import { writeFile, readFile } from 'fs/promises';
 import { Client, Config, DiscussMessageEvent, GroupMessageEvent, GroupRole, PrivateMessageEvent, segment } from 'oicq';
 
-// import plugin from './plugin';
+import { enablePlugin } from './plugin';
 import { logger, colors } from './util';
 import { KOKKORO_UPDAY, KOKKORO_VERSION, KOKKORO_CHANGELOGS } from './help';
 
@@ -44,6 +44,8 @@ export interface BotConfig {
   // 协议配置
   config: Config;
 }
+
+export type AllMessageEvent = GroupMessageEvent | PrivateMessageEvent | DiscussMessageEvent;
 
 export class Bot extends Client {
   private readonly login_mode: string;
@@ -190,10 +192,10 @@ export class Bot extends Client {
    * level 5 主  人
    * level 6 维护组
    * 
-   * @param {PrivateMessageEvent|GroupMessageEvent|DiscussMessageEvent} event - 消息 event
+   * @param {AllMessageEvent} event - 消息 event
    * @returns {Number}
    */
-  getUserLevel(event: PrivateMessageEvent | GroupMessageEvent | DiscussMessageEvent) {
+  getUserLevel(event: AllMessageEvent) {
     const { sender } = event;
     const { user_id, level = 0, role = 'member' } = sender as { user_id: number, level?: number, role: GroupRole };
 
@@ -241,7 +243,7 @@ export class Bot extends Client {
     this.logger.info(`${this.nickname} 已离线，${event.message}`);
   }
 
-  async onMessage(event: PrivateMessageEvent | GroupMessageEvent | DiscussMessageEvent) {
+  async onMessage(event: AllMessageEvent) {
     let message: string = '';
 
     const { message_type, raw_message } = event;
@@ -296,6 +298,9 @@ export class Bot extends Client {
     this.on('message', this.onMessage);
     this.on('system.online', this.onOnline);
     this.on('system.offline', this.onOffline);
+
+    // enablePlugin('demo', this)
+    // const plugins = await plugin.restorePlugins(bot);
   }
 }
 
