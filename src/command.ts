@@ -3,11 +3,11 @@ import { stringify } from 'yaml';
 import { spawn } from 'child_process';
 import { Client, Config, DiscussMessageEvent, GroupMessageEvent, PrivateMessageEvent } from 'oicq';
 
-// import plugin from './plugin';
 import { HELP_ALL } from './help';
+import { enablePlugin, disablePlugin, reloadPlugin } from './plugin';
 // import { addBot, configHanders, cutBot } from './config';
 // import { getList, setOption, settingHanders } from './setting';
-import { addBot, Bot, getAllBot, getBot } from './bot';
+import { addBot, AllMessageEvent, Bot, getAllBot, getBot } from './bot';
 import { getKokkoroConfig } from './config';
 // import { bindMasterEvents, Bot, createBot, getAllBot, getBot } from './bot';
 
@@ -18,7 +18,7 @@ export const all_command: {
     [command: string]: (
       this: Bot,
       param: ReturnType<typeof parseCommand>['param'],
-      event: PrivateMessageEvent | GroupMessageEvent | DiscussMessageEvent
+      event: AllMessageEvent,
     ) => Promise<string>
   }
 } = {
@@ -93,36 +93,50 @@ all_command.private = {
     return `お休み♪`;
   },
 
-  //   //#region enable
-  //   async enable(param, event) {
-  //     const name = param[0];
-  //     const uin = this.uin;
-  //     const bot = getBot(uin) as Client;
+  //#region enable
+  async enable(param, event) {
+    const name = param[0];
+    const uin = this.uin;
+    const bot = getBot(uin)!;
 
-  //     try {
-  //       await plugin.enable(name, bot);
-  //       return `${bot.nickname} (${uin}) 启用插件成功`;
-  //     } catch (error: any) {
-  //       return error.message;
-  //     }
-  //   },
-  //   //#endregion
+    try {
+      await enablePlugin(name, bot);
+      return `${bot.nickname} (${uin}) 启用插件成功`;
+    } catch (error: any) {
+      return error.message;
+    }
+  },
+  //#endregion
 
-  //   //#region disable
-  //   async disable(param, event) {
-  //     const name = param[0];
-  //     const uin = this.uin;
-  //     const bot = getBot(uin) as Client;
+  //#region disable
+  async disable(param, event) {
+    const name = param[0];
+    const uin = this.uin;
+    const bot = getBot(uin)!;
 
-  //     try {
-  //       await plugin.disable(name, bot);
+    try {
+      await disablePlugin(name, bot);
 
-  //       return `${bot.nickname} (${uin}) 禁用插件成功`;
-  //     } catch (error: any) {
-  //       return error.message;
-  //     }
-  //   },
-  //   //#endregion
+      return `${bot.nickname} (${uin}) 禁用插件成功`;
+    } catch (error: any) {
+      return error.message;
+    }
+  },
+
+  async reload(param, event) {
+    const name = param[0];
+    const uin = this.uin;
+    const bot = getBot(uin)!;
+
+    try {
+      await reloadPlugin(name, bot);
+
+      return `${bot.nickname} (${uin}) 重启插件成功`;
+    } catch (error: any) {
+      return error.message;
+    }
+  },
+  //#endregion
 
   //   //#region plugin
   //   async plugin(param, event) {
@@ -291,11 +305,6 @@ all_command.private = {
   async bot(param) {
     const all_bot = getAllBot();
     const message: string[] = [`当前已登录账号：`];
-    const command = param[0];
-
-    if (command === 'help') {
-      return HELP_ALL.bot;
-    }
 
     for (let [uin, bot] of all_bot) {
       message.push(`▼ ${bot.nickname} (${uin})\n\t状　态：${bot.isOnline() ? '在线' : '离线'}\n\t群　聊：${bot.gl.size} 个\n\t好　友：${bot.fl.size} 个\n\t消息量：${bot.stat.msg_cnt_per_min}/分`);
