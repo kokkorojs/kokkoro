@@ -3,7 +3,7 @@ import { getLogger, Logger } from 'log4js';
 import { AtElem, FlashElem, ImageElem, segment, DiscussMessageEvent, GroupMessageEvent, PrivateMessageEvent, GroupRole } from 'oicq';
 import { Bot } from './bot';
 
-import { setKokkoroConfig } from './config';
+import { setConfig } from './config';
 
 export const section = {
   image, at: segment.at,

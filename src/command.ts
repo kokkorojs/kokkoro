@@ -8,7 +8,7 @@ import { enablePlugin, disablePlugin, reloadPlugin } from './plugin';
 // import { addBot, configHanders, cutBot } from './config';
 // import { getList, setOption, settingHanders } from './setting';
 import { addBot, AllMessageEvent, Bot, getAllBot, getBot } from './bot';
-import { getKokkoroConfig } from './config';
+import { getConfig } from './config';
 // import { bindMasterEvents, Bot, createBot, getAllBot, getBot } from './bot';
 
 export type CommandType = 'all' | 'group' | 'private';
@@ -30,7 +30,7 @@ export const all_command: {
 /**
  * 解析指令字段
  * 
- * @param {string} command - 命令行
+ * @param {string} command - 命令
  * @returns {Object}
  */
 export function parseCommand(command: string) {
@@ -42,6 +42,7 @@ export function parseCommand(command: string) {
 }
 
 all_command.all = {
+  // 复读
   async echo(param) {
     return param.join(' ');
   },
@@ -72,7 +73,7 @@ all_command.private = {
 
   // config
   async config() {
-    const kokkoro_config = getKokkoroConfig();
+    const kokkoro_config = getConfig();
     return stringify(kokkoro_config.bots[this.uin]);
   },
 
@@ -116,7 +117,6 @@ all_command.private = {
 
     try {
       await disablePlugin(name, bot);
-
       return `${bot.nickname} (${uin}) 禁用插件成功`;
     } catch (error: any) {
       return error.message;
@@ -130,7 +130,6 @@ all_command.private = {
 
     try {
       await reloadPlugin(name, bot);
-
       return `${bot.nickname} (${uin}) 重启插件成功`;
     } catch (error: any) {
       return error.message;
@@ -306,7 +305,7 @@ all_command.private = {
     const all_bot = getAllBot();
     const message: string[] = [`当前已登录账号：`];
 
-    for (let [uin, bot] of all_bot) {
+    for (const [uin, bot] of all_bot) {
       message.push(`▼ ${bot.nickname} (${uin})\n\t状　态：${bot.isOnline() ? '在线' : '离线'}\n\t群　聊：${bot.gl.size} 个\n\t好　友：${bot.fl.size} 个\n\t消息量：${bot.stat.msg_cnt_per_min}/分`);
     }
     return message.join('\n');

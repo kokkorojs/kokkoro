@@ -16,25 +16,25 @@ export interface KokkoroConfig {
   }
 }
 
-const config_path = resolve(__workname, 'kokkoro.yml');
-const config_data = readFileSync(config_path, 'utf8');
-const kokkoro_config = parse(config_data) as KokkoroConfig;
+const config_path: string = resolve(__workname, 'kokkoro.yml');
+const config_data: string = readFileSync(config_path, 'utf8');
+const kokkoro_config: KokkoroConfig = parse(config_data);
 
 export function setBotConfig(uin: number, bot_config: BotConfig) {
   kokkoro_config.bots[uin] = bot_config;
-  return setKokkoroConfig();
+  return setConfig();
 }
 
 export async function cutBotConfig(uin: number) {
   const { bots } = kokkoro_config;
   delete bots[uin];
-  return setKokkoroConfig();
+  return setConfig();
 }
 
-export function setKokkoroConfig() {
+export function setConfig() {
   return writeFile(config_path, stringify(kokkoro_config));
 }
 
-export function getKokkoroConfig() {
+export function getConfig() {
   return kokkoro_config;
 }

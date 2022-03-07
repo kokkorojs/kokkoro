@@ -3,11 +3,11 @@ import { createHash } from 'crypto';
 import { writeFile, readFile } from 'fs/promises';
 import { Client, Config, DiscussMessageEvent, GroupMessageEvent, GroupRole, PrivateMessageEvent, segment } from 'oicq';
 
-import { enablePlugin } from './plugin';
+import { restorePlugin, enablePlugin } from './plugin';
 import { logger, colors } from './util';
 import { KOKKORO_UPDAY, KOKKORO_VERSION, KOKKORO_CHANGELOGS } from './help';
 
-import { setBotConfig, getKokkoroConfig } from './config';
+import { setBotConfig, getConfig } from './config';
 import { all_command, CommandType, parseCommand } from './command';
 
 // 维护组 QQ
@@ -48,11 +48,10 @@ export interface BotConfig {
 export type AllMessageEvent = GroupMessageEvent | PrivateMessageEvent | DiscussMessageEvent;
 
 export class Bot extends Client {
-  private readonly login_mode: string;
-  private readonly password_path: string;
-
   public prefix: string;
   public masters: number[];
+  private readonly login_mode: string;
+  private readonly password_path: string;
 
   constructor(uin: number, bot_config?: BotConfig) {
     const default_config: BotConfig = {
@@ -82,7 +81,7 @@ export class Bot extends Client {
   inputPassword() {
     this.logger.mark('首次登录请输入密码：');
 
-    process.stdin.once('data', data => {
+    process.stdin.once('data', (data) => {
       const input = String(data).trim();
 
       if (!input.length) return this.inputPassword();
@@ -112,14 +111,14 @@ export class Bot extends Client {
        */
       case 'qrcode':
         this
-          .on('system.login.qrcode', event => {
+          .on('system.login.qrcode', (event) => {
             this.logger.mark('扫码完成后拍回车键继续...');
 
             process.stdin.once('data', () => {
               this.login();
             });
           })
-          .on('system.login.error', event => {
+          .on('system.login.error', (event) => {
             const { message } = event;
 
             this.terminate();
@@ -138,8 +137,8 @@ export class Bot extends Client {
       case 'password':
         this
           // 监听滑动验证码事件
-          .on('system.login.slider', event => {
-            this.logger.mark(`取 ticket 教程：https://github.com/takayama-lily/oicq/wiki/01.滑动验证码和设备锁`);
+          .on('system.login.slider', (event) => {
+            this.logger.mark('取 ticket 教程：https://github.com/takayama-lily/oicq/wiki/01.滑动验证码和设备锁');
 
             process.stdout.write('ticket: ');
             process.stdin.once('data', (event: string) => {
@@ -154,7 +153,7 @@ export class Bot extends Client {
               this.login();
             });
           })
-          .on('system.login.error', event => {
+          .on('system.login.error', (event) => {
             const { message } = event;
 
             if (message.includes('密码错误')) {
@@ -175,7 +174,7 @@ export class Bot extends Client {
         }
         break;
       default:
-        this.logger.error(`你他喵的 login_mode 改错了`);
+        this.logger.error(`你他喵的 "login_mode" 改错了`);
         process.exit(0);
         break;
     }
@@ -193,13 +192,13 @@ export class Bot extends Client {
    * level 6 维护组
    * 
    * @param {AllMessageEvent} event - 消息 event
-   * @returns {Number}
+   * @returns {number}
    */
-  getUserLevel(event: AllMessageEvent) {
+  getUserLevel(event: AllMessageEvent): number {
     const { sender } = event;
     const { user_id, level = 0, role = 'member' } = sender as { user_id: number, level?: number, role: GroupRole };
 
-    let user_level;
+    let user_level: number;
 
     switch (true) {
       case admin.includes(user_id):
@@ -244,8 +243,7 @@ export class Bot extends Client {
   }
 
   async onMessage(event: AllMessageEvent) {
-    let message: string = '';
-
+    let tip = '';
     const { message_type, raw_message } = event;
     const user_level = this.getUserLevel(event);
 
@@ -254,14 +252,14 @@ export class Bot extends Client {
     // 权限判断，群聊指令需要 level 3 以上，私聊指令需要 level 5 以上
     switch (message_type) {
       case 'group':
-        if (user_level < 3) message = '权限不足';
+        if (user_level < 3) tip = '权限不足';
         break;
       case 'private':
-        if (user_level < 5) message = '权限不足';
+        if (user_level < 5) tip = '权限不足';
         break;
     }
 
-    if (message) return event.reply(message);
+    if (tip) return event.reply(tip);
 
     const command = raw_message.replace(this.prefix, '');
     const { order, param } = parseCommand(command);
@@ -272,24 +270,26 @@ export class Bot extends Client {
       this.logger.mark(`收到指令，正在处理: ${raw_message}`);
 
       if (message_type !== type && type !== 'all') {
-        message = `Error：指令 ${order} 不支持${message_type === 'private' ? '私聊' : '群聊'}`;
+        tip = `Error：指令 ${order} 不支持${message_type === 'private' ? '私聊' : '群聊'}`;
         break;
       }
 
-      try {
-        message = await all_command[type][order].bind(this)(param, event);
-      } catch (error: any) {
-        message = error.message;
-      }
-      this.logger.mark(`处理完毕，指令回复: ${message}`);
+      await all_command[type][order].bind(this)(param, event)
+        .then((message) => {
+          tip = message;
+        })
+        .catch((error: Error) => {
+          tip = error.message;
+        })
       break;
     }
 
-    message ||= `Error：未知指令 "${order}"`;
-    event.reply(message);
+    tip ||= `Error：未知指令 "${order}"`;
+    this.logger.mark(`处理完毕，指令回复: ${tip}`);
+    event.reply(tip);
   }
 
-  bindMasterEvents() {
+  async bindMasterEvents() {
     this.removeAllListeners('system.login.slider');
     this.removeAllListeners('system.login.device');
     this.removeAllListeners('system.login.qrcode');
@@ -299,8 +299,17 @@ export class Bot extends Client {
     this.on('system.online', this.onOnline);
     this.on('system.offline', this.onOffline);
 
+    let plugin_count = 0;
+    // const all_plugin = await restorePlugin(this);
+
+    // for (const [_, plugin] of all_plugin) {
+    //   if (plugin.binds.has(bot)) ++plugin_count;
+    // }
+
+
     // enablePlugin('demo', this)
     // const plugins = await plugin.restorePlugins(bot);
+
   }
 }
 
@@ -383,12 +392,9 @@ export function addBot(this: Bot, uin: number, delegate: PrivateMessageEvent) {
 }
 
 // async function bindMasterEvents(bot: Client) {
-//   let number = 0;
 //   const plugins = await plugin.restorePlugins(bot);
 
-//   for (let [_, plugin] of plugins) {
-//     if (plugin.binds.has(bot)) ++number;
-//   }
+
 
 //   setTimeout(() => {
 //     const { bots } = setKokkoroConfig();
@@ -400,7 +406,7 @@ export function addBot(this: Bot, uin: number, delegate: PrivateMessageEvent) {
 
 export async function startup() {
   // Acsii Font Name: Doh
-  const wellcome: string = `———————————————————————————————————————————————————————————————————————————————————————————————————
+  const wellcome = `———————————————————————————————————————————————————————————————————————————————————————————————————
                   _ _                            _          _         _    _
                  | | |                          | |        | |       | |  | |
     __      _____| | | ___ ___  _ __ ___   ___  | |_ ___   | | _____ | | _| | _____  _ __ ___
@@ -419,11 +425,11 @@ export async function startup() {
 
   process.title = 'kokkoro';
 
-  const { bots } = getKokkoroConfig();
+  const { bots } = getConfig();
 
   for (const uin in bots) {
     const bot_config = bots[uin];
-    const qq = Number(uin);
+    const qq = +uin;
     const bot = new Bot(qq, bot_config);
 
     all_bot.set(qq, bot);
