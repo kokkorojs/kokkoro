@@ -66,7 +66,7 @@ async function initSetting(uin: number): Promise<void> {
       }
       setting = { all_plugin: [] };
 
-      await writeFile(setting_path, stringify(setting))
+      await saveSetting(setting_path, setting)
         .then(() => {
           logger.mark(`创建了新的设置文件：data/bots/${uin}/setting.yml`);
         })
@@ -99,11 +99,13 @@ export function getSetting(uin: number) {
 }
 
 // 写入群聊插件设置
-export function setSetting(uin: number) {
-  //   const setting = all_setting.get(uin);
-  //   const setting_path = resolve(__workname, `data/bots/${uin}/setting.yml`);
+export async function setSetting(uin: number, setting: Setting) {
+  const setting_path = resolve(__workname, `data/bots/${uin}/setting.yml`);
 
-  //   return writeFile(setting_path, `${JSON.stringify(setting, null, 2)}`);
+  try {
+    await saveSetting(setting_path, setting);
+    all_setting.set(uin, setting);
+  } catch (error) { }
 }
 
 export function saveSetting(path: string, setting: Setting): Promise<void> {

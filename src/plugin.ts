@@ -1,7 +1,7 @@
 import { join } from 'path';
-import { PrivateMessageEvent, GroupMessageEvent } from 'oicq';
 import { Dirent } from 'fs';
 import { writeFile, readdir, mkdir } from 'fs/promises';
+import { PrivateMessageEvent, GroupMessageEvent, GroupInfo } from 'oicq';
 
 import { AllMessageEvent, Bot, getBot } from './bot';
 import { logger } from './util';
@@ -20,7 +20,7 @@ export interface Extension {
 }
 
 class Plugin {
-  private option?: Option;
+  private option: Option;
   private readonly name: string;
   private readonly path: string;
   private readonly roster = new Map<number, Extension>();
@@ -30,10 +30,31 @@ class Plugin {
 
     this.name = name;
     this.path = require.resolve(path);
+    // TODO
+    this.option = { lock: false, apply: true, };
   }
 
-  private async updateSetting(bot: Bot) {
+  private async init(bot: Bot) {
+    const { gl, uin } = bot;
+    const setting = getSetting(uin)!;
+    const set: Set<string> = new Set(setting.all_plugin);
 
+    // 写入群配置
+    gl.forEach((group: GroupInfo, group_id: number) => {
+      setting[group_id] ||= {
+        name: group.group_name, plugin: {},
+      };
+
+      if (setting[group_id].name !== group.group_name) {
+        setting[group_id].name = group.group_name;
+      }
+
+      const option = setting[group_id].plugin[this.name];
+
+      setting[group_id].plugin[this.name] = { ...this.option, ...option };
+    });
+
+    return setSetting(uin, setting);
   }
 
   async enable(bot: Bot): Promise<void> {
@@ -76,6 +97,19 @@ class Plugin {
       await this.disable(bot);
     })
 
+    const module = require.cache[this.path]!;
+    const index = module.parent?.children.indexOf(module) as number;
+
+    if (index >= 0) {
+      module.parent?.children.splice(index, 1);
+    }
+
+    for (const path in require.cache) {
+      if (require.cache[path]?.id.startsWith(module.path)) {
+        delete require.cache[path]
+      }
+    }
+
     delete require.cache[this.path];
   }
 
@@ -93,156 +127,6 @@ class Plugin {
     })
   }
 }
-
-// export class KokkoroPlugin {
-//   // readonly bot: Bot;
-//   // readonly path: string;
-//   // readonly option: Option;
-//   // readonly apply = new Set<Bot>();
-
-//   // constructor(bot: Bot) {
-//   constructor(name: string, path: string) {
-//     // this.bot = bot;
-//     // this.bot.on('message', this.onMessage);
-//     // this.bot.on('message.group', this.onGroupMessage);
-//     // this.bot.on('message.private', this.onPrivateMessage);
-//     // this.path = require.resolve(path);
-//     import(path)
-//       .then(Module => {
-//         new Module()
-//         console.log('success')
-//       })
-//       .catch(error => {
-//         console.log(error)
-//       })
-//     //   this.option = require(path).default_option;
-//   }
-
-//   // onMessage(event: GroupMessageEvent | PrivateMessageEvent | DiscussMessageEvent) { }
-//   // onGroupMessage(event: GroupMessageEvent) { }
-//   // onPrivateMessage(event: PrivateMessageEvent) { }
-
-//   // async _editBotPluginCache(bot: Bot, method: 'add' | 'delete') {
-//   //   const { gl, uin } = bot;
-//   //   const setting = getSetting(uin) as Setting;
-//   //   const set: Set<string> = new Set(setting.all_plugin);
-
-//   //     set[method](this.name);
-//   //     setting.all_plugin = [...set];
-
-//   //     // 写入群配置
-//   //     gl.forEach((value: GroupInfo, group_id: number) => {
-//   //       if (!setting[group_id]) {
-//   //         setting[group_id] = {
-//   //           name: value.group_name, plugin: {},
-//   //         }
-//   //       } else {
-//   //         setting[group_id].name = value.group_name;
-//   //       }
-
-//   //       const default_option: Option = {
-//   //         lock: false,
-//   //         apply: true,
-//   //       }
-
-//   //       Object.assign(
-//   //         default_option,
-//   //         this.option,
-//   //         setting[group_id] ? setting[group_id].plugin[this.name] : {}
-//   //       )
-
-//   //       setting[group_id].plugin[this.name] = default_option;
-//   //     });
-
-//   //     all_setting.set(uin, setting);
-//   //     return setSetting(uin);
-//   // }
-
-//   // async enable(bot: Bot) {
-//   //   if (this.apply.has(bot)) {
-//   //     throw new ExtensionError("这个机器人实例已经启用了此插件");
-//   //   }
-//   //   const module = require.cache[this.path];
-
-//   //   if (typeof module?.exports.enable !== "function") {
-//   //     throw new ExtensionError("此插件未导出 enable 方法，无法启用");
-//   //   }
-
-//   //   try {
-//   //     const enable_func = module?.exports.enable(bot);
-
-//   //     if (enable_func instanceof Promise) await enable_func;
-
-//   //     //       await this._editBotPluginCache(bot, "add");
-//   //     this.apply.add(bot);
-//   //   } catch (error) {
-//   //     const { message } = error as ExtensionError;
-//   //     throw new ExtensionError(`启用插件时遇到错误\n${message}`);
-//   //   }
-//   // }
-
-//   // async disable(bot: Bot) {
-//   //   if (!this.apply.has(bot)) {
-//   //     throw new ExtensionError(`这个机器人实例尚未启用此插件`);
-//   //   }
-//   //   const module = require.cache[this.path];
-
-//   //   if (typeof module?.exports.disable !== "function") {
-//   //     throw new ExtensionError(`此插件未导出 disable 方法，无法禁用`);
-//   //   }
-//   //   try {
-//   //     const disable_func = module?.exports.disable(bot);
-
-//   //     if (disable_func instanceof Promise) await disable_func;
-
-//   //     //       await this._editBotPluginCache(bot, "delete");
-//   //     this.apply.delete(bot);
-//   //   } catch (error) {
-//   //     const { message } = error as ExtensionError;
-//   //     throw new ExtensionError(`禁用插件时遇到错误\n${message}`)
-//   //   }
-//   // }
-
-//   //   async goDie() {
-//   //     const mod = require.cache[this.full_path] as NodeJS.Module;
-
-//   //     try {
-//   //       for (let bot of this.binds) {
-//   //         await this.disable(bot);
-//   //       }
-//   //       if (typeof mod.exports.destroy === "function") {
-//   //         const res = mod.exports.destroy();
-
-//   //         if (res instanceof Promise) await res;
-//   //       }
-//   //     } catch { }
-
-//   //     const ix = mod.parent?.children?.indexOf(mod) as number;
-
-//   //     if (ix >= 0) mod.parent?.children.splice(ix, 1);
-
-//   //     for (const fullpath in require.cache) {
-//   //       if (require.cache[fullpath]?.id.startsWith(mod.path)) delete require.cache[fullpath];
-//   //     }
-
-//   //     delete require.cache[this.full_path];
-//   //   }
-
-//   //   async restart() {
-//   //     try {
-//   //       const binded = Array.from(this.binds);
-
-//   //       await this.goDie();
-//   //       require(this.path);
-
-//   //       for (let bot of binded) await this.enable(bot);
-//   //     } catch (error) {
-//   //       const { message } = error as Error;
-
-//   //       throw new ExtensionError(`重启插件时遇到错误\n${message}`);
-//   //     }
-//   //   }
-// }
 
 /**
  * 导入插件
@@ -308,7 +192,7 @@ function getPlugin(name: string): Plugin {
  * @param name - 插件名
  */
 async function deletePlugin(name: string): Promise<void> {
-  await getPlugin(name).goDie();
+  await getPlugin(name).destroy();
 
   all_plugin.delete(name);
 }
