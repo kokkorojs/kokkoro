@@ -6,7 +6,7 @@ import { GroupMessageEvent } from 'oicq';
 
 import { getStack, logger } from './util';
 import { parseCommand } from './command';
-import { KokkoroConfig, getKokkoroConfig } from './config';
+import { KokkoroConfig, getConfig } from './config';
 
 // 群聊
 interface Group {
@@ -38,39 +38,44 @@ export interface Setting {
 
 const all_setting: Map<number, Setting> = new Map();
 
-(() => {
-  const kokkoro_config: KokkoroConfig = getKokkoroConfig();
-  const uins: string[] = Object.keys(kokkoro_config.bots);
+(async () => {
+  const kokkoro_config: KokkoroConfig = getConfig();
+  const uins: number[] = Object.keys(kokkoro_config.bots).map(Number);
 
-  for (const uin of uins) initSetting(uin);
+  for (const uin of uins) {
+    await initSetting(uin);
+  }
 })();
 
 /**
  * 初始化 setting 数据
  * 
- * @param {string} uin 机器人账号
+ * @param {number} uin 机器人账号
  */
-function initSetting(uin: string) {
+async function initSetting(uin: number): Promise<void> {
+  let setting: Setting;
   const setting_path = resolve(__workname, `data/bots/${uin}/setting.yml`);
 
-  readFile(setting_path, 'utf8')
-    .then(value => {
-      all_setting.set(Number(uin), parse(value) as Setting);
+  await readFile(setting_path, 'utf8')
+    .then((value: string) => {
+      setting = parse(value);
     })
-    .catch(async error => {
+    .catch(async (error: Error) => {
       if (!error.message.includes('ENOENT: no such file or directory')) {
         throw error;
       }
-      const setting = { all_plugin: [] };
+      setting = { all_plugin: [] };
 
       await writeFile(setting_path, stringify(setting))
         .then(() => {
-          all_setting.set(Number(uin), setting);
           logger.mark(`创建了新的设置文件：data/bots/${uin}/setting.yml`);
         })
-        .catch(error => {
+        .catch((error: Error) => {
           throw error;
         })
+    })
+    .finally(() => {
+      all_setting.set(uin, setting);
     })
 }
 
@@ -95,10 +100,22 @@ export function getSetting(uin: number) {
 
 // 写入群聊插件设置
 export function setSetting(uin: number) {
-  //   const setting_path = resolve(__workname, `data/bots/${uin}/setting.yml`);
   //   const setting = all_setting.get(uin);
+  //   const setting_path = resolve(__workname, `data/bots/${uin}/setting.yml`);
 
   //   return writeFile(setting_path, `${JSON.stringify(setting, null, 2)}`);
+}
+
+export function saveSetting(path: string, setting: Setting): Promise<void> {
+  return writeFile(path, stringify(setting));
+}
+
+export function updateAllPlugin(uin: number, all_plugin: string[]): Promise<void> {
+  const setting = all_setting.get(uin)!;
+  const setting_path = resolve(__workname, `data/bots/${uin}/setting.yml`);
+
+  setting!.all_plugin = all_plugin;
+  return saveSetting(setting_path, setting);
 }
 
 // //#region 获取当前插件的群聊选项
