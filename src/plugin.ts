@@ -12,10 +12,6 @@ const all_plugin = new Map<string, Plugin>();
 const plugins_path = join(__workname, '/plugins');
 const modules_path = join(__workname, '/node_modules');
 
-class ExtensionError extends Error {
-  name = "ExtensionError"
-}
-
 export interface Extension {
   option?: Option;
   onMessage?(this: Bot, event: AllMessageEvent): void;
@@ -36,11 +32,15 @@ class Plugin {
     this.path = require.resolve(path);
   }
 
-  async enable(bot: Bot) {
+  private async updateSetting(bot: Bot) {
+
+  }
+
+  async enable(bot: Bot): Promise<void> {
     const { uin } = bot;
 
     if (this.roster.has(uin)) {
-      throw new ExtensionError("这个机器人实例已经启用了此扩展");
+      throw new Error("这个机器人实例已经启用了此扩展");
     }
 
     const module = require.cache[this.path]!;
@@ -52,27 +52,13 @@ class Plugin {
     if (extension.onPrivateMessage) bot.on('message.private', extension.onPrivateMessage);
 
     this.roster.set(uin, extension);
-
-    // await import(this.path)
-    //   .then(module => {
-    //     const extension: Extension = new module.default();
-
-    //     if (extension.onMessage) bot.on('message', extension.onMessage);
-    //     if (extension.onGroupMessage) bot.on('message.group', extension.onGroupMessage);
-    //     if (extension.onPrivateMessage) bot.on('message.private', extension.onPrivateMessage);
-
-    //     this.roster.set(uin, extension);
-    //   })
-    //   .catch((error: Error) => {
-    //     throw new ExtensionError(`启用扩展时遇到错误\n${error.message}`);
-    //   })
   }
 
-  async disable(bot: Bot) {
+  async disable(bot: Bot): Promise<void> {
     const { uin } = bot;
 
     if (!this.roster.has(uin)) {
-      throw new ExtensionError(`这个机器人实例尚未启用此扩展`);
+      throw new Error(`这个机器人实例尚未启用此扩展`);
     }
 
     const extension = this.roster.get(uin)!;
@@ -84,39 +70,27 @@ class Plugin {
     this.roster.delete(uin);
   }
 
-  async reload() {
+  async destroy() {
+    this.roster.forEach(async (_, uin) => {
+      const bot = getBot(uin)!;
+      await this.disable(bot);
+    })
+
     delete require.cache[this.path];
+  }
+
+  async reload(): Promise<void> {
+    await this.destroy();
     require(this.path);
 
     this.roster.forEach(async (_, uin) => {
       const bot = getBot(uin)!;
 
-      await this.disable(bot);
-      await this.enable(bot);
+      await Promise.all([this.disable(bot), this.enable(bot)])
+        .catch(error => {
+          throw new Error(`重启插件时遇到错误\n${error.message}`);
+        })
     })
-
-    // const ix = module.parent?.children?.indexOf(module) as number;
-    // console.log(ix)
-    // if (ix >= 0)
-    //   module.parent?.children.splice(ix, 1);
-    // for (const fullpath in require.cache) {
-    //   if (require.cache[fullpath]?.id.startsWith(module.path)) {
-    //     delete require.cache[fullpath]
-    //   }
-    // }
-
-
-    // await this.disable(bot)
-    //   .then(() => {
-    //     // const plugin = new Plugin(this.name, this.path);
-    //     // all_plugin.set(this.name, plugin);
-
-    //     // 重载
-    //     // plugin.enable(bot);
-    //   })
-    //   .catch(() => {
-
-    //   })
   }
 }
 
@@ -282,7 +256,7 @@ async function importPlugin(name: string): Promise<Plugin> {
   let plugin_path = '';
   const plugins_dir = await readdir(plugins_path, { withFileTypes: true });
 
-  for (let dir of plugins_dir) {
+  for (const dir of plugins_dir) {
     if ((dir.isDirectory() || dir.isSymbolicLink()) && (dir.name === name || dir.name === "kokkoro-" + name)) {
       plugin_path = join(plugins_path, name);
       break;
@@ -293,7 +267,7 @@ async function importPlugin(name: string): Promise<Plugin> {
   if (!plugin_path) {
     const module_dirs = await readdir(modules_path, { withFileTypes: true });
 
-    for (let dir of module_dirs) {
+    for (const dir of module_dirs) {
       if (dir.isDirectory() && (dir.name === name || dir.name === "kokkoro-" + name)) {
         plugin_path = join(modules_path, name);
         break;
@@ -301,7 +275,7 @@ async function importPlugin(name: string): Promise<Plugin> {
     }
   }
 
-  if (!plugin_path) throw new ExtensionError(`插件名错误，无法找到此插件`);
+  if (!plugin_path) throw new Error(`插件名错误，无法找到此插件`);
 
   try {
     const plugin = new Plugin(name, plugin_path);
@@ -310,7 +284,7 @@ async function importPlugin(name: string): Promise<Plugin> {
     return plugin;
   } catch (error) {
     const { message } = error as Error;
-    throw new ExtensionError(`导入插件失败，不合法的 package\n${message}`);
+    throw new Error(`导入插件失败，不合法的 package\n${message}`);
   }
 }
 
@@ -322,24 +296,22 @@ async function importPlugin(name: string): Promise<Plugin> {
  */
 function getPlugin(name: string): Plugin {
   if (!all_plugin.has(name)) {
-    throw new ExtensionError('尚未启用此插件');
+    throw new Error('尚未启用此插件');
   }
 
   return all_plugin.get(name)!;
 }
 
-// #region 卸载插件
 /**
+ * 删除插件实例
+ * 
  * @param name - 插件名
- * @throws {Error}
  */
-// async function deletePlugin(name: string): Promise<void> {
-//   await checkImported(name).goDie();
+async function deletePlugin(name: string): Promise<void> {
+  await getPlugin(name).goDie();
 
-//   all_plugin.delete(name);
-// }
-// #endregion
-
+  all_plugin.delete(name);
+}
 
 /**
  * 重载插件
@@ -347,7 +319,7 @@ function getPlugin(name: string): Plugin {
  * @param {string} name - 插件名
  * @returns {Promise}
  */
-export async function reloadPlugin(name: string, bot: Bot): Promise<void> {
+export function reloadPlugin(name: string, bot: Bot): Promise<void> {
   return getPlugin(name).reload();
 }
 
@@ -357,12 +329,8 @@ export async function reloadPlugin(name: string, bot: Bot): Promise<void> {
  * @returns - void
  */
 export async function enablePlugin(name: string, bot: Bot): Promise<void> {
-  const plugin = await importPlugin(name);
-
-  return plugin.enable(bot);
+  return (await importPlugin(name)).enable(bot);
 }
-
-// #region 
 
 /**
  * 禁用插件
@@ -380,56 +348,58 @@ export function disablePlugin(name: string, bot: Bot): Promise<void> {
  * 
  * @param {Bot} bot - bot 实例
  */
-async function disableAllPlugin(bot: Bot): Promise<void> {
-  for (let [_, plugin] of all_plugin) {
-    try {
-      await plugin.disable(bot);
-    } catch { }
+export async function disableAllPlugin(bot: Bot): Promise<void> {
+  for (const [_, plugin] of all_plugin) {
+    await plugin.disable(bot);
   }
 }
 
 /**
  * 检索所有可用插件
  */
-async function findAllPlugins() {
-  //   const files: Dirent[] = [];
-  //   const modules: Dirent[] = [];
+export async function findAllPlugin() {
+  const plugin_dirs: Dirent[] = [];
+  const module_dirs: Dirent[] = [];
   const node_modules: string[] = [];
   const plugin_modules: string[] = [];
 
-  //   try {
-  //     files.push(...await readdir(join(__workname, `/plugins`), { withFileTypes: true }))
-  //   } catch (error) {
-  //     await mkdir(join(__workname, `/plugins`));
-  //   }
+  try {
+    plugin_dirs.push(...await readdir(plugins_path, { withFileTypes: true }));
+  } catch (error) {
+    await mkdir(plugins_path);
+  }
 
-  //   for (let file of files) {
-  //     if (file.isDirectory() || file.isSymbolicLink()) {
-  //       try {
-  //         require.resolve(`${__workname}/plugins/${file.name}`);
-  //         plugin_modules.push(file.name);
-  //       } catch { }
-  //     }
-  //   }
+  for (const dir of plugin_dirs) {
+    if (dir.isDirectory() || dir.isSymbolicLink()) {
+      try {
+        const plugin_path = join(plugins_path, dir.name);
 
-  //   try {
-  //     modules.push(...await readdir(module_dir, { withFileTypes: true }));
-  //   } catch (err) {
-  //     await mkdir(join(__workname, `/node_modules`));
-  //   }
+        require.resolve(plugin_path);
+        plugin_modules.push(dir.name);
+      } catch { }
+    }
+  }
 
-  //   for (let file of modules) {
-  //     if (file.isDirectory() && file.name.startsWith('kokkoro-') && file.name !== 'kokkoro-core') {
-  //       try {
-  //         require.resolve(`${__workname}/node_modules/${file.name}`);
-  //         node_modules.push(file.name);
-  //       } catch { }
-  //     }
-  //   }
+  try {
+    module_dirs.push(...await readdir(modules_path, { withFileTypes: true }));
+  } catch (err) {
+    await mkdir(modules_path);
+  }
 
-  //   return {
-  //     plugin_modules, node_modules, all_plugin,
-  //   }
+  for (const dir of module_dirs) {
+    if (dir.isDirectory() && dir.name.startsWith('kokkoro-') && dir.name !== 'kokkoro-core') {
+      try {
+        const module_path = join(modules_path, dir.name);
+
+        require.resolve(module_path);
+        node_modules.push(dir.name);
+      } catch { }
+    }
+  }
+
+  return {
+    plugin_modules, node_modules, all_plugin,
+  }
 }
 
 /**
@@ -439,16 +409,14 @@ async function findAllPlugins() {
  * @returns {Map} 插件集合
  */
 export async function restorePlugin(bot: Bot) {
-  const setting = getSetting(bot.uin) as Setting;
+  const setting = getSetting(bot.uin)!;
   const all_plugin = setting.all_plugin;
 
-  for (let name of all_plugin) {
-    try {
-      const plugin = await importPlugin(name);
-      await plugin.enable(bot);
-    } catch (error: any) {
-      logger.error(error.message);
-    }
+  for (const name of all_plugin) {
+    await importPlugin(name)
+      .then(plugin => plugin.enable)
+      .then(enable => enable(bot))
+      .catch(error => logger.error(error.message))
   }
 
   return all_plugin;
