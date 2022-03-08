@@ -1,11 +1,11 @@
 import { join } from 'path';
 import { Dirent } from 'fs';
-import { writeFile, readdir, mkdir } from 'fs/promises';
+import { readdir, mkdir } from 'fs/promises';
 import { PrivateMessageEvent, GroupMessageEvent, GroupInfo } from 'oicq';
 
 import { AllMessageEvent, Bot, getBot } from './bot';
 import { logger } from './util';
-import { getAllSetting, getSetting, setSetting, Option, Setting } from './setting';
+import { getSetting, setSetting, Option } from './setting';
 
 // 所有插件实例
 const all_plugin = new Map<string, Plugin>();
@@ -23,21 +23,20 @@ class Plugin {
   private option: Option;
   private readonly name: string;
   private readonly path: string;
-  private readonly roster = new Map<number, Extension>();
+  public readonly roster = new Map<number, Extension>();
 
   constructor(name: string, path: string) {
     require(path);
 
     this.name = name;
     this.path = require.resolve(path);
-    // TODO
-    this.option = { lock: false, apply: true, };
+    this.option = { lock: false, apply: true };
   }
 
-  private async init(bot: Bot) {
+  private update(bot: Bot, method: 'add' | 'delete') {
     const { gl, uin } = bot;
     const setting = getSetting(uin)!;
-    const set: Set<string> = new Set(setting.all_plugin);
+    const plugins = new Set(setting.plugins);
 
     // 写入群配置
     gl.forEach((group: GroupInfo, group_id: number) => {
@@ -50,9 +49,11 @@ class Plugin {
       }
 
       const option = setting[group_id].plugin[this.name];
-
       setting[group_id].plugin[this.name] = { ...this.option, ...option };
     });
+
+    plugins[method](this.name);
+    setting.plugins = [...plugins];
 
     return setSetting(uin, setting);
   }
@@ -65,14 +66,21 @@ class Plugin {
     }
 
     const module = require.cache[this.path]!;
-    const extension: Extension = new module.exports.default();
+    const extension: Extension = module.exports.default
+      ? new module.exports.default()
+      : new module.exports();
 
     if (extension.option) this.option = extension.option;
     if (extension.onMessage) bot.on('message', extension.onMessage);
     if (extension.onGroupMessage) bot.on('message.group', extension.onGroupMessage);
     if (extension.onPrivateMessage) bot.on('message.private', extension.onPrivateMessage);
 
-    this.roster.set(uin, extension);
+    try {
+      await this.update(bot, 'add');
+      this.roster.set(uin, extension);
+    } catch (error) {
+      throw error;
+    }
   }
 
   async disable(bot: Bot): Promise<void> {
@@ -88,7 +96,12 @@ class Plugin {
     if (extension.onGroupMessage) bot.off('message.group', extension.onGroupMessage);
     if (extension.onPrivateMessage) bot.off('message.private', extension.onPrivateMessage);
 
-    this.roster.delete(uin);
+    try {
+      await this.update(bot, 'delete');
+      this.roster.delete(uin);
+    } catch (error) {
+      throw error;
+    }
   }
 
   async destroy() {
@@ -163,6 +176,7 @@ async function importPlugin(name: string): Promise<Plugin> {
 
   try {
     const plugin = new Plugin(name, plugin_path);
+
     all_plugin.set(name, plugin);
 
     return plugin;
@@ -290,17 +304,19 @@ export async function findAllPlugin() {
  * 机器人上线后恢复原先启用的插件
  *
  * @param {Bot} bot - 机器人实例
- * @returns {Map} 插件集合
+ * @returns {Promise} 插件数组集合
  */
-export async function restorePlugin(bot: Bot) {
+export async function restorePlugin(bot: Bot): Promise<Map<string, Plugin>> {
   const setting = getSetting(bot.uin)!;
-  const all_plugin = setting.all_plugin;
+  const plugins = setting.plugins;
 
-  for (const name of all_plugin) {
-    await importPlugin(name)
-      .then(plugin => plugin.enable)
-      .then(enable => enable(bot))
-      .catch(error => logger.error(error.message))
+  for (const name of plugins) {
+    try {
+      await (await importPlugin(name)).enable(bot);
+    } catch (error) {
+      const { message } = error as Error;
+      logger.error(message)
+    }
   }
 
   return all_plugin;
