@@ -3,8 +3,8 @@ import { Dirent } from 'fs';
 import { readdir, mkdir } from 'fs/promises';
 import { PrivateMessageEvent, GroupMessageEvent, GroupInfo } from 'oicq';
 
-import { AllMessageEvent, Bot, getBot } from './bot';
 import { logger } from './util';
+import { AllMessageEvent, Bot, getBot } from './bot';
 import { getSetting, setSetting, Option } from './setting';
 
 // 所有插件实例
@@ -14,6 +14,8 @@ const modules_path = join(__workname, '/node_modules');
 
 export interface Extension {
   option?: Option;
+  onInit?(): void;
+  onDestroy?(): void;
   onMessage?(this: Bot, event: AllMessageEvent): void;
   onGroupMessage?(this: Bot, event: GroupMessageEvent): void;
   onPrivateMessage?(this: Bot, event: PrivateMessageEvent): void;
@@ -38,7 +40,6 @@ class Plugin {
     const setting = getSetting(uin)!;
     const plugins = new Set(setting.plugins);
 
-    // 写入群配置
     gl.forEach((group: GroupInfo, group_id: number) => {
       setting[group_id] ||= {
         name: group.group_name, plugin: {},
@@ -70,7 +71,8 @@ class Plugin {
       ? new module.exports.default()
       : new module.exports();
 
-    if (extension.option) this.option = extension.option;
+    if (extension.option) Object.assign(this.option, extension.option);
+    if (extension.onInit) extension.onInit();
     if (extension.onMessage) bot.on('message', extension.onMessage);
     if (extension.onGroupMessage) bot.on('message.group', extension.onGroupMessage);
     if (extension.onPrivateMessage) bot.on('message.private', extension.onPrivateMessage);
@@ -92,6 +94,7 @@ class Plugin {
 
     const extension = this.roster.get(uin)!;
 
+    if (extension.onDestroy) extension.onDestroy();
     if (extension.onMessage) bot.off('message', extension.onMessage);
     if (extension.onGroupMessage) bot.off('message.group', extension.onGroupMessage);
     if (extension.onPrivateMessage) bot.off('message.private', extension.onPrivateMessage);
