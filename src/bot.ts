@@ -3,12 +3,11 @@ import { createHash } from 'crypto';
 import { writeFile, readFile } from 'fs/promises';
 import { Client, Config, DiscussMessageEvent, GroupMessageEvent, GroupRole, PrivateMessageEvent, segment } from 'oicq';
 
-import { restorePlugin, enablePlugin } from './plugin';
 import { logger, colors } from './util';
-import { KOKKORO_UPDAY, KOKKORO_VERSION, KOKKORO_CHANGELOGS } from './help';
-
+import { restorePlugin } from './plugin';
 import { setBotConfig, getConfig } from './config';
 import { all_command, CommandType, parseCommand } from './command';
+import { KOKKORO_UPDAY, KOKKORO_VERSION, KOKKORO_CHANGELOGS } from './help';
 
 // 维护组 QQ
 const admin = [2225151531];
@@ -261,7 +260,7 @@ export class Bot extends Client {
 
     if (tip) return event.reply(tip);
 
-    const command = raw_message.replace(this.prefix, '');
+    const command = raw_message.replace(this.prefix, '').trim();
     const { order, param } = parseCommand(command);
 
     for (const type of ['all', 'group', 'private'] as CommandType[]) {
