@@ -12,13 +12,20 @@ const all_plugin = new Map<string, Plugin>();
 const plugins_path = join(__workname, '/plugins');
 const modules_path = join(__workname, '/node_modules');
 
+export interface Order {
+  func: (...param: any) => any;
+  regular: RegExp;
+}
+
 export interface Extension {
+  bot: Bot;
   option?: Option;
+  orders?: Order[];
   onInit?(): void;
   onDestroy?(): void;
-  onMessage?(this: Bot, event: AllMessageEvent): void;
-  onGroupMessage?(this: Bot, event: GroupMessageEvent): void;
-  onPrivateMessage?(this: Bot, event: PrivateMessageEvent): void;
+  onMessage?(event: AllMessageEvent): void;
+  onGroupMessage?(event: GroupMessageEvent): void;
+  onPrivateMessage?(event: PrivateMessageEvent): void;
 }
 
 class Plugin {
@@ -68,14 +75,14 @@ class Plugin {
 
     const module = require.cache[this.path]!;
     const extension: Extension = module.exports.default
-      ? new module.exports.default()
-      : new module.exports();
+      ? new module.exports.default(bot)
+      : new module.exports(bot);
 
     if (extension.option) Object.assign(this.option, extension.option);
     if (extension.onInit) extension.onInit();
-    if (extension.onMessage) bot.on('message', extension.onMessage);
-    if (extension.onGroupMessage) bot.on('message.group', extension.onGroupMessage);
-    if (extension.onPrivateMessage) bot.on('message.private', extension.onPrivateMessage);
+    if (extension.onMessage) bot.on('message', extension.onMessage.bind(extension));
+    if (extension.onGroupMessage) bot.on('message.group', extension.onGroupMessage.bind(extension));
+    if (extension.onPrivateMessage) bot.on('message.private', extension.onPrivateMessage.bind(extension));
 
     try {
       await this.update(bot, 'add');

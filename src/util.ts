@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { getLogger, Logger } from 'log4js';
 import { FlashElem, ImageElem, segment } from 'oicq';
+import { Order } from './plugin';
 
 export const section = {
   image, at: segment.at,
@@ -49,20 +50,19 @@ function image(url: string, flash: boolean = false): Promise<ImageElem | FlashEl
 /**
  * 校验指令
  *
- * @param {Object} command - 指令对象
+ * @param {Order[]} orders - 指令对象
  * @param {string} raw_message - 收到的消息
  * @returns {string|undefined} 返回 command 对象匹配的方法名
  */
-function checkCommand(command: { [key: string]: RegExp }, raw_message: string): string | undefined {
-  const keys = Object.keys(command);
-  const key_length = keys.length;
+export function checkOrder(orders: Order[], raw_message: string): Order | undefined {
+  const order_length = orders.length;
 
-  for (let i = 0; i < key_length; i++) {
-    const key = keys[i];
+  for (let i = 0; i < order_length; i++) {
+    const order = orders[i];
+    const regular = order.regular;
 
-    if (!command[key].test(raw_message)) continue
-
-    return key
+    if (!regular.test(raw_message)) continue;
+    return order;
   }
 }
 
