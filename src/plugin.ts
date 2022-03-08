@@ -157,8 +157,8 @@ async function importPlugin(name: string): Promise<Plugin> {
   const plugins_dir = await readdir(plugins_path, { withFileTypes: true });
 
   for (const dir of plugins_dir) {
-    if ((dir.isDirectory() || dir.isSymbolicLink()) && (dir.name === name || dir.name === "kokkoro-" + name)) {
-      plugin_path = join(plugins_path, name);
+    if ((dir.isDirectory() || dir.isSymbolicLink()) && (dir.name === name || dir.name === 'kokkoro-' + name)) {
+      plugin_path = join(plugins_path, dir.name);
       break;
     }
   }
@@ -168,8 +168,8 @@ async function importPlugin(name: string): Promise<Plugin> {
     const module_dirs = await readdir(modules_path, { withFileTypes: true });
 
     for (const dir of module_dirs) {
-      if (dir.isDirectory() && (dir.name === name || dir.name === "kokkoro-" + name)) {
-        plugin_path = join(modules_path, name);
+      if (dir.isDirectory() && (dir.name === name || dir.name === 'kokkoro-' + name)) {
+        plugin_path = join(modules_path, dir.name);
         break;
       }
     }
