@@ -89,7 +89,7 @@ all_command.private = {
 
   // shutdown
   async shutdown() {
-    setTimeout(process.exit(0), 1000);
+    setTimeout(() => process.exit(0), 1000);
 
     return `お休み♪`;
   },
