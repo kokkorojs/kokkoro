@@ -26,7 +26,7 @@ export interface Option {
   // 插件开关
   apply: boolean;
   // 其它设置
-  [param: string]: string | number | boolean | any[];
+  [param: string]: string | number | boolean | Array<string | number>;
 }
 
 export interface Setting {
@@ -97,7 +97,7 @@ export function getAllSetting() {
 /**
  * 获取当前群聊插件设置
  * 
- * @param {number} uin - 群号
+ * @param {number} uin - bot 账号
  * @returns {Setting} setting 对象
  */
 export function getSetting(uin: number): Setting {
@@ -148,17 +148,15 @@ export function getList(this: Bot, group_id: number): string {
 }
 
 // 获取当前插件的群聊选项
-// function getOption(event: GroupMessageEvent) {
-//   const { self_id, group_id } = event;
+export function getOption(uin: number, group_id: number) {
+  const stack = getStack();
+  const regex = /\w+(?=(\\|\/)index\.js)/g;
+  const setting = getSetting(uin);
+  const fileName = stack[2].getFileName()!.replace(/(\/lib\/|\\lib\\)/g, '/');
+  const [plugin_name] = fileName.match(regex) as string[];
 
-//   const stack = getStack();
-//   const regex = /\w+(?=(\\|\/)index\.js)/g;
-//   const setting = all_setting.get(self_id) as Setting;
-//   const fileName = stack[2].getFileName()?.replace('/lib/', '/') as string;
-//   const [plugin_name] = fileName.match(regex) as string[];
-
-//   return setting[group_id].plugin[plugin_name] ?? {};
-// }
+  return setting[group_id].plugin[plugin_name] ?? {};
+}
 
 /**
  * 获取当前插件的群聊选项
@@ -183,7 +181,10 @@ export async function setOption(param: ReturnType<typeof parseCommand>['param'],
 
   switch (true) {
     case !option_name:
-      message = `"${plugin_name}": ${JSON.stringify(plugin[plugin_name], null, 2)}`;
+      const option = {
+        setu: plugin[plugin_name]
+      }
+      message = stringify(option);
       break;
     case !value:
       message = '参数不能为空';
@@ -217,8 +218,8 @@ export async function setOption(param: ReturnType<typeof parseCommand>['param'],
         message = `Error: ${option_name} is not defined`;
       }
       break;
-    case Array.isArray(old_value) && !old_value.includes(new_value):
-      message = `Error: 属性 ${option_name} 的合法值为 [${(old_value as any[]).join(', ')}]`;
+    case Array.isArray(old_value) && !old_value.includes(new_value as string | number):
+      message = `Error: 属性 ${option_name} 的合法值为 [${(old_value as (string | number)[]).join(', ')}]`;
       break;
   }
 

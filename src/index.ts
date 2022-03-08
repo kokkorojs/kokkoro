@@ -7,6 +7,6 @@ declare global {
 global.__workname = process.cwd();
 
 export { AllMessageEvent, Bot, startup } from './bot';
-export { Extension } from './plugin';
-// export { getSetting } from './setting';
-// export { colors, logger, section, checkCommand, getUserLevel } from './util';
+export { Extension, Order } from './plugin';
+export { Option, getOption } from './setting';
+export { colors, logger, section, checkOrder } from './util';
