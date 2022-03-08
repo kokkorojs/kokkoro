@@ -72,8 +72,8 @@ export class Bot extends Client {
     this.login_mode = default_config.login_mode;
     this.password_path = join(this.dir, 'password');
 
-    this.once('system.online', () => {
-      this.bindMasterEvents();
+    this.once('system.online', async () => {
+      await this.bindMasterEvents();
       this.logger.mark(`可给机器人发送 "${this.prefix}help" 查看指令帮助`);
     });
   }
@@ -300,16 +300,13 @@ export class Bot extends Client {
     this.on('system.offline', this.onOffline);
 
     let plugin_count = 0;
-    // const all_plugin = await restorePlugin(this);
+    const all_plugin = await restorePlugin(this);
 
-    // for (const [_, plugin] of all_plugin) {
-    //   if (plugin.binds.has(bot)) ++plugin_count;
-    // }
+    for (const [_, plugin] of all_plugin) {
+      if (plugin.roster.has(this.uin)) ++plugin_count;
+    }
 
-
-    // enablePlugin('demo', this)
-    // const plugins = await plugin.restorePlugins(bot);
-
+    this.sendMasterMsg(`启动成功，启用了 ${plugin_count} 个插件，发送 "${this.prefix}help" 可以查询 bot 相关指令`);
   }
 }
 
@@ -390,19 +387,6 @@ export function addBot(this: Bot, uin: number, delegate: PrivateMessageEvent) {
     })
     .login();
 }
-
-// async function bindMasterEvents(bot: Client) {
-//   const plugins = await plugin.restorePlugins(bot);
-
-
-
-//   setTimeout(() => {
-//     const { bots } = setKokkoroConfig();
-//     const { prefix } = bots[uin];
-
-//     broadcastOne(bot, `启动成功，启用了 ${number} 个插件，发送 "${prefix}help" 可以查询 bot 相关指令`);
-//   }, 1000);
-// }
 
 export async function startup() {
   // Acsii Font Name: Doh

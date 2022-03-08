@@ -31,7 +31,7 @@ export interface Option {
 
 export interface Setting {
   // 插件列表
-  all_plugin: string[];
+  plugins: string[];
   // 群聊列表
   [group_id: number]: Group
 }
@@ -59,14 +59,20 @@ async function initSetting(uin: number): Promise<void> {
   await readFile(setting_path, 'utf8')
     .then((value: string) => {
       setting = parse(value);
+
+      if (!setting) {
+        throw new Error('setting is empty file');
+      }
     })
     .catch(async (error: Error) => {
-      if (!error.message.includes('ENOENT: no such file or directory')) {
+      const rewrite = !error.message.includes('ENOENT: no such file or directory') && !error.message.includes('setting is empty file');
+
+      if (rewrite) {
         throw error;
       }
-      setting = { all_plugin: [] };
+      setting = { plugins: [] };
 
-      await saveSetting(setting_path, setting)
+      await writeSetting(setting_path, setting)
         .then(() => {
           logger.mark(`创建了新的设置文件：data/bots/${uin}/setting.yml`);
         })
@@ -94,30 +100,35 @@ export function getAllSetting() {
  * @param {number} uin - 群号
  * @returns {Setting} setting 对象
  */
-export function getSetting(uin: number) {
-  return all_setting.get(uin);
+export function getSetting(uin: number): Setting {
+  return JSON.parse(JSON.stringify(all_setting.get(uin)));
 }
 
 // 写入群聊插件设置
 export async function setSetting(uin: number, setting: Setting) {
+  const old_setting = getSetting(uin)!;
   const setting_path = resolve(__workname, `data/bots/${uin}/setting.yml`);
 
+  if (JSON.stringify(old_setting) === JSON.stringify(setting)) {
+    return;
+  }
+
   try {
-    await saveSetting(setting_path, setting);
+    await writeSetting(setting_path, setting);
     all_setting.set(uin, setting);
   } catch (error) { }
 }
 
-export function saveSetting(path: string, setting: Setting): Promise<void> {
+export function writeSetting(path: string, setting: Setting): Promise<void> {
   return writeFile(path, stringify(setting));
 }
 
-export function updateAllPlugin(uin: number, all_plugin: string[]): Promise<void> {
-  const setting = all_setting.get(uin)!;
+export function updatePlugins(uin: number, plugins: string[]): Promise<void> {
+  const setting = getSetting(uin)!;
   const setting_path = resolve(__workname, `data/bots/${uin}/setting.yml`);
 
-  setting!.all_plugin = all_plugin;
-  return saveSetting(setting_path, setting);
+  setting!.plugins = plugins;
+  return writeSetting(setting_path, setting);
 }
 
 // //#region 获取当前插件的群聊选项
