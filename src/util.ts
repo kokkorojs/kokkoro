@@ -1,9 +1,6 @@
 import axios from 'axios';
 import { getLogger, Logger } from 'log4js';
-import { AtElem, FlashElem, ImageElem, segment, DiscussMessageEvent, GroupMessageEvent, PrivateMessageEvent, GroupRole } from 'oicq';
-import { Bot } from './bot';
-
-import { setConfig } from './config';
+import { FlashElem, ImageElem, segment } from 'oicq';
 
 export const section = {
   image, at: segment.at,
@@ -56,7 +53,7 @@ function image(url: string, flash: boolean = false): Promise<ImageElem | FlashEl
  * @param {string} raw_message - 收到的消息
  * @returns {string|undefined} 返回 command 对象匹配的方法名
  */
-function checkCommand(command: { [key: string]: RegExp }, raw_message: string) {
+function checkCommand(command: { [key: string]: RegExp }, raw_message: string): string | undefined {
   const keys = Object.keys(command);
   const key_length = keys.length;
 
@@ -74,7 +71,7 @@ function checkCommand(command: { [key: string]: RegExp }, raw_message: string) {
  * 
  * @returns {Array}
  */
-export function getStack() {
+export function getStack(): NodeJS.CallSite[] {
   const orig = Error.prepareStackTrace;
   Error.prepareStackTrace = (_, stack) => stack;
 
