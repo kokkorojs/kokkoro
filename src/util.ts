@@ -48,13 +48,13 @@ function image(url: string, flash: boolean = false): Promise<ImageElem | FlashEl
 }
 
 /**
- * 校验指令
+ * 获取消息指令
  *
  * @param {Order[]} orders - 指令对象
  * @param {string} raw_message - 收到的消息
  * @returns {string|undefined} 返回 command 对象匹配的方法名
  */
-export function checkOrder(orders: Order[], raw_message: string): Order | undefined {
+export function getOrder(orders: Order[], raw_message: string): Order | undefined {
   const order_length = orders.length;
 
   for (let i = 0; i < order_length; i++) {
