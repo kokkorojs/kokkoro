@@ -47,7 +47,7 @@ all_command.all = {
 all_command.group = {
   async list(param, event) {
     const { group_id } = event as GroupMessageEvent;
-    return getList.bind(this)(group_id);
+    return getList.call(this, group_id);
   },
 };
 
@@ -172,7 +172,7 @@ all_command.private = {
       case !uin:
         return 'Error：请输入账号';
     }
-    addBot.bind(this)(uin, <PrivateMessageEvent>event);
+    addBot.call(this, uin, <PrivateMessageEvent>event);
 
     return `>开始登录流程，账号 ${uin}`;
   },
