@@ -150,10 +150,12 @@ export function getList(this: Bot, group_id: number): string {
 }
 
 // 获取当前插件的群聊选项
-export function getOption(uin: number, group_id: number) {
+export function getOption(event: GroupMessageEvent) {
+  const self_id = event.self_id;
+  const group_id = event.group_id;
   const stack = getStack();
   const regex = /\w+(?=(\\|\/)index\.js)/g;
-  const setting = getSetting(uin);
+  const setting = getSetting(self_id);
   const fileName = stack[2].getFileName()!.replace(/(\/lib\/|\\lib\\)/g, '/');
   const [plugin_name] = fileName.match(regex) as string[];
 
