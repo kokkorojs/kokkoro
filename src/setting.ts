@@ -21,12 +21,12 @@ interface Group {
 
 // 插件选项
 export interface Option {
-  // 插件锁定
-  lock: boolean;
-  // 插件开关
-  apply: boolean;
+  // 插件锁定，默认 false
+  lock?: boolean;
+  // 插件开关，默认 true
+  apply?: boolean;
   // 其它设置
-  [param: string]: string | number | boolean | Array<string | number>;
+  [param: string]: string | number | boolean | Array<string | number> | undefined;
 }
 
 export interface Setting {
