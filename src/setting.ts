@@ -54,7 +54,7 @@ const all_setting: Map<number, Setting> = new Map();
  */
 async function initSetting(uin: number): Promise<void> {
   let setting: Setting;
-  const setting_path = resolve(__workname, `data/bots/${uin}/setting.yml`);
+  const setting_path = resolve(__workname, `data/bot/${uin}/setting.yml`);
 
   await readFile(setting_path, 'utf8')
     .then((value: string) => {
@@ -74,7 +74,7 @@ async function initSetting(uin: number): Promise<void> {
 
       await writeSetting(setting_path, setting)
         .then(() => {
-          logger.mark(`创建了新的设置文件：data/bots/${uin}/setting.yml`);
+          logger.mark(`创建了新的设置文件：data/bot/${uin}/setting.yml`);
         })
         .catch((error: Error) => {
           throw error;
@@ -107,7 +107,7 @@ export function getSetting(uin: number): Setting {
 // 写入群聊插件设置
 export async function setSetting(uin: number, setting: Setting) {
   const old_setting = getSetting(uin)!;
-  const setting_path = resolve(__workname, `data/bots/${uin}/setting.yml`);
+  const setting_path = resolve(__workname, `data/bot/${uin}/setting.yml`);
 
   if (JSON.stringify(old_setting) === JSON.stringify(setting)) {
     return;
@@ -125,7 +125,7 @@ export function writeSetting(path: string, setting: Setting): Promise<void> {
 
 export function updatePlugins(uin: number, plugins: string[]): Promise<void> {
   const setting = getSetting(uin)!;
-  const setting_path = resolve(__workname, `data/bots/${uin}/setting.yml`);
+  const setting_path = resolve(__workname, `data/bot/${uin}/setting.yml`);
 
   setting!.plugins = plugins;
   return writeSetting(setting_path, setting);
