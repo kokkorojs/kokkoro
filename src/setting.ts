@@ -116,7 +116,9 @@ export async function setSetting(uin: number, setting: Setting) {
   try {
     await writeSetting(setting_path, setting);
     all_setting.set(uin, setting);
-  } catch (error) { }
+  } catch (error) {
+    throw error;
+  }
 }
 
 export function writeSetting(path: string, setting: Setting): Promise<void> {

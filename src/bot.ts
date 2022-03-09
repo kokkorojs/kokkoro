@@ -256,7 +256,7 @@ export class Bot extends Client {
         break;
       }
 
-      await all_command[type][order].bind(this)(param, event)
+      await all_command[type][order].call(this, param, event)
         .then((message) => {
           tip = message;
           this.logger.mark(`处理完毕，指令回复: ${tip}`);

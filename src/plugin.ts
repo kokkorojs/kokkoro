@@ -80,16 +80,25 @@ class Plugin {
 
     if (extension.option) Object.assign(this.option, extension.option);
     if (extension.onInit) extension.onInit();
-    if (extension.onMessage) bot.on('message', extension.onMessage.bind(extension));
-    if (extension.onGroupMessage) bot.on('message.group', extension.onGroupMessage.bind(extension));
-    if (extension.onPrivateMessage) bot.on('message.private', extension.onPrivateMessage.bind(extension));
+    if (extension.onMessage) {
+      extension.onMessage = extension.onMessage.bind(extension);
+      bot.on('message', extension.onMessage);
+    };
+    if (extension.onGroupMessage) {
+      extension.onGroupMessage = extension.onGroupMessage.bind(extension);
+      bot.on('message.group', extension.onGroupMessage);
+    }
+    if (extension.onPrivateMessage) {
+      extension.onPrivateMessage = extension.onPrivateMessage.bind(extension);
+      bot.on('message.private', extension.onPrivateMessage);
+    }
 
     await this.update(bot, 'add')
       .then(() => { this.roster.set(uin, extension); })
       .catch(error => { throw error; })
   }
 
-  async disable(bot: Bot): Promise<void> {
+  async disable(bot: Bot, update: boolean = true): Promise<void> {
     const { uin } = bot;
 
     if (!this.roster.has(uin)) {
@@ -103,18 +112,20 @@ class Plugin {
     if (extension.onGroupMessage) bot.off('message.group', extension.onGroupMessage);
     if (extension.onPrivateMessage) bot.off('message.private', extension.onPrivateMessage);
 
-    await this.update(bot, 'delete')
-      .then(() => { this.roster.delete(uin); })
-      .catch(error => { throw error; })
+    if (update) {
+      await this.update(bot, 'delete')
+        .catch(error => { throw error; })
+    }
+    this.roster.delete(uin);
   }
 
   async destroy() {
-    const uins = this.roster.keys();
+    const uins = [...this.roster.keys()];
 
     for (const uin of uins) {
       const bot = getBot(uin)!;
 
-      await this.disable(bot)
+      await this.disable(bot, false)
         .catch(error => { throw new Error(`重启插件时遇到错误\n${error.message}`); });
     }
 
@@ -135,11 +146,11 @@ class Plugin {
   }
 
   async reload(): Promise<void> {
+    const uins = [...this.roster.keys()];
+
     try {
       await this.destroy()
       require(this.path);
-
-      const uins = this.roster.keys();
 
       for (const uin of uins) {
         const bot = getBot(uin)!;
