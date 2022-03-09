@@ -9,6 +9,7 @@ import { addBot, AllMessageEvent, Bot, getAllBot, getBot } from './bot';
 import { enablePlugin, disablePlugin, reloadPlugin, findAllPlugin, disableAllPlugin } from './plugin';
 
 export type CommandType = 'all' | 'group' | 'private';
+
 export const all_command: {
   [type in CommandType]: {
     [command: string]: (
@@ -24,9 +25,9 @@ export const all_command: {
 };
 
 /**
- * 解析指令字段
+ * 解析命令字段
  * 
- * @param {string} command - 命令
+ * @param {string} command - 命令字段
  * @returns {Object}
  */
 export function parseCommand(command: string) {
@@ -45,8 +46,7 @@ all_command.all = {
 
 all_command.group = {
   async list(param, event) {
-    const group_id = (event as GroupMessageEvent).group_id;
-
+    const { group_id } = event as GroupMessageEvent;
     return getList.bind(this)(group_id);
   },
 };
@@ -64,7 +64,15 @@ all_command.private = {
 
   async restart() {
     setTimeout(() => {
-      spawn(process.argv.shift() as string, process.argv, { cwd: __workname, detached: true, stdio: 'inherit' }).unref();
+      spawn(
+        process.argv.shift()!,
+        process.argv,
+        {
+          cwd: __workname,
+          detached: true,
+          stdio: 'inherit',
+        }
+      ).unref();
       process.exit(0);
     }, 1000);
 
@@ -73,7 +81,6 @@ all_command.private = {
 
   async shutdown() {
     setTimeout(() => process.exit(0), 1000);
-
     return `お休み♪`;
   },
 
@@ -121,12 +128,13 @@ all_command.private = {
 
     await findAllPlugin()
       .then(({ plugin_modules, node_modules, all_plugin }) => {
-        message.push(`# 当前目录共检索到 ${plugin_modules.length + node_modules.length} 个插件\nplugins:`);
+        const plugins = [...plugin_modules, ...node_modules].map(i => i.replace('kokkoro-', ''));
 
-        for (let plugin_name of [...plugin_modules, ...node_modules]) {
-          if (plugin_name.startsWith('kokkoro-')) plugin_name = plugin_name.slice(8);
+        message.push(`# 当前目录共检索到 ${plugins.length} 个插件\nplugins:`);
 
+        for (let plugin_name of plugins) {
           const plugin = all_plugin.get(plugin_name);
+
           message.push(`  ${plugin_name}: ${plugin?.roster.has(this.uin) ? 'enable' : 'disable'}`);
         }
       })
@@ -148,7 +156,7 @@ all_command.private = {
   },
 
   async login(param, event) {
-    const uin = Number(param[0]);
+    const uin = +param[0];
     const all_bot = getAllBot();
 
     switch (true) {
@@ -170,7 +178,7 @@ all_command.private = {
   },
 
   async logout(param) {
-    const uin = Number(param[0]);
+    const uin = +param[0];
     const bot = getBot(uin);
 
     if (!bot) return `Error: 账号输入错误，无法找到该实例`;
@@ -185,7 +193,7 @@ all_command.private = {
   },
 
   async delete(param) {
-    const uin = Number(param[0]);
+    const uin = +param[0];
     const bot = getBot(uin);
 
     if (!bot)

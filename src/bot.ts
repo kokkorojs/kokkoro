@@ -10,38 +10,21 @@ import { all_command, CommandType, parseCommand } from './command';
 import { KOKKORO_UPDAY, KOKKORO_VERSION, KOKKORO_CHANGELOGS } from './help';
 
 // 维护组 QQ
-const admin = [2225151531];
+const admin: number[] = [2225151531];
 // 所有机器人实例
 const all_bot: Map<number, Bot> = new Map();
 
-/**
- * 合并 bot_config
- * 
- * @param {BotConfig} default_config - 默认 config 对象
- * @param {BotConfig} bot_config - 传入 config 对象
- * @returns {BotConfig} 返回合并后的 config （深度拷贝）
- */
-function deepMerge(default_config: any, bot_config: any): BotConfig {
-  for (const key in bot_config) {
-    default_config[key] = typeof default_config[key] === 'object'
-      ? deepMerge(default_config[key], bot_config[key])
-      : bot_config[key];
-  }
-
-  return default_config;
-}
-
 export interface BotConfig {
   // 指令前缀，默认为 '>'
-  prefix: string;
+  prefix?: string;
   // 自动登录，默认 true
-  auto_login: true;
+  auto_login?: boolean;
   // 登录模式，默认 qrcode
-  login_mode: 'qrcode' | 'password';
+  login_mode?: 'qrcode' | 'password';
   // bot 主人
-  masters: number[];
+  masters?: number[];
   // 协议配置
-  config: Config;
+  config?: Config;
 }
 
 export type AllMessageEvent = GroupMessageEvent | PrivateMessageEvent | DiscussMessageEvent;
@@ -59,16 +42,16 @@ export class Bot extends Client {
       login_mode: 'qrcode',
       masters: [],
       config: {
-        data_dir: './data/bots',
+        data_dir: './data/bot',
       },
     }
     deepMerge(default_config, bot_config);
 
     super(uin, default_config.config);
 
-    this.prefix = default_config.prefix;
-    this.masters = default_config.masters;
-    this.login_mode = default_config.login_mode;
+    this.prefix = default_config.prefix!;
+    this.masters = default_config.masters!;
+    this.login_mode = default_config.login_mode!;
     this.password_path = join(this.dir, 'password');
 
     this.once('system.online', async () => {
@@ -80,7 +63,7 @@ export class Bot extends Client {
   inputPassword() {
     this.logger.mark('首次登录请输入密码：');
 
-    process.stdin.once('data', (data) => {
+    process.stdin.once('data', data => {
       const input = String(data).trim();
 
       if (!input.length) return this.inputPassword();
@@ -110,14 +93,14 @@ export class Bot extends Client {
        */
       case 'qrcode':
         this
-          .on('system.login.qrcode', (event) => {
+          .on('system.login.qrcode', event => {
             this.logger.mark('扫码完成后拍回车键继续...');
 
             process.stdin.once('data', () => {
               this.login();
             });
           })
-          .on('system.login.error', (event) => {
+          .on('system.login.error', event => {
             const { message } = event;
 
             this.terminate();
@@ -136,7 +119,7 @@ export class Bot extends Client {
       case 'password':
         this
           // 监听滑动验证码事件
-          .on('system.login.slider', (event) => {
+          .on('system.login.slider', event => {
             this.logger.mark('取 ticket 教程：https://github.com/takayama-lily/oicq/wiki/01.滑动验证码和设备锁');
 
             process.stdout.write('ticket: ');
@@ -152,7 +135,7 @@ export class Bot extends Client {
               this.login();
             });
           })
-          .on('system.login.error', (event) => {
+          .on('system.login.error', event => {
             const { message } = event;
 
             if (message.includes('密码错误')) {
@@ -191,11 +174,11 @@ export class Bot extends Client {
    * level 6 维护组
    * 
    * @param {AllMessageEvent} event - 消息 event
-   * @returns {number}
+   * @returns {number} 用户等级
    */
   getUserLevel(event: AllMessageEvent): number {
     const { sender } = event;
-    const { user_id, level = 0, role = 'member' } = sender as { user_id: number, level?: number, role: GroupRole };
+    const { user_id, level = 0, role = 'member' } = sender as { user_id: number, level?: number, role?: GroupRole };
 
     let user_level: number;
 
@@ -276,6 +259,7 @@ export class Bot extends Client {
       await all_command[type][order].bind(this)(param, event)
         .then((message) => {
           tip = message;
+          this.logger.mark(`处理完毕，指令回复: ${tip}`);
         })
         .catch((error: Error) => {
           tip = error.message;
@@ -284,7 +268,6 @@ export class Bot extends Client {
     }
 
     tip ||= `Error：未知指令 "${order}"`;
-    this.logger.mark(`处理完毕，指令回复: ${tip}`);
     event.reply(tip);
   }
 
@@ -309,11 +292,11 @@ export class Bot extends Client {
   }
 }
 
-export function getAllBot() {
+export function getAllBot(): Map<number, Bot> {
   return all_bot;
 }
 
-export function getBot(uin: number) {
+export function getBot(uin: number): Bot | undefined {
   return all_bot.get(uin);
 }
 
@@ -322,7 +305,7 @@ export function getBot(uin: number) {
  * 
  * @param {Bot} this - 被私聊的 bot 对象
  * @param {number} uin - 添加的 uin
- * @param {PrivateMessageEvent} delegate - 私聊消息 event
+ * @param {PrivateMessageEvent} delegate 私聊消息 event
  */
 export function addBot(this: Bot, uin: number, delegate: PrivateMessageEvent) {
   const bot_config: BotConfig = {
@@ -335,7 +318,7 @@ export function addBot(this: Bot, uin: number, delegate: PrivateMessageEvent) {
       platform: 1,
       ignore_self: true,
       resend: true,
-      data_dir: './data/bots',
+      data_dir: './data/bot',
       reconn_interval: 5,
       cache_group_member: true,
       auto_server: true
@@ -422,4 +405,28 @@ export async function startup() {
 
     await bot.linkStart();
   }
+}
+
+/**
+ * 合并 bot_config
+ * 
+ * @param {BotConfig} default_config - 默认 config 对象
+ * @param {BotConfig} bot_config - 传入 config 对象
+ * @returns {BotConfig} 返回合并后的 config （深度拷贝）
+ */
+function deepMerge(default_config: any, bot_config?: any): BotConfig {
+  if (bot_config) {
+    const keys = Object.keys(bot_config);
+    const keys_length = keys.length;
+
+    for (let i = 0; i < keys_length; i++) {
+      const key = keys[i];
+
+      default_config[key] = typeof default_config[key] === 'object'
+        ? deepMerge(default_config[key], bot_config[key])
+        : bot_config[key];
+    }
+  }
+
+  return default_config;
 }

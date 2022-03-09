@@ -84,12 +84,9 @@ class Plugin {
     if (extension.onGroupMessage) bot.on('message.group', extension.onGroupMessage.bind(extension));
     if (extension.onPrivateMessage) bot.on('message.private', extension.onPrivateMessage.bind(extension));
 
-    try {
-      await this.update(bot, 'add');
-      this.roster.set(uin, extension);
-    } catch (error) {
-      throw error;
-    }
+    await this.update(bot, 'add')
+      .then(() => { this.roster.set(uin, extension); })
+      .catch(error => { throw error; })
   }
 
   async disable(bot: Bot): Promise<void> {
@@ -106,19 +103,20 @@ class Plugin {
     if (extension.onGroupMessage) bot.off('message.group', extension.onGroupMessage);
     if (extension.onPrivateMessage) bot.off('message.private', extension.onPrivateMessage);
 
-    try {
-      await this.update(bot, 'delete');
-      this.roster.delete(uin);
-    } catch (error) {
-      throw error;
-    }
+    await this.update(bot, 'delete')
+      .then(() => { this.roster.delete(uin); })
+      .catch(error => { throw error; })
   }
 
   async destroy() {
-    this.roster.forEach(async (_, uin) => {
+    const uins = this.roster.keys();
+
+    for (const uin of uins) {
       const bot = getBot(uin)!;
-      await this.disable(bot);
-    })
+
+      await this.disable(bot)
+        .catch(error => { throw new Error(`重启插件时遇到错误\n${error.message}`); });
+    }
 
     const module = require.cache[this.path]!;
     const index = module.parent?.children.indexOf(module) as number;
@@ -137,17 +135,20 @@ class Plugin {
   }
 
   async reload(): Promise<void> {
-    await this.destroy();
-    require(this.path);
+    try {
+      await this.destroy()
+      require(this.path);
 
-    this.roster.forEach(async (_, uin) => {
-      const bot = getBot(uin)!;
+      const uins = this.roster.keys();
 
-      await Promise.all([this.disable(bot), this.enable(bot)])
-        .catch(error => {
-          throw new Error(`重启插件时遇到错误\n${error.message}`);
-        })
-    })
+      for (const uin of uins) {
+        const bot = getBot(uin)!;
+        await this.enable(bot);
+      }
+    } catch (error) {
+      const { message } = error as Error;
+      throw new Error(`重启插件时遇到错误\n${message}`);
+    }
   }
 }
 
