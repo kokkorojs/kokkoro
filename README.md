@@ -1,3 +1,3 @@
 # kokkoro-core
 
-Core features for kokkoro.
+Core features for kokkoro
