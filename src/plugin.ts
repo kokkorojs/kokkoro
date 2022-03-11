@@ -81,16 +81,16 @@ class Plugin {
     if (extension.option) Object.assign(this.option, extension.option);
     if (extension.onInit) extension.onInit();
     if (extension.onMessage) {
-      extension.onMessage = extension.onMessage.bind(extension);
       bot.on('message', extension.onMessage);
+      extension.onMessage = extension.onMessage.bind(extension);
     };
     if (extension.onGroupMessage) {
-      extension.onGroupMessage = extension.onGroupMessage.bind(extension);
       bot.on('message.group', extension.onGroupMessage);
+      extension.onGroupMessage = extension.onGroupMessage.bind(extension);
     }
     if (extension.onPrivateMessage) {
-      extension.onPrivateMessage = extension.onPrivateMessage.bind(extension);
       bot.on('message.private', extension.onPrivateMessage);
+      extension.onPrivateMessage = extension.onPrivateMessage.bind(extension);
     }
 
     await this.update(bot, 'add')

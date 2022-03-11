@@ -4,7 +4,7 @@ declare global {
   var __workname: string;
 }
 
-declare module "oicq" {
+declare module 'oicq' {
   export interface GroupMessageEvent {
     self_id: number;
   }

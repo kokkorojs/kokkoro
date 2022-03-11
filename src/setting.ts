@@ -129,7 +129,7 @@ export function updatePlugins(uin: number, plugins: string[]): Promise<void> {
   const setting = getSetting(uin)!;
   const setting_path = resolve(__workname, `data/bot/${uin}/setting.yml`);
 
-  setting!.plugins = plugins;
+  setting!.plugins = [...plugins];
   return writeSetting(setting_path, setting);
 }
 
@@ -140,13 +140,12 @@ export function updatePlugins(uin: number, plugins: string[]): Promise<void> {
  * @param {number} group_id - 群号
  * @returns {string}
  */
-export function getList(this: Bot, group_id: number): string {
-  const { uin, prefix } = this;
-  const { plugin } = getSetting(uin)[group_id];
-  const message = [`# 如要查看插件相关信息可输入 "${prefix} <插件名>"\nlist:`];
+export function getList(uin: number, group_id: number): string {
+  const plugin = getSetting(uin)[group_id].plugin;
+  const message = { list: {} as { [k: string]: boolean } };
 
-  for (const key in plugin) message.push(`  ${key}: ${plugin[key].apply}`);
-  return message.join('\n');
+  for (const key in plugin) message.list[key] = plugin[key].apply as boolean;
+  return stringify(message);
 }
 
 // 获取当前插件的群聊选项
