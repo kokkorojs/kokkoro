@@ -277,20 +277,9 @@ export class Bot extends Client {
     this.removeAllListeners('system.login.qrcode');
     this.removeAllListeners('system.login.error');
 
-    // 消息监听
     this.on('message', this.onMessage);
     this.on('system.online', this.onOnline);
     this.on('system.offline', this.onOffline);
-
-    // 重载好友列表
-    this.on('notice.friend.increase', this.reloadFriendList);
-    this.on('notice.friend.decrease', this.reloadFriendList);
-
-    // 重载群聊列表
-    this.on('notice.group.admin', this.reloadGroupList);
-    this.on('notice.group.transfer', this.reloadGroupList);
-    this.on('notice.group.increase', this.reloadGroupList);
-    this.on('notice.group.decrease', this.reloadGroupList);
 
     let plugin_count = 0;
     const all_plugin = await restorePlugin(this);
