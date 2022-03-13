@@ -80,3 +80,25 @@ export function getStack(): NodeJS.CallSite[] {
   Error.prepareStackTrace = orig;
   return stack;
 };
+
+/**
+ * 对象深度合并
+ * 
+ * @param {object} target - 目标 object
+ * @param {object} sources - 源 object
+ * @returns {object}
+ */
+export function deepMerge(target: any, sources: any): any {
+  const keys = Object.keys(sources);
+  const keys_length = keys.length;
+
+  for (let i = 0; i < keys_length; i++) {
+    const key = keys[i];
+
+    target[key] = typeof target[key] === 'object'
+      ? deepMerge(target[key], sources[key])
+      : sources[key];
+  }
+
+  return target;
+}
