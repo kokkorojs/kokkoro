@@ -3,7 +3,7 @@ import { createHash } from 'crypto';
 import { writeFile, readFile } from 'fs/promises';
 import { Client, Config, DiscussMessageEvent, GroupMessageEvent, GroupRole, PrivateMessageEvent, segment } from 'oicq';
 
-import { logger, colors } from './util';
+import { logger, colors, deepMerge } from './util';
 import { restorePlugin } from './plugin';
 import { setBotConfig, getConfig } from './config';
 import { all_command, CommandType, parseCommand } from './command';
@@ -405,28 +405,4 @@ export async function startup() {
 
     await bot.linkStart();
   }
-}
-
-/**
- * 合并 bot_config
- * 
- * @param {BotConfig} default_config - 默认 config 对象
- * @param {BotConfig} bot_config - 传入 config 对象
- * @returns {BotConfig} 返回合并后的 config （深度拷贝）
- */
-function deepMerge(default_config: any, bot_config?: any): BotConfig {
-  if (bot_config) {
-    const keys = Object.keys(bot_config);
-    const keys_length = keys.length;
-
-    for (let i = 0; i < keys_length; i++) {
-      const key = keys[i];
-
-      default_config[key] = typeof default_config[key] === 'object'
-        ? deepMerge(default_config[key], bot_config[key])
-        : bot_config[key];
-    }
-  }
-
-  return default_config;
 }
