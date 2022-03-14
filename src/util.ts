@@ -54,7 +54,7 @@ function image(url: string, flash: boolean = false): Promise<ImageElem | FlashEl
  * @param {string} raw_message - 收到的消息
  * @returns {string|undefined} 返回 command 对象匹配的方法名
  */
-export function getOrder(orders: Order[], raw_message: string): Order | undefined {
+export function getOrder(orders: Order[], raw_message: string): ((...param: any) => any) | undefined {
   const order_length = orders.length;
 
   for (let i = 0; i < order_length; i++) {
@@ -62,7 +62,7 @@ export function getOrder(orders: Order[], raw_message: string): Order | undefine
     const regular = order.regular;
 
     if (!regular.test(raw_message)) continue;
-    return order;
+    return order.func;
   }
 }
 
