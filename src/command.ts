@@ -46,8 +46,10 @@ all_command.all = {
 
 all_command.group = {
   async list(param, event) {
+    const { uin } = this;
     const { group_id } = event as GroupMessageEvent;
-    return getList.call(this, group_id);
+
+    return getList(uin, group_id);
   },
 };
 
