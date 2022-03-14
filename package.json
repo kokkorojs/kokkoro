@@ -1,8 +1,8 @@
 {
-  "name": "kokkoro-core",
+  "name": "kokkoro",
   "version": "0.2.0",
-  "upday": "2022/3/9",
-  "description": "Core features for kokkoro",
+  "upday": "2022/3/14",
+  "description": "とある咕咕の QQ 机器人框架",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "engines": {
@@ -13,18 +13,23 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kokkorojs/kokkoro-core.git"
+    "url": "git+https://github.com/kokkorojs/kokkoro.git"
   },
   "keywords": [
-    "kokkoro"
+    "qq",
+    "bot",
+    "oicq",
+    "coolq",
+    "kokkoro",
+    "princess-connect-redive"
   ],
   "author": "yuki",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/kokkorojs/kokkoro-core/issues"
+    "url": "https://github.com/kokkorojs/kokkoro/issues"
   },
-  "homepage": "https://github.com/kokkorojs/kokkoro-core#readme",
-  "changelogs": "https://github.com/kokkorojs/kokkoro-core/releases",
+  "homepage": "https://github.com/kokkorojs/kokkoro#readme",
+  "changelogs": "https://github.com/kokkorojs/kokkoro/releases",
   "devDependencies": {
     "@types/node": "^17.0.21"
   },
