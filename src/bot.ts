@@ -384,7 +384,7 @@ export async function startup() {
   console.log(colors.cyan(wellcome))
 
   logger.mark(`----------`);
-  logger.mark(`Package Version: kokkoro-core@${KOKKORO_VERSION} (Released on ${KOKKORO_UPDAY})`);
+  logger.mark(`Package Version: kokkoro@${KOKKORO_VERSION} (Released on ${KOKKORO_UPDAY})`);
   logger.mark(`View Changelogs：${KOKKORO_CHANGELOGS}`);
   logger.mark(`----------`);
   logger.mark(`项目启动完成，开始登录账号`);
