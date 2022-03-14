@@ -128,7 +128,7 @@ all_command.private = {
 
     await findAllPlugin()
       .then(({ plugin_modules, node_modules, all_plugin }) => {
-        const plugins = [...plugin_modules, ...node_modules].map(i => i.replace('kokkoro-', ''));
+        const plugins = [...plugin_modules, ...node_modules].map(i => i.replace('kokkoro-plugin-', ''));
 
         message.push(`# 当前目录共检索到 ${plugins.length} 个插件\nplugins:`);
 
@@ -213,7 +213,7 @@ all_command.private = {
  */
 async function addPluginCommand() {
   const { plugin_modules, node_modules } = await findAllPlugin();
-  const plugins = [...plugin_modules, ...node_modules].map(i => i.replace('kokkoro-', ''));
+  const plugins = [...plugin_modules, ...node_modules].map(i => i.replace('kokkoro-plugin-', ''));
 
   for (const plugin_name of plugins) {
     all_command.group[plugin_name] = async (param, event, plugin = plugin_name) => {
