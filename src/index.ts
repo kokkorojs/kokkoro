@@ -21,4 +21,4 @@ global.__workname = process.cwd();
 export { AllMessageEvent, Bot, startup } from './bot';
 export { Extension, Order } from './plugin';
 export { Option, getOption, getSetting } from './setting';
-export { colors, logger, section, getOrder, deepMerge } from './util';
+export { colors, logger, section, getOrder, deepMerge, deepClone } from './util';
