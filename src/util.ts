@@ -102,3 +102,13 @@ export function deepMerge(target: any, sources: any): any {
 
   return target;
 }
+
+/**
+ * 对象深拷贝
+ * 
+ * @param {object} object - 拷贝 object
+ * @returns {object}
+ */
+export function deepClone<T>(object: T): T {
+  return JSON.parse(JSON.stringify(object))
+}
