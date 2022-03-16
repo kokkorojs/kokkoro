@@ -7,6 +7,7 @@ import { Bot } from './bot';
 import { parseCommand } from './command';
 import { getStack, logger } from './util';
 import { KokkoroConfig, getConfig } from './config';
+import { getPlugin } from './plugin';
 
 // 群聊
 interface Group {
@@ -240,5 +241,34 @@ export async function setOption(param: ReturnType<typeof parseCommand>['param'],
     return '修改成功';
   } catch (error) {
     return (error as Error).message;
+  }
+}
+
+export async function reloadSetting(bot: Bot) {
+  const uin = bot.uin;
+  const setting = getSetting(uin);
+  const plugins = setting.plugins;
+  const group_list = bot.getGroupList();
+
+  for (const [group_id, group] of group_list) {
+    const group_name = group.group_name;
+    const group_setting = setting[group_id] ||= { name: group_name, plugin: {} };
+    const group_plugin = group_setting.plugin;
+
+    for (const plugin_name of plugins) {
+      if (group_plugin[plugin_name]) continue;
+
+      try {
+        const plugin = getPlugin(plugin_name);
+        group_plugin[plugin_name] = plugin.getOption();
+
+        await setSetting(uin, setting);
+      } catch {
+        const set = new Set(plugins);
+
+        set.delete(plugin_name);
+        await updatePlugins(uin, [...set]);
+      }
+    }
   }
 }
