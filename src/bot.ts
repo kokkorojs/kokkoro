@@ -1,13 +1,14 @@
 import { join } from 'path';
 import { createHash } from 'crypto';
 import { writeFile, readFile } from 'fs/promises';
-import { Client, Config, DiscussMessageEvent, GroupMessageEvent, GroupRole, PrivateMessageEvent, segment } from 'oicq';
+import { Client, Config, DiscussMessageEvent, GroupMessageEvent, GroupRole, PrivateMessageEvent, segment, MemberIncreaseEvent } from 'oicq';
 
 import { logger, colors, deepMerge } from './util';
 import { restorePlugin } from './plugin';
 import { setBotConfig, getConfig } from './config';
 import { all_command, CommandType, parseCommand } from './command';
 import { KOKKORO_UPDAY, KOKKORO_VERSION, KOKKORO_CHANGELOGS } from './help';
+import { reloadSetting } from './setting';
 
 // 维护组 QQ
 const admin: number[] = [2225151531];
@@ -271,6 +272,15 @@ export class Bot extends Client {
     event.reply(tip);
   }
 
+  async reload(event: MemberIncreaseEvent) {
+    const { uin } = this;
+    const { user_id } = event;
+
+    if (uin === user_id) {
+      await reloadSetting(this);
+    }
+  }
+
   async bindMasterEvents() {
     this.removeAllListeners('system.login.slider');
     this.removeAllListeners('system.login.device');
@@ -280,6 +290,7 @@ export class Bot extends Client {
     this.on('message', this.onMessage);
     this.on('system.online', this.onOnline);
     this.on('system.offline', this.onOffline);
+    this.on('notice.group.increase', this.reload);
 
     let plugin_count = 0;
     const all_plugin = await restorePlugin(this);
