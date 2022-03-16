@@ -43,11 +43,12 @@ class Plugin {
   }
 
   private update(bot: Bot, method: 'add' | 'delete') {
-    const { gl, uin } = bot;
+    const uin = bot.uin;
+    const group_list = bot.getGroupList();
     const setting = getSetting(uin)!;
     const plugins = new Set(setting.plugins);
 
-    gl.forEach((group: GroupInfo, group_id: number) => {
+    for (const [group_id, group] of group_list) {
       setting[group_id] ||= {
         name: group.group_name, plugin: {},
       };
@@ -58,7 +59,7 @@ class Plugin {
 
       const option = setting[group_id].plugin[this.name];
       setting[group_id].plugin[this.name] = { ...this.option, ...option };
-    });
+    }
 
     plugins[method](this.name);
     setting.plugins = [...plugins];
@@ -161,6 +162,10 @@ class Plugin {
       throw new Error(`重启插件时遇到错误\n${message}`);
     }
   }
+
+  getOption() {
+    return this.option;
+  }
 }
 
 /**
@@ -214,7 +219,7 @@ async function importPlugin(name: string): Promise<Plugin> {
  * @param {string} name - 插件名
  * @returns {Plugin} 插件实例
  */
-function getPlugin(name: string): Plugin {
+export function getPlugin(name: string): Plugin {
   if (!all_plugin.has(name)) {
     throw new Error('尚未启用此插件');
   }
