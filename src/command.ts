@@ -2,7 +2,7 @@ import { stringify } from 'yaml';
 import { spawn } from 'child_process';
 import { GroupMessageEvent, PrivateMessageEvent } from 'oicq';
 
-import { HELP_ALL } from './help';
+import { HELP_ALL, KOKKORO_VERSION } from './help';
 import { cutBotConfig, getConfig } from './config';
 import { getList, setOption } from './setting';
 import { addBot, AllMessageEvent, Bot, getAllBot, getBot } from './bot';
@@ -39,6 +39,10 @@ export function parseCommand(command: string) {
 }
 
 all_command.all = {
+  async version() {
+    return `kokkoro@${KOKKORO_VERSION}`;
+  },
+
   async echo(param) {
     return param.join(' ');
   },
