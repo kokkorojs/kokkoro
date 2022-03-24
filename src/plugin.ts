@@ -122,6 +122,8 @@ class Plugin {
     if (extension.onMessage) bot.off('message', extension.onMessage);
     if (extension.onGroupMessage) bot.off('message.group', extension.onGroupMessage);
     if (extension.onPrivateMessage) bot.off('message.private', extension.onPrivateMessage);
+    if (extension.onMemberIncrease) bot.off('notice.group.increase', extension.onMemberIncrease);
+    if (extension.onMemberDecrease) bot.off('notice.group.decrease', extension.onMemberDecrease);
 
     if (update) {
       await this.update(bot, 'delete')
