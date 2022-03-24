@@ -1,7 +1,7 @@
 import { join } from 'path';
 import { Dirent } from 'fs';
 import { readdir, mkdir } from 'fs/promises';
-import { PrivateMessageEvent, GroupMessageEvent, GroupInfo } from 'oicq';
+import { PrivateMessageEvent, GroupMessageEvent, GroupInfo, MemberIncreaseEvent, MemberDecreaseEvent } from 'oicq';
 
 import { deepClone, logger } from './util';
 import { AllMessageEvent, Bot, getBot } from './bot';
@@ -26,6 +26,8 @@ export interface Extension {
   onMessage?(event: AllMessageEvent): void;
   onGroupMessage?(event: GroupMessageEvent): void;
   onPrivateMessage?(event: PrivateMessageEvent): void;
+  onMemberIncrease?(event: MemberIncreaseEvent): void;
+  onMemberDecrease?(event: MemberDecreaseEvent): void;
 }
 
 class Plugin {
@@ -92,6 +94,14 @@ class Plugin {
     if (extension.onPrivateMessage) {
       extension.onPrivateMessage = extension.onPrivateMessage.bind(extension);
       bot.on('message.private', extension.onPrivateMessage);
+    }
+    if (extension.onMemberIncrease) {
+      extension.onMemberIncrease = extension.onMemberIncrease.bind(extension);
+      bot.on('notice.group.increase', extension.onMemberIncrease);
+    }
+    if (extension.onMemberDecrease) {
+      extension.onMemberDecrease = extension.onMemberDecrease.bind(extension);
+      bot.on('notice.group.decrease', extension.onMemberDecrease);
     }
 
     await this.update(bot, 'add')
