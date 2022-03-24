@@ -1,7 +1,7 @@
 import { resolve } from 'path';
 import { stringify, parse } from 'yaml';
 import { writeFile, readFile } from 'fs/promises';
-import { GroupMessageEvent } from 'oicq';
+import { GroupMessageEvent, MemberDecreaseEvent, MemberIncreaseEvent } from 'oicq';
 
 import { Bot } from './bot';
 import { parseCommand } from './command';
@@ -150,7 +150,7 @@ export function getList(uin: number, group_id: number): string {
 }
 
 // 获取当前插件的群聊选项
-export function getOption(event: GroupMessageEvent) {
+export function getOption(event: GroupMessageEvent | MemberIncreaseEvent | MemberDecreaseEvent) {
   const self_id = event.self_id;
   const group_id = event.group_id;
   const stack = getStack();
