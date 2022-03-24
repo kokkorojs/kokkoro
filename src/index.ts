@@ -14,6 +14,12 @@ declare module 'oicq' {
   export interface DiscussMessageEvent {
     self_id: number;
   }
+  export interface MemberIncreaseEvent {
+    self_id: number;
+  }
+  export interface MemberDecreaseEvent {
+    self_id: number;
+  }
 }
 
 global.__workname = process.cwd();
