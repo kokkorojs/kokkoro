@@ -24,7 +24,16 @@ declare module 'oicq' {
 
 global.__workname = process.cwd();
 
-export { AllMessageEvent, Bot, startup } from './bot';
-export { Extension, Order } from './plugin';
-export { Option, getOption, getSetting } from './setting';
-export { colors, logger, section, getOrder, deepMerge, deepClone } from './util';
+const logo = `
+|   _  |  |   _  ._ _    ._ _   _. o o   _|_  _  ._  ._   _ |_  o   |
+|< (_) |< |< (_) | (_)   | | | (_| | |    |_ (/_ | | | |  > | | |   |
+                                   ╯                                o
+`;
+console.log(`\u001b[32m${logo}\u001b[0m`);
+
+export { Bot } from './bot';
+// export { AllMessageEvent, Bot, startup } from './bot';
+// export { Extension, Order } from './plugin';
+// export { Option, getOption, getSetting } from './setting';
+// export { colors, logger, section, getOrder, deepMerge, deepClone } from './util';
+export { colors, logger } from './util';
