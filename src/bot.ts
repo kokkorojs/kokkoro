@@ -6,14 +6,14 @@ import { Client, Config as Protocol, DiscussMessageEvent, GroupMessageEvent, Gro
 import { restorePlugin } from './plugin';
 import { reloadSetting } from './setting';
 import { setBotConfig, getConfig } from './config';
-import { logger, colors, deepMerge } from './util';
-import { all_command, CommandType, parseCommand } from './command';
+import { colors, deepMerge, logger } from './util';
+// import { all_command, CommandType, parseCommand } from './command';
 import { KOKKORO_UPDAY, KOKKORO_VERSION, KOKKORO_CHANGELOGS } from './help';
 
 // 维护组 QQ
 const admin: number[] = [2225151531];
 // 所有机器人实例
-// const all_bot: Map<number, Bot> = new Map();
+const all_bot: Map<number, Bot> = new Map();
 
 export interface Config {
   // 自动登录，默认 true
@@ -29,56 +29,74 @@ export interface Config {
 export type AllMessageEvent = GroupMessageEvent | PrivateMessageEvent | DiscussMessageEvent;
 
 export class Bot extends Client {
+  public qq: number;
   public master: number[];
   private login_mode: string;
   private readonly password_path: string;
 
   constructor(qq: number, config?: Config) {
-    config = {
+    const default_config: Config = {
       master: [],
       auto_login: true,
       login_mode: 'qrcode',
-      protocol: {}, ...config,
-    }
-    config.protocol!.data_dir = './data/bot';
-    console.log(config)
+      protocol: {
+        data_dir: './data/bot',
+      },
+    };
+    deepMerge(default_config, config);
 
-    super(qq, config.protocol);
+    super(qq, default_config.protocol);
 
-    this.master = config.master!;
-    this.login_mode = config.login_mode!;
+    this.qq = qq;
+    this.master = default_config.master!;
+    this.login_mode = default_config.login_mode!;
     this.password_path = join(this.dir, 'password');
 
-    // this.once('system.online', async () => {
-    //   await this.bindMasterEvents();
-    //   this.logger.mark(`可给机器人发送 "${this.prefix}help" 查看指令帮助`);
-    // });
+    this.once('system.online', async () => {
+      //   this.initEvent();
+      //   this.logger.mark(`可给机器人发送 "${this.prefix}help" 查看指令帮助`);
+    });
   }
 
-  inputPassword() {
-    this.logger.mark('首次登录请输入密码：');
+  initEvent(): void {
+    this.removeAllListeners('system.login.slider');
+    this.removeAllListeners('system.login.device');
+    this.removeAllListeners('system.login.qrcode');
+    this.removeAllListeners('system.login.error');
 
-    process.stdin.once('data', data => {
-      const input = String(data).trim();
+    //     this.on('message', this.onMessage);
+    this.on('system.online', this.onOnline);
+    this.on('system.offline', this.onOffline);
 
-      if (!input.length) return this.inputPassword();
+    //     let plugin_count = 0;
+    //     const all_plugin = await restorePlugin(this);
 
-      const password = createHash('md5').update(input).digest();
+    //     for (const [_, plugin] of all_plugin) {
+    //       if (plugin.roster.has(this.uin)) ++plugin_count;
+    //     }
 
-      writeFile(this.password_path, password, { mode: 0o600 })
-        .then(() => {
-          this.logger.mark('写入 md5 成功');
-        })
-        .catch(error => {
-          this.logger.error(`写入 md5 失败，${error.message}`);
-        })
-        .finally(() => {
-          this.login(password);
-        })
+    //     this.sendMasterMsg(`启动成功，启用了 ${plugin_count} 个插件，发送 "${this.prefix}help" 可以查询 bot 相关指令`);
+    //   }
+  }
+
+  inputPassword(): void {
+    process.stdin.setEncoding('utf8');
+    process.stdout.write('首次登录请输入密码：');
+    process.stdin.once('data', (password: string) => {
+      password = password.trim();
+
+      if (!password.length) return this.inputPassword();
+
+      const password_md5 = createHash('md5').update(password).digest();
+
+      writeFile(this.password_path, password_md5, { mode: 0o600 })
+        .then(() => this.logger.mark('写入 password md5 成功'))
+        .catch(error => this.logger.error(`写入 password md5 失败，${error.message}`))
+        .finally(() => this.login(password_md5));
     })
   }
 
-  async linkStart() {
+  async linkStart(): Promise<void> {
     switch (this.login_mode) {
       /**
        * 扫描登录
@@ -88,7 +106,7 @@ export class Bot extends Client {
        */
       case 'qrcode':
         this
-          .on('system.login.qrcode', (event) => {
+          .on('system.login.qrcode', (event: { image: Buffer; }) => {
             const interval_id = setInterval(async () => {
               const { retcode } = await this.queryQrcodeResult();
 
@@ -98,13 +116,11 @@ export class Bot extends Client {
               }
             }, 2000);
           })
-          .on('system.login.error', (event) => {
+          .on('system.login.error', (event: { code: number; message: string; }) => {
             const { message } = event;
 
             this.terminate();
             this.logger.error(`当前账号无法登录，${message}`);
-
-            process.stdin.once('data', () => { });
           })
           .login();
         break;
@@ -116,16 +132,14 @@ export class Bot extends Client {
        */
       case 'password':
         this
-          // 监听滑动验证码事件
-          .on('system.login.slider', (event) => {
+          .on('system.login.slider', (event: { url: string; }) => {
             this.logger.mark('取 ticket 教程：https://github.com/takayama-lily/oicq/wiki/01.滑动验证码和设备锁');
 
-            process.stdout.write('ticket: ');
+            process.stdout.write('请输入 ticket ：');
             process.stdin.once('data', (event: string) => {
               this.submitSlider(event);
             });
           })
-          // 监听登录保护验证事件
           .on('system.login.device', () => {
             this.logger.mark('验证完成后按回车键继续...');
 
@@ -141,8 +155,6 @@ export class Bot extends Client {
             } else {
               this.terminate();
               this.logger.error(`当前账号无法登录，${message}`);
-
-              process.stdin.once('data', () => { });
             }
           });
 
@@ -207,20 +219,20 @@ export class Bot extends Client {
   //     return user_level;
   //   }
 
-  //   sendMasterMsg(message: string) {
-  //     for (const user_id of this.masters) {
-  //       this.sendPrivateMsg(user_id, `通知：\n　　${message}`)
-  //     }
-  //   }
+  sendMasterMsg(message: string): void {
+    for (const qq of this.master) {
+      this.sendPrivateMsg(qq, `通知：\n　　${message}`)
+    }
+  }
 
-  //   onOnline() {
-  //     this.logger.info(`${this.nickname} 刚刚从掉线中恢复，现在一切正常`);
-  //     this.sendMasterMsg(`通知：\n　　该账号刚刚从掉线中恢复，现在一切正常`);
-  //   }
+  onOnline(): void {
+    this.sendMasterMsg('该账号刚刚从掉线中恢复，现在一切正常');
+    this.logger.info(`${this.nickname} 刚刚从掉线中恢复，现在一切正常`);
+  }
 
-  //   onOffline(event: { message: string }) {
-  //     this.logger.info(`${this.nickname} 已离线，${event.message}`);
-  //   }
+  onOffline(event: { message: string }): void {
+    this.logger.info(`${this.nickname} 已离线，${event.message}`);
+  }
 
   //   async onMessage(event: AllMessageEvent) {
   //     let tip = '';
@@ -277,28 +289,6 @@ export class Bot extends Client {
   //       await reloadSetting(this);
   //     }
   //   }
-
-  //   async bindMasterEvents() {
-  //     this.removeAllListeners('system.login.slider');
-  //     this.removeAllListeners('system.login.device');
-  //     this.removeAllListeners('system.login.qrcode');
-  //     this.removeAllListeners('system.login.error');
-
-  //     this.on('message', this.onMessage);
-  //     this.on('system.online', this.onOnline);
-  //     this.on('system.offline', this.onOffline);
-  //     this.on('notice.group.increase', this.reload);
-
-  //     let plugin_count = 0;
-  //     const all_plugin = await restorePlugin(this);
-
-  //     for (const [_, plugin] of all_plugin) {
-  //       if (plugin.roster.has(this.uin)) ++plugin_count;
-  //     }
-
-  //     this.sendMasterMsg(`启动成功，启用了 ${plugin_count} 个插件，发送 "${this.prefix}help" 可以查询 bot 相关指令`);
-  //   }
-  // }
 
   // export function getAllBot(): Map<number, Bot> {
   //   return all_bot;
@@ -378,39 +368,27 @@ export class Bot extends Client {
   //     .login();
 }
 
-// export async function startup() {
-//   // Acsii Font Name: Doh
-//   const wellcome = `———————————————————————————————————————————————————————————————————————————————————————————————————
-//                   _ _                            _          _         _    _
-//                  | | |                          | |        | |       | |  | |
-//     __      _____| | | ___ ___  _ __ ___   ___  | |_ ___   | | _____ | | _| | _____  _ __ ___
-//     \\ \\ /\\ / / _ \\ | |/ __/ _ \\| '_ \` _ \\ / _ \\ | __/ _ \\  | |/ / _ \\| |/ / |/ / _ \\| '__/ _ \\
-//      \\ V  V /  __/ | | (_| (_) | | | | | |  __/ | || (_) | |   < (_) |   <|   < (_) | | | (_) |
-//       \\_/\\_/ \\___|_|_|\\___\\___/|_| |_| |_|\\___|  \\__\\___/  |_|\\_\\___/|_|\\_\\_|\\_\\___/|_|  \\___/
+export async function startup() {
+  logger.mark(`----------`);
+  logger.mark(`Package Version: kokkoro@${KOKKORO_VERSION} (Released on ${KOKKORO_UPDAY})`);
+  logger.mark(`View Changelogs：${KOKKORO_CHANGELOGS}`);
+  logger.mark(`----------`);
+  logger.mark(`项目启动完成，开始登录账号`);
 
-// ———————————————————————————————————————————————————————————————————————————————————————————————————`;
-//   console.log(colors.cyan(wellcome))
+  process.title = 'kokkoro';
 
-//   logger.mark(`----------`);
-//   logger.mark(`Package Version: kokkoro@${KOKKORO_VERSION} (Released on ${KOKKORO_UPDAY})`);
-//   logger.mark(`View Changelogs：${KOKKORO_CHANGELOGS}`);
-//   logger.mark(`----------`);
-//   logger.mark(`项目启动完成，开始登录账号`);
+  //   const { bots } = getConfig();
 
-//   process.title = 'kokkoro';
+  //   for (const uin in bots) {
+  //     const bot_config = bots[uin];
+  //     const qq = +uin;
+  //     const bot = new Bot(qq, bot_config);
 
-//   const { bots } = getConfig();
+  //     all_bot.set(qq, bot);
 
-//   for (const uin in bots) {
-//     const bot_config = bots[uin];
-//     const qq = +uin;
-//     const bot = new Bot(qq, bot_config);
+  //     if (!bot_config.auto_login) continue;
+  //     if (!all_bot.size) return logger.info(`当前无可登录的账号，请检查是否开启 ${colors.blue('auto_login')}`);
 
-//     all_bot.set(qq, bot);
-
-//     if (!bot_config.auto_login) continue;
-//     if (!all_bot.size) return logger.info(`当前无可登录的账号，请检查是否开启 ${colors.blue('auto_login')}`);
-
-//     await bot.linkStart();
-//   }
-// }
+  //     await bot.linkStart();
+  //   }
+}
