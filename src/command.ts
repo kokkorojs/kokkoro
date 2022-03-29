@@ -1,16 +1,168 @@
 // import { stringify } from 'yaml';
 // import { spawn } from 'child_process';
 // import { GroupMessageEvent, PrivateMessageEvent } from 'oicq';
-
 // import { HELP_ALL, KOKKORO_VERSION } from './help';
 // import { cutBotConfig, getConfig } from './config';
 // import { getList, setOption } from './setting';
 // import { addBot, AllMessageEvent, Bot, getAllBot, getBot } from './bot';
 // import { enablePlugin, disablePlugin, reloadPlugin, findAllPlugin, disableAllPlugin } from './plugin';
+import { EventEmitter } from 'events';
+
+interface CommandArg {
+  required: boolean
+  value: string
+  variadic: boolean
+}
+
+interface ParsedArgv {
+  args: Array<string | string[]>;
+  options: {
+    [k: string]: any
+  }
+}
+
+function removeBrackets(name: string): string {
+  return name.replace(/[<[].+/, '').trim();
+}
+
+function findAllBrackets(name: string) {
+  const res = [];
+  const ANGLED_BRACKET_RE_GLOBAL = /<([^>]+)>/g
+  const SQUARE_BRACKET_RE_GLOBAL = /\[([^\]]+)\]/g
+
+  const parse = (match: string[]) => {
+    let variadic = false;
+    let value = match[1];
+
+    if (value.startsWith('...')) {
+      value = value.slice(3)
+      variadic = true
+    }
+    return {
+      required: match[0].startsWith('<'),
+      value,
+      variadic,
+    }
+  }
+
+  let angledMatch
+  while ((angledMatch = ANGLED_BRACKET_RE_GLOBAL.exec(name))) {
+    res.push(parse(angledMatch))
+  }
+
+  let squareMatch
+  while ((squareMatch = SQUARE_BRACKET_RE_GLOBAL.exec(name))) {
+    res.push(parse(squareMatch))
+  }
+
+  return res;
+}
 
 class Command {
-  constructor() {
-    
+  name: string;
+  desc: string;
+  args: CommandArg[];
+  regex?: RegExp;
+  func?: (...args: any[]) => any;
+
+  constructor(
+    public raw_name: string,
+    public extension: Extension,
+  ) {
+    this.name = removeBrackets(raw_name);
+    this.args = findAllBrackets(raw_name);
+    this.desc = '';
+  }
+
+  description(desc: string) {
+    this.desc = desc;
+    return this;
+  }
+
+  sugar(regex: RegExp) {
+    this.regex = regex;
+    return this;
+  }
+
+  action(callback: (...args: any[]) => any) {
+    this.func = callback;
+    return this;
+  }
+
+  isMatched(raw_message: string) {
+    let [extension_name, command_name] = raw_message.split(' ');
+
+    if (this.regex && this.regex.test(raw_message)) {
+      command_name = this.name;
+      extension_name = this.extension.name;
+    }
+    return this.extension.name === extension_name && this.name === command_name;
+  }
+
+  parseArgs(raw_message: string) {
+    let raw_args;
+    let args_index = 0;
+    let raw_args_index = 0;
+    const args: Array<string | string[]> = [];
+
+    if (this.regex && this.regex.test(raw_message)) {
+      raw_args = this.regex.exec(raw_message)![1].split(' ');
+    } else {
+      [, , ...raw_args] = raw_message.split(' ');
+    }
+
+    for (; args_index < this.args.length; args_index++) {
+      const { variadic } = this.args[args_index];
+
+      if (!variadic) {
+        args.push(raw_args[raw_args_index]);
+        raw_args_index++;
+      } else {
+        const params = [];
+
+        // TODO 当 command 传入多字段时优化 (raw_args.length - args_index)
+        for (; raw_args_index < raw_args.length; raw_args_index++) {
+          params.push(raw_args[raw_args_index]);
+        }
+        args.push(params);
+      }
+    }
+    return args;
+  }
+}
+
+export class Extension extends EventEmitter {
+  name: string;
+  commands: Command[];
+  args: ParsedArgv['args'];
+
+  constructor(name: string) {
+    super();
+    this.name = name;
+    this.args = [];
+    this.commands = [];
+  }
+
+  command(raw_name: string) {
+    const command = new Command(raw_name, this);
+    this.commands.push(command);
+    return command;
+  }
+
+  parse(raw_message: string) {
+    for (const command of this.commands) {
+      if (command.isMatched(raw_message)) {
+        this.args = command.parseArgs(raw_message);
+        this.runMatchedCommand(command);
+        this.emit(`extension.${this.name}`, command);
+        break;
+      }
+    }
+  }
+
+  runMatchedCommand(command: Command) {
+    if (!command.func) return;
+    command.func(...this.args);
   }
 }
 
