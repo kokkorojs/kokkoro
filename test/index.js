@@ -1,6 +1,24 @@
 const { exec } = require('child_process');
 const { asString } = require('date-format');
-const { Bot, colors, logger } = require('../lib');
+const { Bot, colors, logger, Extension } = require('../lib');
+
+const setu = new Extension('setu');
+
+setu
+  .command('random')
+  .description('send random setu')
+  .sugar(/^来[点张份][涩瑟色]图$/)
+  .action(() => {
+
+  })
+
+setu
+  .command('search <...tags>')
+  .description('send online setu')
+  .sugar(/^来[点张份](.+)[涩瑟色]图$/)
+  .action((tags) => {
+    console.log(tags);
+  })
 
 process.stdin.setEncoding('utf8');
 
@@ -10,17 +28,14 @@ function listenInput() {
 
   process.stdout.write(log_prefix);
   process.stdin.once('data', (input) => {
-    const argv = [...process.argv];
-    const command = input.trim().split(' ');
+    const command = input.trim();
 
-    argv.push(...command);
-
-    switch (argv[2]) {
+    switch (command) {
       case 'exit':
         process.exit();
         break;
       default:
-        console.log(argv)
+        setu.parse(command);
         return listenInput();
         break;
     }

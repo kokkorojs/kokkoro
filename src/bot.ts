@@ -47,7 +47,7 @@ export class Bot extends Client {
 
     super(qq, default_config.protocol);
 
-    this.qq = qq;
+    this.qq = this.uin;
     this.master = default_config.master!;
     this.login_mode = default_config.login_mode!;
     this.password_path = join(this.dir, 'password');
@@ -368,7 +368,7 @@ export class Bot extends Client {
   //     .login();
 }
 
-export async function startup() {
+export function startup() {
   logger.mark(`----------`);
   logger.mark(`Package Version: kokkoro@${KOKKORO_VERSION} (Released on ${KOKKORO_UPDAY})`);
   logger.mark(`View Changelogs：${KOKKORO_CHANGELOGS}`);
