@@ -88,7 +88,7 @@ function colorful(code: number): Function {
  * @param {object} sources - 源 object
  * @returns {object}
  */
-export function deepMerge(target: any, sources: any): any {
+export function deepMerge(target: any, sources: any = {}): any {
   const keys = Object.keys(sources);
   const keys_length = keys.length;
 
