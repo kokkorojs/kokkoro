@@ -1,8 +1,8 @@
 const { exec } = require('child_process');
 const { asString } = require('date-format');
-const { Bot, colors, logger, Extension } = require('../lib');
+const { Bot, colors, logger, Plugin } = require('../lib');
 
-const setu = new Extension('setu');
+const setu = new Plugin('setu');
 
 setu
   .command('random')
@@ -15,10 +15,15 @@ setu
 setu
   .command('search <...tags>')
   .description('send online setu')
-  .sugar(/^来[点张份](.+)[涩瑟色]图$/)
+  .sugar(/^来[点张份](?<tags>.+)[涩瑟色]图$/)
   .action((tags) => {
     console.log(tags);
   })
+
+// setu
+//   .schedule('0/5 * * * * ?', () => {
+//     console.log('reload setu')
+//   });
 
 process.stdin.setEncoding('utf8');
 
@@ -44,3 +49,5 @@ function listenInput() {
 
 logger.debug('欢迎使用 kokkoro，你可以利用本程序进行开发调试 d(･∀･*)♪ﾟ');
 listenInput();
+const bot = new Bot(437402067)
+bot.linkStart();
