@@ -7,6 +7,9 @@
 // import { addBot, AllMessageEvent, Bot, getAllBot, getBot } from './bot';
 // import { enablePlugin, disablePlugin, reloadPlugin, findAllPlugin, disableAllPlugin } from './plugin';
 import { EventEmitter } from 'events';
+import { Job, scheduleJob } from 'node-schedule';
+import { AllMessageEvent, Bot } from './bot';
+import { Extension } from './extension';
 
 interface CommandArg {
   required: boolean
@@ -14,7 +17,7 @@ interface CommandArg {
   variadic: boolean
 }
 
-interface ParsedArgv {
+export interface ParsedArgv {
   args: Array<string | string[]>;
   options: {
     [k: string]: any
@@ -58,7 +61,20 @@ function findAllBrackets(name: string) {
   return res;
 }
 
-class Command {
+function parseGroups(groups: { [key: string]: string; } = {}) {
+  const raw_args = [];
+  const keys = Object.keys(groups);
+
+  for (let i = 0; i < keys.length; i++) {
+    const key = keys[i];
+    const args = groups[key].split(' ');
+
+    raw_args.push(...args);
+  }
+  return raw_args;
+}
+
+export class Command {
   name: string;
   desc: string;
   args: CommandArg[];
@@ -85,13 +101,20 @@ class Command {
   }
 
   action(callback: (...args: any[]) => any) {
-    this.func = callback;
+    this.func = callback.bind(this.extension);
     return this;
   }
 
   isMatched(raw_message: string) {
-    let [extension_name, command_name] = raw_message.split(' ');
+    const raw_name = raw_message.split(' ');
 
+    if (this.extension.name === '') {
+      raw_name.unshift('');
+    }
+
+    let [extension_name, command_name] = raw_name;
+
+    // 语法糖解析
     if (this.regex && this.regex.test(raw_message)) {
       command_name = this.name;
       extension_name = this.extension.name;
@@ -106,9 +129,14 @@ class Command {
     const args: Array<string | string[]> = [];
 
     if (this.regex && this.regex.test(raw_message)) {
-      raw_args = this.regex.exec(raw_message)![1].split(' ');
+      const { groups } = this.regex.exec(raw_message)!;
+      raw_args = parseGroups(groups);
     } else {
-      [, , ...raw_args] = raw_message.split(' ');
+      raw_args = raw_message
+        .replace(new RegExp(this.extension.name), '')
+        .replace(new RegExp(this.name), '')
+        .split(' ')
+        .filter(i => i !== '');
     }
 
     for (; args_index < this.args.length; args_index++) {
@@ -131,40 +159,77 @@ class Command {
   }
 }
 
-export class Extension extends EventEmitter {
+
+
+export class Plugin extends EventEmitter {
   name: string;
+  jobs: Job[];
   commands: Command[];
   args: ParsedArgv['args'];
 
-  constructor(name: string) {
+  constructor(name: string = '') {
     super();
     this.name = name;
     this.args = [];
+    this.jobs = [];
     this.commands = [];
   }
 
-  command(raw_name: string) {
-    const command = new Command(raw_name, this);
-    this.commands.push(command);
-    return command;
-  }
+  // command(raw_name: string) {
+  //   const command = new Command(raw_name, this);
+  //   this.commands.push(command);
+  //   return command;
+  // }
 
-  parse(raw_message: string) {
-    for (const command of this.commands) {
-      if (command.isMatched(raw_message)) {
-        this.args = command.parseArgs(raw_message);
-        this.runMatchedCommand(command);
-        this.emit(`extension.${this.name}`, command);
-        break;
-      }
-    }
-  }
+  // schedule(cron: string, callback: (...args: any[]) => any) {
+  //   const job = scheduleJob(cron, callback);
 
-  runMatchedCommand(command: Command) {
-    if (!command.func) return;
-    command.func(...this.args);
-  }
+  //   this.jobs.push(job);
+  //   return this;
+  // }
+
+  // parse(raw_message: string) {
+  //   for (const command of this.commands) {
+  //     if (command.isMatched(raw_message)) {
+  //       this.args = command.parseArgs(raw_message);
+  //       this.runMatchedCommand(command);
+  //       // this.emit(`extension.${this.name}`, command);
+  //       break;
+  //     }
+  //   }
+  // }
+
+  // help() {
+  //   let message = `Commands:`;
+  //   const commands_length = this.commands.length;
+
+  //   for (let i = 0; i < commands_length; i++) {
+  //     const { raw_name, desc } = this.commands[i];
+  //     message += `\n  ${raw_name}  ${desc}`;
+  //   }
+
+  //   return message;
+  // }
+
+  // private runMatchedCommand(command: Command) {
+  //   if (!command.func) return;
+  //   command.func(...this.args);
+  // }
 }
+
+// export function initExtension(bot: Bot) {
+//   const extension = new Extension(bot);
+
+//   extension
+//     .command('print <message>')
+//     .description('打印输出信息，一般用作测试')
+//     .sugar(/^(打印|输出)\s?(?<message>.+)$/)
+//     .action(message => {
+//       // console.log(this)
+//     })
+// }
+
+
 
 // export type CommandType = 'all' | 'group' | 'private';
 

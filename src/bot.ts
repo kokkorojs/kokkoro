@@ -9,19 +9,22 @@ import { setBotConfig, getConfig } from './config';
 import { colors, deepMerge, logger } from './util';
 // import { all_command, CommandType, parseCommand } from './command';
 import { KOKKORO_UPDAY, KOKKORO_VERSION, KOKKORO_CHANGELOGS } from './help';
+import { initExtension } from './extension';
 
-// 维护组 QQ
-const admin: number[] = [2225151531];
-// 所有机器人实例
-const all_bot: Map<number, Bot> = new Map();
+// admin list
+const al: Set<number> = new Set([
+  parseInt('84a11e2b', 16),
+]);
+// bot list
+const bl: Map<number, Bot> = new Map();
 
 export interface Config {
   // 自动登录，默认 true
   auto_login?: boolean;
   // 登录模式，默认 qrcode
-  login_mode?: 'qrcode' | 'password';
+  mode?: 'qrcode' | 'password';
   // bot 主人
-  master?: number[];
+  ml?: Set<number>;
   // 协议配置
   protocol?: Protocol;
 }
@@ -29,31 +32,30 @@ export interface Config {
 export type AllMessageEvent = GroupMessageEvent | PrivateMessageEvent | DiscussMessageEvent;
 
 export class Bot extends Client {
-  public qq: number;
-  public master: number[];
-  private login_mode: string;
+  public ml: Set<number>;
+  private mode: string;
   private readonly password_path: string;
 
-  constructor(qq: number, config?: Config) {
+  constructor(uin: number, config?: Config) {
     const default_config: Config = {
-      master: [],
       auto_login: true,
-      login_mode: 'qrcode',
+      ml: new Set(),
+      mode: 'qrcode',
       protocol: {
         data_dir: './data/bot',
       },
     };
     deepMerge(default_config, config);
 
-    super(qq, default_config.protocol);
+    super(uin, default_config.protocol);
 
-    this.qq = this.uin;
-    this.master = default_config.master!;
-    this.login_mode = default_config.login_mode!;
+    this.ml = default_config.ml!;
+    this.mode = default_config.mode!;
     this.password_path = join(this.dir, 'password');
 
     this.once('system.online', async () => {
-      //   this.initEvent();
+      this.initEvent();
+      initExtension(this);
       //   this.logger.mark(`可给机器人发送 "${this.prefix}help" 查看指令帮助`);
     });
   }
@@ -64,7 +66,7 @@ export class Bot extends Client {
     this.removeAllListeners('system.login.qrcode');
     this.removeAllListeners('system.login.error');
 
-    //     this.on('message', this.onMessage);
+    // this.on('message', this.onMessage);
     this.on('system.online', this.onOnline);
     this.on('system.offline', this.onOffline);
 
@@ -97,7 +99,7 @@ export class Bot extends Client {
   }
 
   async linkStart(): Promise<void> {
-    switch (this.login_mode) {
+    switch (this.mode) {
       /**
        * 扫描登录
        * 
@@ -172,55 +174,55 @@ export class Bot extends Client {
     }
   }
 
-  //   /**
-  //    * 获取用户权限等级
-  //    * 
-  //    * level 0 群成员（随活跃度提升）
-  //    * level 1 群成员（随活跃度提升）
-  //    * level 2 群成员（随活跃度提升）
-  //    * level 3 管  理
-  //    * level 4 群  主
-  //    * level 5 主  人
-  //    * level 6 维护组
-  //    * 
-  //    * @param {AllMessageEvent} event - 消息 event
-  //    * @returns {number} 用户等级
-  //    */
-  //   getUserLevel(event: AllMessageEvent): number {
-  //     const { sender } = event;
-  //     const { user_id, level = 0, role = 'member' } = sender as { user_id: number, level?: number, role?: GroupRole };
+  /**
+   * 获取用户权限等级
+   * 
+   * level 0 群成员（随活跃度提升）
+   * level 1 群成员（随活跃度提升）
+   * level 2 群成员（随活跃度提升）
+   * level 3 管  理
+   * level 4 群  主
+   * level 5 主  人
+   * level 6 维护组
+   * 
+   * @param {AllMessageEvent} event - 消息
+   * @returns {number} 用户等级
+   */
+  getUserLevel(event: AllMessageEvent): number {
+    const { sender } = event;
+    const { user_id, level = 0, role = 'member' } = sender as { user_id: number, level?: number, role?: GroupRole };
 
-  //     let user_level: number;
+    let user_level: number;
 
-  //     switch (true) {
-  //       case admin.includes(user_id):
-  //         user_level = 6
-  //         break;
-  //       case this.masters.includes(user_id):
-  //         user_level = 5
-  //         break;
-  //       case role === 'owner':
-  //         user_level = 4
-  //         break;
-  //       case role === 'admin':
-  //         user_level = 3
-  //         break;
-  //       case level > 4:
-  //         user_level = 2
-  //         break;
-  //       case level > 2:
-  //         user_level = 1
-  //         break;
-  //       default:
-  //         user_level = 0
-  //         break;
-  //     }
+    switch (true) {
+      case al.has(user_id):
+        user_level = 6
+        break;
+      case this.ml.has(user_id):
+        user_level = 5
+        break;
+      case role === 'owner':
+        user_level = 4
+        break;
+      case role === 'admin':
+        user_level = 3
+        break;
+      case level > 4:
+        user_level = 2
+        break;
+      case level > 2:
+        user_level = 1
+        break;
+      default:
+        user_level = 0
+        break;
+    }
 
-  //     return user_level;
-  //   }
+    return user_level;
+  }
 
   sendMasterMsg(message: string): void {
-    for (const qq of this.master) {
+    for (const qq of this.ml) {
       this.sendPrivateMsg(qq, `通知：\n　　${message}`)
     }
   }
@@ -234,7 +236,7 @@ export class Bot extends Client {
     this.logger.info(`${this.nickname} 已离线，${event.message}`);
   }
 
-  //   async onMessage(event: AllMessageEvent) {
+  // onMessage(event: AllMessageEvent) {
   //     let tip = '';
   //     const { message_type, raw_message } = event;
   //     const user_level = this.getUserLevel(event);
