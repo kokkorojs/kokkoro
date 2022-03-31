@@ -1,11 +1,11 @@
-// import axios from 'axios';
+import axios, { AxiosRequestConfig } from 'axios';
 import { getLogger, Logger } from 'log4js';
-// import { FlashElem, ImageElem, segment } from 'oicq';
+import { FlashElem, ImageElem, segment } from 'oicq';
 // import { Order } from './plugin';
 
-// export const section = {
-//   image, at: segment.at,
-// };
+export const section = {
+  image, at: segment.at,
+};
 
 export const logger: Logger = getLogger('[kokkoro log]');
 logger.level = 'all';
@@ -25,27 +25,37 @@ function colorful(code: number): Function {
   return (msg: string) => `\u001b[${code}m${msg}\u001b[0m`;
 }
 
-// /**
-//  * 生成图片消息段（oicq 无法 catch 网络图片下载失败，所以单独处理）
-//  * 
-//  * @param {string} url - 图片 url
-//  * @param {boolean} flash - 是否生成闪图
-//  * @returns {Promise} 
-//  */
-// function image(url: string, flash: boolean = false): Promise<ImageElem | FlashElem | string> {
-//   return new Promise((resolve, reject) => {
-//     // 判断是否为网络链接
-//     if (!/^https?/g.test(url)) return resolve(!flash ? segment.image(`file:///${url}`) : segment.flash(`file:///${url}`));
+/**
+ * 生成图片消息段（oicq 无法 catch 网络图片下载失败，所以单独处理）
+ * 
+ * @param {string} data - 图片数据
+ * @param {boolean} flash - 是否生成闪图
+ * @returns {ImageElem|FlashElem|string} 
+ */
+function image(data: string | Buffer, flash: boolean = false): ImageElem | FlashElem | string {
+  let element: string | Buffer = '';
 
-//     axios.get(url, { responseType: 'arraybuffer', timeout: 5000, })
-//       .then((response) => {
-//         resolve(!flash ? segment.image(response.data) : segment.flash(response.data));
-//       })
-//       .catch((error: Error) => {
-//         reject(new Error(`Error: ${error.message}\n图片下载失败，地址:\n${url}`));
-//       })
-//   })
-// }
+  if (data instanceof Buffer) {
+    element = data;
+  } else if (!/^https?/g.test(data)) {
+    element = `file:///${data}`;
+  } else {
+    const config: AxiosRequestConfig<any> = { responseType: 'arraybuffer', timeout: 5000, };
+
+    (async () => {
+      try {
+        element = (await axios.get(data, config)).data;
+      } catch (error) {
+        const { message } = error as Error;
+
+        logger.error(message);
+        return `Error: ${message}${data}`;
+      }
+    })();
+  }
+
+  return !flash ? segment.image(element) : segment.flash(element);
+}
 
 // /**
 //  * 获取消息指令

@@ -11,6 +11,8 @@ import { Job, scheduleJob } from 'node-schedule';
 import { AllMessageEvent, Bot } from './bot';
 import { Extension } from './extension';
 
+export type CommandType = 'group' | 'private' | 'discuss';
+
 interface CommandArg {
   required: boolean
   value: string
@@ -84,6 +86,7 @@ export class Command {
   constructor(
     public raw_name: string,
     public extension: Extension,
+    public types: CommandType[] = ['group', 'private', 'discuss'],
   ) {
     this.name = removeBrackets(raw_name);
     this.args = findAllBrackets(raw_name);
@@ -100,14 +103,18 @@ export class Command {
     return this;
   }
 
-  action(callback: (...args: any[]) => any) {
+  action(callback: (this: Extension, ...args: any[]) => any) {
     this.func = callback.bind(this.extension);
     return this;
   }
 
   isMatched(raw_message: string) {
-    const raw_name = raw_message.split(' ');
+    // 匹配事件类型
+    const { message_type } = this.extension.event;
+    if (!this.types.includes(message_type)) return;
 
+    // 空字段指令匹配
+    const raw_name = raw_message.split(' ');
     if (this.extension.name === '') {
       raw_name.unshift('');
     }
@@ -146,20 +153,18 @@ export class Command {
         args.push(raw_args[raw_args_index]);
         raw_args_index++;
       } else {
-        const params = [];
+        const argc = [];
 
         // TODO 当 command 传入多字段时优化 (raw_args.length - args_index)
         for (; raw_args_index < raw_args.length; raw_args_index++) {
-          params.push(raw_args[raw_args_index]);
+          argc.push(raw_args[raw_args_index]);
         }
-        args.push(params);
+        args.push(argc);
       }
     }
     return args;
   }
 }
-
-
 
 export class Plugin extends EventEmitter {
   name: string;

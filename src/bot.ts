@@ -1,15 +1,15 @@
 import { join } from 'path';
 import { createHash } from 'crypto';
 import { writeFile, readFile } from 'fs/promises';
-import { Client, Config as Protocol, DiscussMessageEvent, GroupMessageEvent, GroupRole, PrivateMessageEvent, segment, MemberIncreaseEvent } from 'oicq';
+import { Client, Config as Protocol, DiscussMessageEvent, GroupMessageEvent, GroupRole, PrivateMessageEvent } from 'oicq';
 
-import { restorePlugin } from './plugin';
-import { reloadSetting } from './setting';
+// import { restorePlugin } from './plugin';
+// import { reloadSetting } from './setting';
+import { extension } from './extension';
 import { setBotConfig, getConfig } from './config';
-import { colors, deepMerge, logger } from './util';
+import { deepMerge, logger, section } from './util';
+import { EventEmitter } from 'events';
 // import { all_command, CommandType, parseCommand } from './command';
-import { KOKKORO_UPDAY, KOKKORO_VERSION, KOKKORO_CHANGELOGS } from './help';
-import { initExtension } from './extension';
 
 // admin list
 const al: Set<number> = new Set([
@@ -17,6 +17,11 @@ const al: Set<number> = new Set([
 ]);
 // bot list
 const bl: Map<number, Bot> = new Map();
+const emitter = new EventEmitter();
+
+emitter.once('logined', () => {
+  // TODO 绑定插件
+})
 
 export interface Config {
   // 自动登录，默认 true
@@ -24,7 +29,7 @@ export interface Config {
   // 登录模式，默认 qrcode
   mode?: 'qrcode' | 'password';
   // bot 主人
-  ml?: Set<number>;
+  ml?: number[];
   // 协议配置
   protocol?: Protocol;
 }
@@ -39,7 +44,7 @@ export class Bot extends Client {
   constructor(uin: number, config?: Config) {
     const default_config: Config = {
       auto_login: true,
-      ml: new Set(),
+      ml: [],
       mode: 'qrcode',
       protocol: {
         data_dir: './data/bot',
@@ -49,26 +54,22 @@ export class Bot extends Client {
 
     super(uin, default_config.protocol);
 
-    this.ml = default_config.ml!;
+    this.ml = new Set(default_config.ml);
     this.mode = default_config.mode!;
     this.password_path = join(this.dir, 'password');
 
-    this.once('system.online', async () => {
-      this.initEvent();
-      initExtension(this);
-      //   this.logger.mark(`可给机器人发送 "${this.prefix}help" 查看指令帮助`);
-    });
+    // this.once('system.online', async () => {
+    //   extension.bindBot(this);
+    //   this.removeListen();
+    //   this.logger.mark(`可给机器人发送 "help" 查看指令帮助`);
+    // });
   }
 
-  initEvent(): void {
+  removeListen(): void {
     this.removeAllListeners('system.login.slider');
     this.removeAllListeners('system.login.device');
     this.removeAllListeners('system.login.qrcode');
     this.removeAllListeners('system.login.error');
-
-    // this.on('message', this.onMessage);
-    this.on('system.online', this.onOnline);
-    this.on('system.offline', this.onOffline);
 
     //     let plugin_count = 0;
     //     const all_plugin = await restorePlugin(this);
@@ -98,80 +99,91 @@ export class Bot extends Client {
     })
   }
 
-  async linkStart(): Promise<void> {
-    switch (this.mode) {
-      /**
-       * 扫描登录
-       * 
-       * 优点是不需要过滑块和设备锁
-       * 缺点是万一 token 失效，无法自动登录，需要重新扫码
-       */
-      case 'qrcode':
-        this
-          .on('system.login.qrcode', (event: { image: Buffer; }) => {
-            const interval_id = setInterval(async () => {
-              const { retcode } = await this.queryQrcodeResult();
-
-              if (retcode === 0 || ![48, 53].includes(retcode)) {
-                this.login();
-                clearInterval(interval_id);
-              }
-            }, 2000);
-          })
-          .on('system.login.error', (event: { code: number; message: string; }) => {
-            const { message } = event;
-
+  linkStart() {
+    return new Promise(async (resolve, reject) => {
+      this.once('system.online', () => {
+        resolve(null);
+      });
+      switch (this.mode) {
+        /**
+         * 扫描登录
+         * 
+         * 优点是不需要过滑块和设备锁
+         * 缺点是万一 token 失效，无法自动登录，需要重新扫码
+         */
+        case 'qrcode':
+          if (this.uin === 2225151531) {
             this.terminate();
-            this.logger.error(`当前账号无法登录，${message}`);
-          })
-          .login();
-        break;
-      /**
-       * 密码登录
-       * 
-       * 优点是一劳永逸
-       * 缺点是需要过滑块，可能会报环境异常
-       */
-      case 'password':
-        this
-          .on('system.login.slider', (event: { url: string; }) => {
-            this.logger.mark('取 ticket 教程：https://github.com/takayama-lily/oicq/wiki/01.滑动验证码和设备锁');
+            return reject(new Error('测试'));
+          }
+          this
+            .on('system.login.qrcode', (event: { image: Buffer; }) => {
+              const interval_id = setInterval(async () => {
+                const { retcode } = await this.queryQrcodeResult();
 
-            process.stdout.write('请输入 ticket ：');
-            process.stdin.once('data', (event: string) => {
-              this.submitSlider(event);
-            });
-          })
-          .on('system.login.device', () => {
-            this.logger.mark('验证完成后按回车键继续...');
+                if (retcode === 0 || ![48, 53].includes(retcode)) {
+                  this.login();
+                  clearInterval(interval_id);
+                }
+              }, 2000);
+            })
+            .on('system.login.error', (event: { code: number; message: string; }) => {
+              const { message } = event;
 
-            process.stdin.once('data', () => {
-              this.login();
-            });
-          })
-          .on('system.login.error', (event) => {
-            const { message } = event;
-
-            if (message.includes('密码错误')) {
-              this.inputPassword();
-            } else {
               this.terminate();
               this.logger.error(`当前账号无法登录，${message}`);
-            }
-          });
+              reject(new Error(message));
+            })
+            .login();
+          break;
+        /**
+         * 密码登录
+         * 
+         * 优点是一劳永逸
+         * 缺点是需要过滑块，可能会报环境异常
+         */
+        case 'password':
+          this
+            .on('system.login.slider', (event: { url: string; }) => {
+              this.logger.mark('取 ticket 教程：https://github.com/takayama-lily/oicq/wiki/01.滑动验证码和设备锁');
 
-        try {
-          const password = await readFile(this.password_path);
-          this.login(password);
-        } catch {
-          this.inputPassword();
-        }
-        break;
-      default:
-        this.terminate();
-        this.logger.error(`你他喵的 "login_mode" 改错了 (ㅍ_ㅍ)`);
-        break;
-    }
+              process.stdout.write('请输入 ticket ：');
+              process.stdin.once('data', (event: string) => {
+                this.submitSlider(event);
+              });
+            })
+            .on('system.login.device', () => {
+              this.logger.mark('验证完成后按回车键继续...');
+
+              process.stdin.once('data', () => {
+                this.login();
+              });
+            })
+            .on('system.login.error', (event) => {
+              const { message } = event;
+
+              if (message.includes('密码错误')) {
+                this.inputPassword();
+              } else {
+                this.terminate();
+                this.logger.error(`当前账号无法登录，${message}`);
+                reject(new Error(message));
+              }
+            });
+
+          try {
+            const password = await readFile(this.password_path);
+            this.login(password);
+          } catch {
+            this.inputPassword();
+          }
+          break;
+        default:
+          this.terminate();
+          this.logger.error(`你他喵的 "login_mode" 改错了 (ㅍ_ㅍ)`);
+          reject(new Error('invalid mode'));
+      }
+    })
   }
 
   /**
@@ -221,19 +233,15 @@ export class Bot extends Client {
     return user_level;
   }
 
+  /**
+   * 给 bot 主人发送信息
+   * 
+   * @param {string} message - 通知信息 
+   */
   sendMasterMsg(message: string): void {
     for (const qq of this.ml) {
       this.sendPrivateMsg(qq, `通知：\n　　${message}`)
     }
-  }
-
-  onOnline(): void {
-    this.sendMasterMsg('该账号刚刚从掉线中恢复，现在一切正常');
-    this.logger.info(`${this.nickname} 刚刚从掉线中恢复，现在一切正常`);
-  }
-
-  onOffline(event: { message: string }): void {
-    this.logger.info(`${this.nickname} 已离线，${event.message}`);
   }
 
   // onMessage(event: AllMessageEvent) {
@@ -300,97 +308,109 @@ export class Bot extends Client {
   //   return all_bot.get(uin);
   // }
 
-  // /**
-  //  * 添加一个新的 bot 并登录
-  //  * 
-  //  * @param {Bot} this - 被私聊的 bot 对象
-  //  * @param {number} uin - 添加的 uin
-  //  * @param {PrivateMessageEvent} delegate 私聊消息 event
-  //  */
-  // export function addBot(this: Bot, uin: number, delegate: PrivateMessageEvent) {
-  //   const bot_config: BotConfig = {
-  //     prefix: '>',
-  //     auto_login: true,
-  //     login_mode: 'qrcode',
-  //     masters: [delegate.from_id],
-  //     config: {
-  //       log_level: 'info',
-  //       platform: 1,
-  //       ignore_self: true,
-  //       resend: true,
-  //       data_dir: './data/bot',
-  //       reconn_interval: 5,
-  //       cache_group_member: true,
-  //       auto_server: true
-  //     }
-  //   };
-  //   const bot = new Bot(uin);
 
-  //   bot
-  //     .on("system.login.qrcode", event => {
-  //       delegate.reply([
-  //         segment.image(event.image),
-  //         `>扫码完成：输入 "ok"\n>取消登录：输入 "cancel"`,
-  //       ]);
-
-  //       // 监听消息
-  //       this.on("message.private", function listenLogin(event) {
-  //         if (event.from_id === delegate.from_id) {
-  //           this.off("message.private", listenLogin);
-
-  //           switch (event.raw_message) {
-  //             case 'ok':
-  //               bot.login();
-  //               break;
-  //             case 'cancel':
-  //               bot.terminate();
-  //               delegate.reply(">登录流程：已取消");
-  //               break;
-  //           }
-  //         }
-  //       })
-  //     })
-  //     .once("system.login.error", data => {
-  //       this.terminate();
-  //       delegate.reply(`>发生错误：${data.message}`);
-  //     })
-  //     .once('system.online', () => {
-  //       setBotConfig(uin, bot_config)
-  //         .then(() => {
-  //           bot.logger.mark('写入 kokkoro.yml 成功');
-  //         })
-  //         .catch(() => {
-  //           bot.logger.error('写入 kokkoro.yml 失败');
-  //         })
-  //         .finally(() => {
-  //           all_bot.set(uin, bot);
-  //           delegate.reply(">登录成功");
-  //         });
-  //     })
-  //     .login();
 }
 
-export function startup() {
+/**
+ * 添加一个新的 bot 并登录
+ * 
+ * @param {Bot} this - 被私聊的 bot 对象
+ * @param {number} uin - 添加的 uin
+ * @param {PrivateMessageEvent} delegate 私聊消息 event
+ */
+export function addBot(this: Bot, uin: number, delegate: PrivateMessageEvent) {
+  const config: Config = {
+    auto_login: true,
+    mode: 'qrcode',
+    ml: [delegate.from_id],
+    protocol: {
+      log_level: 'info',
+      platform: 1,
+      ignore_self: true,
+      resend: true,
+      data_dir: './data/bot',
+      reconn_interval: 5,
+      cache_group_member: true,
+      auto_server: true,
+    }
+  };
+  const bot = new Bot(uin);
+
+  bot
+    .on('system.login.qrcode', (event) => {
+      delegate.reply([
+        section.image(event.image),
+        '\n使用手机 QQ 扫码登录，输入 “cancel” 取消登录',
+      ]);
+
+      const interval_id = setInterval(async () => {
+        const { retcode } = await bot.queryQrcodeResult();
+
+        if (retcode === 0 || ![48, 53].includes(retcode)) {
+          bot.login();
+          clearInterval(interval_id);
+        }
+      }, 2000);
+
+      this.on('message.private', function listenLogin(event) {
+        if (event.from_id === delegate.from_id && event.raw_message === 'cancel') {
+          bot.terminate();
+          clearInterval(interval_id);
+          delegate.reply('登录已取消');
+          this.off('message.private', listenLogin);
+        }
+      })
+    })
+    .once('system.login.error', data => {
+      this.terminate();
+      delegate.reply(`Error: ${data.message}`);
+    })
+    .once('system.online', () => {
+      setBotConfig(uin, config)
+        .then(() => {
+          bot.logger.mark('写入 kokkoro.yml 成功');
+        })
+        .catch(() => {
+          bot.logger.error('写入 kokkoro.yml 失败');
+        })
+        .finally(() => {
+          bl.set(uin, bot);
+          delegate.reply('登录成功');
+        });
+    })
+    .login();
+}
+
+export async function startup() {
+  process.title = 'kokkoro';
+
+  let logined = false;
+  const { bots } = getConfig();
+  const { upday, version, changelogs } = require('../package.json');
+
   logger.mark(`----------`);
-  logger.mark(`Package Version: kokkoro@${KOKKORO_VERSION} (Released on ${KOKKORO_UPDAY})`);
-  logger.mark(`View Changelogs：${KOKKORO_CHANGELOGS}`);
+  logger.mark(`Package Version: kokkoro@${version} (Released on ${upday})`);
+  logger.mark(`View Changelogs：${changelogs}`);
   logger.mark(`----------`);
   logger.mark(`项目启动完成，开始登录账号`);
 
-  process.title = 'kokkoro';
+  for (const uin in bots) {
+    const config = bots[uin];
+    const qq = +uin;
+    const bot = new Bot(qq, config);
 
-  //   const { bots } = getConfig();
+    bl.set(qq, bot);
 
-  //   for (const uin in bots) {
-  //     const bot_config = bots[uin];
-  //     const qq = +uin;
-  //     const bot = new Bot(qq, bot_config);
+    if (!config.auto_login) continue;
+    await bot
+      .linkStart()
+      .catch(error => { })
+      .finally(() => { logined = true; })
+  }
 
-  //     all_bot.set(qq, bot);
-
-  //     if (!bot_config.auto_login) continue;
-  //     if (!all_bot.size) return logger.info(`当前无可登录的账号，请检查是否开启 ${colors.blue('auto_login')}`);
-
-  //     await bot.linkStart();
-  //   }
+  if (logined) {
+    emitter.emit('logined');
+  } else {
+    logger.info('当前无可登录的账号，请检查 kokkoro.yml 相关配置');
+  }
 }

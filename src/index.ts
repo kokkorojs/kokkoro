@@ -31,7 +31,7 @@ const logo = `
 `;
 console.log(`\u001b[32m${logo}\u001b[0m`);
 
-export { Bot } from './bot';
+export { Bot, startup } from './bot';
 export { Plugin } from './command';
 export { Extension } from './extension';
 
