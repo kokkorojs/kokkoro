@@ -21,7 +21,9 @@ const emitter = new EventEmitter();
 
 emitter.once('logined', () => {
   // TODO 绑定插件
-})
+  logger.mark(`可给机器人发送 "help" 查看指令帮助`);
+  // require('../test/hello')
+});
 
 export interface Config {
   // 自动登录，默认 true
@@ -29,7 +31,7 @@ export interface Config {
   // 登录模式，默认 qrcode
   mode?: 'qrcode' | 'password';
   // bot 主人
-  ml?: number[];
+  masters?: number[];
   // 协议配置
   protocol?: Protocol;
 }
@@ -44,7 +46,7 @@ export class Bot extends Client {
   constructor(uin: number, config?: Config) {
     const default_config: Config = {
       auto_login: true,
-      ml: [],
+      masters: [],
       mode: 'qrcode',
       protocol: {
         data_dir: './data/bot',
@@ -54,15 +56,14 @@ export class Bot extends Client {
 
     super(uin, default_config.protocol);
 
-    this.ml = new Set(default_config.ml);
+    this.ml = new Set(default_config.masters);
     this.mode = default_config.mode!;
     this.password_path = join(this.dir, 'password');
 
-    // this.once('system.online', async () => {
-    //   extension.bindBot(this);
-    //   this.removeListen();
-    //   this.logger.mark(`可给机器人发送 "help" 查看指令帮助`);
-    // });
+    this.once('system.online', async () => {
+      this.removeListen();
+      extension.bindBot(this);
+    });
   }
 
   removeListen(): void {
@@ -112,10 +113,6 @@ export class Bot extends Client {
          * 缺点是万一 token 失效，无法自动登录，需要重新扫码
          */
         case 'qrcode':
-          if (this.uin === 2225151531) {
-            this.terminate();
-            return reject(new Error('测试'));
-          }
           this
             .on('system.login.qrcode', (event: { image: Buffer; }) => {
               const interval_id = setInterval(async () => {
@@ -322,7 +319,7 @@ export function addBot(this: Bot, uin: number, delegate: PrivateMessageEvent) {
   const config: Config = {
     auto_login: true,
     mode: 'qrcode',
-    ml: [delegate.from_id],
+    masters: [delegate.from_id],
     protocol: {
       log_level: 'info',
       platform: 1,
@@ -386,10 +383,10 @@ export async function startup() {
 
   let logined = false;
   const { bots } = getConfig();
-  const { upday, version, changelogs } = require('../package.json');
+  const { name, upday, version, changelogs } = require('../package.json');
 
   logger.mark(`----------`);
-  logger.mark(`Package Version: kokkoro@${version} (Released on ${upday})`);
+  logger.mark(`Package Version: ${name}@${version} (Released on ${upday})`);
   logger.mark(`View Changelogs：${changelogs}`);
   logger.mark(`----------`);
   logger.mark(`项目启动完成，开始登录账号`);

@@ -1,9 +1,3 @@
-// 全局对象
-declare global {
-  // 当前进程目录
-  var __workname: string;
-}
-
 declare module 'oicq' {
   export interface GroupMessageEvent {
     self_id: number;
@@ -22,6 +16,11 @@ declare module 'oicq' {
   }
 }
 
+declare global {
+  // 当前进程目录
+  var __workname: string;
+}
+
 global.__workname = process.cwd();
 
 const logo = `
@@ -32,11 +31,10 @@ const logo = `
 console.log(`\u001b[32m${logo}\u001b[0m`);
 
 export { Bot, startup } from './bot';
-export { Plugin } from './command';
 export { Extension } from './extension';
+export { colors, logger } from './util';
 
 // export { AllMessageEvent, Bot, startup } from './bot';
 // export { Extension, Order } from './plugin';
 // export { Option, getOption, getSetting } from './setting';
 // export { colors, logger, section, getOrder, deepMerge, deepClone } from './util';
-export { colors, logger } from './util';

@@ -1,37 +1,64 @@
+import { join } from 'path';
 import { spawn } from 'child_process';
 import { PrivateMessageEvent } from "oicq";
+import { Dirent } from 'fs';
+import { readdir, mkdir } from 'fs/promises';
 import { Job, scheduleJob } from "node-schedule";
 
-import { Bot, AllMessageEvent, addBot } from "./bot";
+import { AllMessageEvent, Bot, addBot } from "./bot";
 import { Command, CommandType, ParsedArgv } from "./command";
+
+const extensions_path = join(__workname, 'extensions');
+const modules_path = join(__workname, 'node_modules');
 
 export class Extension {
   name: string;
-  jobs: Job[];
-  commands: Command[];
-  bots: Map<number, Bot>;
+  version: string;
   event!: AllMessageEvent;
   args: ParsedArgv['args'];
+  jobs: Job[];
+  bots: Map<number, Bot>;
+  commands: Map<string, Command>;
 
-  constructor() {
-    this.name = '';
+  constructor(name: string = '') {
+    const { version } = require('../package.json');
+
+    this.name = name;
+    this.version = version;
     this.args = [];
     this.jobs = [];
-    this.commands = [];
     this.bots = new Map();
+    this.commands = new Map();
 
-    const command = new Command('help', this)
+    const helpCommand = new Command('help', this)
       .description('帮助信息')
-      .sugar(/^帮助$/)
+      .sugar(/^(帮助|h)$/)
       .action(function () {
-        this.help();
+        let message = `Commands:`;
+
+        for (const [_, command] of this.commands) {
+          const { raw_name, desc } = command;
+          message += `\n  ${raw_name}  ${desc}`;
+        }
+        this.event.reply(message);
       });
-    this.commands.push(command);
+    const versionCommand = new Command('version', this)
+      .description('版本信息')
+      .sugar(/^(版本|ver|v)$/)
+      .action(function () {
+        const name = this.name || 'kokkoro';
+        this.event.reply(`${name}@${this.version}`);
+      });
+
+    setTimeout(() => {
+      this.commands.set(helpCommand.name, helpCommand);
+      this.commands.set(versionCommand.name, versionCommand);
+    }, 100);
   }
 
   command(raw_name: string, types?: CommandType[]) {
     const command = new Command(raw_name, this, types);
-    this.commands.push(command);
+    this.commands.set(command.name, command);
     return command;
   }
 
@@ -43,25 +70,13 @@ export class Extension {
   }
 
   parse(raw_message: string) {
-    for (const command of this.commands) {
+    for (const [_, command] of this.commands) {
       if (command.isMatched(raw_message)) {
         this.args = command.parseArgs(raw_message);
         this.runMatchedCommand(command);
         break;
       }
     }
-  }
-
-  help() {
-    let message = `Commands:`;
-    const commands_length = this.commands.length;
-
-    for (let i = 0; i < commands_length; i++) {
-      const { raw_name, desc } = this.commands[i];
-      message += `\n  ${raw_name}  ${desc}`;
-    }
-
-    this.event.reply(message);
   }
 
   bindBot(bot: Bot) {
@@ -117,28 +132,7 @@ export class Extension {
 
 export const extension = new Extension();
 
-extension
-  .command('print <message>')
-  .description('打印输出信息，一般用作测试')
-  .sugar(/^(打印|输出)\s?(?<message>.+)$/)
-  .action(function (message: string) {
-    this.event.reply(message);
-  });
-
-extension
-  .command('login <uin>', ['private'])
-  .description('添加登录新的 qq 账号，默认在项目启动时自动登录')
-  .sugar(/^(登录|登陆)\s?(?<uin>[1-9][0-9]{4,11})$/)
-  .action(function (uin: number) {
-    const bot = this.getBot();
-    const level = this.getLevel();
-
-    if (level < 5) {
-      return this.event.reply('权限不足');
-    }
-    addBot.call(bot, uin, <PrivateMessageEvent>this.event);
-  });
-
+//#region restart
 extension
   .command('restart')
   .description('重启进程')
@@ -164,7 +158,9 @@ extension
 
     this.event.reply('またね♪');
   });
+//#endregion
 
+//#region shutdown
 extension
   .command('shutdown')
   .description('结束进程')
@@ -178,3 +174,86 @@ extension
     setTimeout(() => process.exit(0), 1000);
     this.event.reply('お休み♪');
   });
+//#endregion
+
+//#region print
+extension
+  .command('print <message>')
+  .description('打印输出信息，一般用作测试')
+  .sugar(/^(打印|输出)\s?(?<message>.+)$/)
+  .action(function (message: string) {
+    this.event.reply(message);
+  });
+//#endregion
+
+//#region login
+extension
+  .command('login <uin>', ['private'])
+  .description('添加登录新的 qq 账号，默认在项目启动时自动登录')
+  .sugar(/^(登录|登陆)\s?(?<uin>[1-9][0-9]{4,11})$/)
+  .action(function (uin: number) {
+    const bot = this.getBot();
+    const level = this.getLevel();
+
+    if (level < 5) {
+      return this.event.reply('权限不足');
+    }
+    addBot.call(bot, uin, <PrivateMessageEvent>this.event);
+  });
+//#endregion
+
+/**
+ * 检索可用扩展
+ * 
+ * @returns 
+ */
+export async function findExtension() {
+  const module_dirs: Dirent[] = [];
+  const extension_dirs: Dirent[] = [];
+  const node_modules: string[] = [];
+  const extension_modules: string[] = [];
+
+  try {
+    const dirs = await readdir(extensions_path, { withFileTypes: true });
+    extension_dirs.push(...dirs);
+  } catch (error) {
+    await mkdir(extensions_path);
+  }
+
+  for (const dir of extension_dirs) {
+    if (dir.isDirectory() || dir.isSymbolicLink()) {
+      try {
+        const extension_path = join(extensions_path, dir.name);
+
+        require.resolve(extension_path);
+        extension_modules.push(dir.name);
+      } catch { }
+    }
+  }
+
+  try {
+    const dirs = await readdir(modules_path, { withFileTypes: true });
+    module_dirs.push(...dirs);
+  } catch (err) {
+    await mkdir(modules_path);
+  }
+
+  for (const dir of module_dirs) {
+    if (dir.isDirectory() && dir.name.startsWith('kokkoro-plugin-')) {
+      try {
+        const module_path = join(modules_path, dir.name);
+
+        require.resolve(module_path);
+        node_modules.push(dir.name);
+      } catch { }
+    }
+  }
+
+  return {
+    node_modules, extension_modules,
+  }
+}
+
+function bindExtension() {
+
+}
