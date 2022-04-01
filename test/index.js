@@ -1,59 +1,36 @@
 const { exec } = require('child_process');
 const { asString } = require('date-format');
-const { Bot, colors, logger, Plugin, startup } = require('../lib');
 
-// const setu = new Plugin('setu');
+const { logger } = require('../lib');
 
-// setu
-//   .command('random')
-//   .description('send random setu')
-//   .sugar(/^来[点张份][涩瑟色]图$/)
-//   .action(() => {
+class Puppet {
+  constructor(uin) {
+    this.uin = uin;
+  }
+}
 
-//   })
+const puppet = new Puppet(1145141919);
 
-// setu
-//   .command('search <...tags>')
-//   .description('send online setu')
-//   .sugar(/^来[点张份](?<tags>.+)[涩瑟色]图$/)
-//   .action((tags) => {
-//     console.log(tags);
-//   })
+process.stdin.setEncoding('utf8');
 
-// // setu
-// //   .schedule('0/5 * * * * ?', () => {
-// //     console.log('reload setu')
-// //   });
+function listenInput() {
+  const current_date = asString(new Date());
+  const log_prefix = colors.cyan(`[${current_date}] [DEBUG] [kokkoro:notify] - `);
 
-// process.stdin.setEncoding('utf8');
+  process.stdout.write(log_prefix);
+  process.stdin.once('data', (input) => {
+    const command = input.trim();
 
-// function listenInput() {
-//   const current_date = asString(new Date());
-//   const log_prefix = colors.cyan(`[${current_date}] [DEBUG] [kokkoro log] - `);
+    switch (command) {
+      case 'exit':
+        process.exit();
+        break;
+      default:
+        return listenInput();
+        break;
+    }
+  })
+}
 
-//   process.stdout.write(log_prefix);
-//   process.stdin.once('data', (input) => {
-//     const command = input.trim();
-
-//     switch (command) {
-//       case 'exit':
-//         process.exit();
-//         break;
-//       default:
-//         setu.parse(command);
-//         return listenInput();
-//         break;
-//     }
-//   })
-// }
-
-// logger.debug('欢迎使用 kokkoro，你可以利用本程序进行开发调试 d(･∀･*)♪ﾟ');
-// listenInput();
-// const bot = new Bot(437402067, {
-//   protocol: {
-//     platform: 5,
-//   }
-// })
-// bot.linkStart();
-
-startup();
+logger.debug('欢迎使用 kokkoro，你可以利用本程序进行开发调试 d(･∀･*)♪ﾟ');
+listenInput();

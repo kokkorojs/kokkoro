@@ -7,7 +7,7 @@ export const section = {
   image, at: segment.at,
 };
 
-export const logger: Logger = getLogger('[kokkoro log]');
+export const logger: Logger = getLogger('[kokkoro:notify]');
 logger.level = 'all';
 
 export const colors = {
@@ -49,7 +49,7 @@ function image(data: string | Buffer, flash: boolean = false): ImageElem | Flash
         const { message } = error as Error;
 
         logger.error(message);
-        return `Error: ${message}${data}`;
+        return `Error: ${message}\n${data}`;
       }
     })();
   }
