@@ -5,7 +5,7 @@ import { Client, Config as Protocol, DiscussMessageEvent, GroupMessageEvent, Gro
 
 // import { restorePlugin } from './plugin';
 // import { reloadSetting } from './setting';
-import { extension } from './extension';
+import { bindExtension, extension } from './extension';
 import { setBotConfig, getConfig } from './config';
 import { deepMerge, logger, section } from './util';
 import { EventEmitter } from 'events';
@@ -21,8 +21,8 @@ const emitter = new EventEmitter();
 
 emitter.once('logined', () => {
   // TODO 绑定插件
+  bindExtension();
   logger.mark(`可给机器人发送 "help" 查看指令帮助`);
-  // require('../test/hello')
 });
 
 export interface Config {
@@ -297,15 +297,17 @@ export class Bot extends Client {
   //     }
   //   }
 
-  // export function getAllBot(): Map<number, Bot> {
-  //   return all_bot;
-  // }
-
-  // export function getBot(uin: number): Bot | undefined {
-  //   return all_bot.get(uin);
-  // }
 
 
+
+}
+
+export function getBot(uin: number): Bot | undefined {
+  return bl.get(uin);
+}
+
+export function getAllBot(): Map<number, Bot> {
+  return bl;
 }
 
 /**
