@@ -5,9 +5,12 @@ import { Dirent } from 'fs';
 import { readdir, mkdir } from 'fs/promises';
 import { Job, scheduleJob } from "node-schedule";
 
-import { AllMessageEvent, Bot, addBot } from "./bot";
+import { AllMessageEvent, Bot, addBot, getAllBot } from "./bot";
 import { Command, CommandType, ParsedArgv } from "./command";
+import { logger } from './util';
 
+// extension list
+const el: Map<string, Extension> = new Map();
 const extensions_path = join(__workname, 'extensions');
 const modules_path = join(__workname, 'node_modules');
 
@@ -208,52 +211,123 @@ extension
  * @returns 
  */
 export async function findExtension() {
-  const module_dirs: Dirent[] = [];
-  const extension_dirs: Dirent[] = [];
-  const node_modules: string[] = [];
-  const extension_modules: string[] = [];
+  const modules_dir: Dirent[] = [];
+  const extensions_dir: Dirent[] = [];
+  const modules: string[] = [];
+  const extensions: string[] = [];
 
   try {
     const dirs = await readdir(extensions_path, { withFileTypes: true });
-    extension_dirs.push(...dirs);
+    extensions_dir.push(...dirs);
   } catch (error) {
     await mkdir(extensions_path);
   }
 
-  for (const dir of extension_dirs) {
+  for (const dir of extensions_dir) {
     if (dir.isDirectory() || dir.isSymbolicLink()) {
       try {
         const extension_path = join(extensions_path, dir.name);
 
         require.resolve(extension_path);
-        extension_modules.push(dir.name);
+        extensions.push(dir.name);
       } catch { }
     }
   }
 
   try {
     const dirs = await readdir(modules_path, { withFileTypes: true });
-    module_dirs.push(...dirs);
+    modules_dir.push(...dirs);
   } catch (err) {
     await mkdir(modules_path);
   }
 
-  for (const dir of module_dirs) {
+  for (const dir of modules_dir) {
     if (dir.isDirectory() && dir.name.startsWith('kokkoro-plugin-')) {
       try {
         const module_path = join(modules_path, dir.name);
 
         require.resolve(module_path);
-        node_modules.push(dir.name);
+        modules.push(dir.name);
       } catch { }
     }
   }
 
   return {
-    node_modules, extension_modules,
+    modules, extensions,
   }
 }
 
-function bindExtension() {
 
+/**
+ * 导入扩展模块
+ *
+ * @param {string} name - 扩展名
+ * @returns {Extension} 扩展实例对象
+ */
+async function importExtension(name: string) {
+  if (el.has(name)) return el.get(name)!;
+
+  let extension_path = '';
+  try {
+    const { modules, extensions } = await findExtension();
+
+    for (const raw_name of modules) {
+      if (raw_name === name || raw_name === 'kokkoro-plugin-' + name) {
+        extension_path = join(extensions_path, raw_name);
+        break;
+      }
+    }
+
+    // 匹配 npm 模块
+    if (!extension_path) {
+      for (const raw_name of extensions) {
+        if (raw_name === name || raw_name === 'kokkoro-plugin-' + name) {
+          extension_path = join(modules_path, raw_name);
+          break;
+        }
+      }
+    }
+    if (!extension_path) throw new Error('扩展名错误，无法找到此扩展');
+
+    const extension: Extension = require(extension_path);
+
+    el.set(name, extension);
+    return extension;
+  } catch (error) {
+    const { message } = error as Error;
+
+    logger.error(message);
+    throw new Error(`Error: import module failed\n${message}`);
+  }
+}
+
+/**
+ * @param name - 扩展名字
+ * @param bot - bot 实例
+ * @returns 
+ */
+export async function enableExtension(name: string, bot: Bot) {
+  return (await importExtension(name)).bindBot(bot);
+}
+
+export function bindExtension() {
+  findExtension()
+    .then(({ modules, extensions }) => {
+      // console.log('modules', modules);
+      // console.log('extensions', extensions);
+      const all_modules = [...modules, ...extensions];
+      const modules_length = all_modules.length;
+
+      if (modules_length) {
+        const bl = getAllBot();
+
+        for (let i = 0; i < modules_length; i++) {
+          const name = all_modules[i];
+
+          for (const [bot] of bl) {
+            enableExtension(name, bot);
+          }
+        }
+      }
+    })
 }
