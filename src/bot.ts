@@ -9,6 +9,7 @@ import { bindExtension, extension } from './extension';
 import { setBotConfig, getConfig } from './config';
 import { deepMerge, logger, section } from './util';
 import { EventEmitter } from 'events';
+import { KOKKORO_CHANGELOGS, KOKKORO_UPDAY, KOKKORO_VERSION } from '.';
 // import { all_command, CommandType, parseCommand } from './command';
 
 // admin list
@@ -20,9 +21,9 @@ const bl: Map<number, Bot> = new Map();
 const emitter = new EventEmitter();
 
 emitter.once('logined', () => {
-  // TODO 绑定插件
-  bindExtension();
-  logger.mark(`可给机器人发送 "help" 查看指令帮助`);
+  bindExtension().then(count => {
+    logger.mark(`加载了${count}个扩展`);
+  });
 });
 
 export interface Config {
@@ -61,8 +62,12 @@ export class Bot extends Client {
     this.password_path = join(this.dir, 'password');
 
     this.once('system.online', async () => {
-      this.removeListen();
       extension.bindBot(this);
+
+      this.onOnline();
+      this.onOffline();
+      this.removeListen();
+      this.sendMasterMsg('おはようございます、主様♪');
     });
   }
 
@@ -71,16 +76,6 @@ export class Bot extends Client {
     this.removeAllListeners('system.login.device');
     this.removeAllListeners('system.login.qrcode');
     this.removeAllListeners('system.login.error');
-
-    //     let plugin_count = 0;
-    //     const all_plugin = await restorePlugin(this);
-
-    //     for (const [_, plugin] of all_plugin) {
-    //       if (plugin.roster.has(this.uin)) ++plugin_count;
-    //     }
-
-    //     this.sendMasterMsg(`启动成功，启用了 ${plugin_count} 个插件，发送 "${this.prefix}help" 可以查询 bot 相关指令`);
-    //   }
   }
 
   inputPassword(): void {
@@ -236,70 +231,23 @@ export class Bot extends Client {
    * @param {string} message - 通知信息 
    */
   sendMasterMsg(message: string): void {
-    for (const qq of this.ml) {
-      this.sendPrivateMsg(qq, `通知：\n　　${message}`)
+    for (const uin of this.ml) {
+      this.sendPrivateMsg(uin, message);
     }
   }
 
-  // onMessage(event: AllMessageEvent) {
-  //     let tip = '';
-  //     const { message_type, raw_message } = event;
-  //     const user_level = this.getUserLevel(event);
+  private onOnline() {
+    this.on('system.online', () => {
+      this.sendMasterMsg('该账号刚刚从掉线中恢复，现在一切正常');
+      this.logger.info(`${this.nickname} 刚刚从掉线中恢复，现在一切正常`);
+    });
+  }
 
-  //     if (!raw_message.startsWith(this.prefix)) return;
-
-  //     // 权限判断，群聊指令需要 level 3 以上，私聊指令需要 level 5 以上
-  //     switch (message_type) {
-  //       case 'group':
-  //         if (user_level < 3) tip = '权限不足';
-  //         break;
-  //       case 'private':
-  //         if (user_level < 5) tip = '权限不足';
-  //         break;
-  //     }
-
-  //     if (tip) return event.reply(tip);
-
-  //     const command = raw_message.replace(this.prefix, '').trim();
-  //     const { order, param } = parseCommand(command);
-
-  //     for (const type of ['all', 'group', 'private'] as CommandType[]) {
-  //       if (!all_command[type][order]) continue;
-
-  //       this.logger.mark(`收到指令，正在处理: ${raw_message}`);
-
-  //       if (message_type !== type && type !== 'all') {
-  //         tip = `Error：指令 ${order} 不支持${message_type === 'private' ? '私聊' : '群聊'}`;
-  //         break;
-  //       }
-
-  //       await all_command[type][order].call(this, param, event)
-  //         .then((message) => {
-  //           tip = message;
-  //           this.logger.mark(`处理完毕，指令回复: ${tip}`);
-  //         })
-  //         .catch((error: Error) => {
-  //           tip = error.message;
-  //         })
-  //       break;
-  //     }
-
-  //     tip ||= `Error：未知指令 "${order}"`;
-  //     event.reply(tip);
-  //   }
-
-  //   async reload(event: MemberIncreaseEvent) {
-  //     const { uin } = this;
-  //     const { user_id } = event;
-
-  //     if (uin === user_id) {
-  //       await reloadSetting(this);
-  //     }
-  //   }
-
-
-
-
+  private onOffline() {
+    this.on('system.offline', (event: { message: string }) => {
+      this.logger.info(`${this.nickname} 已离线，${event.message}`);
+    });
+  }
 }
 
 export function getBot(uin: number): Bot | undefined {
@@ -385,11 +333,10 @@ export async function startup() {
 
   let logined = false;
   const { bots } = getConfig();
-  const { name, upday, version, changelogs } = require('../package.json');
 
   logger.mark(`----------`);
-  logger.mark(`Package Version: ${name}@${version} (Released on ${upday})`);
-  logger.mark(`View Changelogs：${changelogs}`);
+  logger.mark(`Package Version: kokkoro@${KOKKORO_VERSION} (Released on ${KOKKORO_UPDAY})`);
+  logger.mark(`View Changelogs：${KOKKORO_CHANGELOGS}`);
   logger.mark(`----------`);
   logger.mark(`项目启动完成，开始登录账号`);
 
