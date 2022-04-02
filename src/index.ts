@@ -30,6 +30,12 @@ const logo = `
 `;
 console.log(`\u001b[32m${logo}\u001b[0m`);
 
+const { upday, version, changelogs } = require('../package.json');
+
+export const KOKKORO_UPDAY = upday;
+export const KOKKORO_VERSION = version;
+export const KOKKORO_CHANGELOGS = changelogs;
+
 export { Bot, startup } from './bot';
 export { Extension } from './extension';
 export { colors, logger } from './util';
