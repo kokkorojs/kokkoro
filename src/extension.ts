@@ -8,6 +8,7 @@ import { Job, scheduleJob } from "node-schedule";
 import { AllMessageEvent, Bot, addBot, getAllBot } from "./bot";
 import { Command, CommandType, ParsedArgv } from "./command";
 import { logger } from './util';
+import { KOKKORO_VERSION } from '.';
 
 // extension list
 const el: Map<string, Extension> = new Map();
@@ -24,7 +25,7 @@ export class Extension {
   commands: Map<string, Command>;
 
   constructor(name: string = '') {
-    const { version } = require('../package.json');
+    const { version = KOKKORO_VERSION } = require('../package.json');
 
     this.name = name;
     this.version = version;
@@ -35,7 +36,7 @@ export class Extension {
 
     const helpCommand = new Command('help', this)
       .description('帮助信息')
-      .sugar(/^(帮助|h)$/)
+      // .sugar(/^(帮助|h)$/)
       .action(function () {
         let message = `Commands:`;
 
@@ -47,7 +48,7 @@ export class Extension {
       });
     const versionCommand = new Command('version', this)
       .description('版本信息')
-      .sugar(/^(版本|ver|v)$/)
+      // .sugar(/^(版本|ver|v)$/)
       .action(function () {
         const name = this.name || 'kokkoro';
         this.event.reply(`${name}@${this.version}`);
@@ -86,11 +87,9 @@ export class Extension {
     const { uin } = bot;
 
     if (this.bots.has(uin)) {
-      throw new Error('怎么可能会有这种报错？');
+      throw new Error('jesus, how the hell did you get in here?');
     }
 
-    this.listenOnline(bot);
-    this.listenOffline(bot);
     this.listenMessage(bot);
     this.bots.set(bot.uin, bot);
   }
@@ -110,19 +109,6 @@ export class Extension {
   private runMatchedCommand(command: Command) {
     if (!command.func) return;
     command.func(...this.args);
-  }
-
-  private listenOnline(bot: Bot) {
-    bot.on('system.online', () => {
-      bot.sendMasterMsg('该账号刚刚从掉线中恢复，现在一切正常');
-      bot.logger.info(`${bot.nickname} 刚刚从掉线中恢复，现在一切正常`);
-    });
-  }
-
-  private listenOffline(bot: Bot) {
-    bot.on('system.offline', (event: { message: string }) => {
-      bot.logger.info(`${bot.nickname} 已离线，${event.message}`);
-    });
   }
 
   private listenMessage(bot: Bot) {
@@ -271,7 +257,7 @@ async function importExtension(name: string) {
   try {
     const { modules, extensions } = await findExtension();
 
-    for (const raw_name of modules) {
+    for (const raw_name of extensions) {
       if (raw_name === name || raw_name === 'kokkoro-plugin-' + name) {
         extension_path = join(extensions_path, raw_name);
         break;
@@ -280,24 +266,27 @@ async function importExtension(name: string) {
 
     // 匹配 npm 模块
     if (!extension_path) {
-      for (const raw_name of extensions) {
+      for (const raw_name of modules) {
         if (raw_name === name || raw_name === 'kokkoro-plugin-' + name) {
           extension_path = join(modules_path, raw_name);
           break;
         }
       }
     }
-    if (!extension_path) throw new Error('扩展名错误，无法找到此扩展');
+    if (!extension_path) throw new Error('cannot find this extension');
 
-    const extension: Extension = require(extension_path);
+    const { extension } = require(extension_path) as { extension: Extension };
 
-    el.set(name, extension);
-    return extension;
+    if (extension instanceof Extension) {
+      el.set(name, extension);
+      return extension;
+    }
+    throw new Error('Extension not instantiated');
   } catch (error) {
     const { message } = error as Error;
 
     logger.error(message);
-    throw new Error(`Error: import module failed\n${message}`);
+    throw new Error(`import module failed, ${message}`);
   }
 }
 
@@ -310,24 +299,21 @@ export async function enableExtension(name: string, bot: Bot) {
   return (await importExtension(name)).bindBot(bot);
 }
 
-export function bindExtension() {
-  findExtension()
-    .then(({ modules, extensions }) => {
-      // console.log('modules', modules);
-      // console.log('extensions', extensions);
-      const all_modules = [...modules, ...extensions];
-      const modules_length = all_modules.length;
+export async function bindExtension() {
+  const { modules, extensions } = await findExtension();
+  const all_modules = [...modules, ...extensions];
+  const modules_length = all_modules.length;
 
-      if (modules_length) {
-        const bl = getAllBot();
+  if (modules_length) {
+    const bl = getAllBot();
 
-        for (let i = 0; i < modules_length; i++) {
-          const name = all_modules[i];
+    for (let i = 0; i < modules_length; i++) {
+      const name = all_modules[i];
 
-          for (const [bot] of bl) {
-            enableExtension(name, bot);
-          }
-        }
+      for (const [_, bot] of bl) {
+        await enableExtension(name, bot);
       }
-    })
+    }
+  }
+  return el.size;
 }
