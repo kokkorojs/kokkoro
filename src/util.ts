@@ -76,23 +76,23 @@ function image(data: string | Buffer, flash: boolean = false): ImageElem | Flash
 //   }
 // }
 
-// /**
-//  * 获取调用栈
-//  * 
-//  * @returns {Array}
-//  */
-// export function getStack(): NodeJS.CallSite[] {
-//   const orig = Error.prepareStackTrace;
-//   Error.prepareStackTrace = (_, stack) => stack;
+/**
+ * 获取调用栈
+ * 
+ * @returns {Array}
+ */
+export function getStack(): NodeJS.CallSite[] {
+  const orig = Error.prepareStackTrace;
+  Error.prepareStackTrace = (_, stack) => stack;
 
-//   const stack: NodeJS.CallSite[] = new Error().stack as any;
+  const stack: NodeJS.CallSite[] = new Error().stack as any;
 
-//   Error.prepareStackTrace = orig;
-//   return stack;
-// };
+  Error.prepareStackTrace = orig;
+  return stack;
+};
 
 /**
- * 对象深度合并
+ * 对象深合并
  * 
  * @param {object} target - 目标 object
  * @param {object} sources - 源 object
@@ -113,12 +113,12 @@ export function deepMerge(target: any, sources: any = {}): any {
   return target;
 }
 
-// /**
-//  * 对象深拷贝
-//  * 
-//  * @param {object} object - 拷贝 object
-//  * @returns {object}
-//  */
-// export function deepClone<T>(object: T): T {
-//   return JSON.parse(JSON.stringify(object))
-// }
+/**
+ * 对象深拷贝
+ * 
+ * @param {object} object - 拷贝 object
+ * @returns {object}
+ */
+export function deepClone<T>(object: T): T {
+  return JSON.parse(JSON.stringify(object))
+}

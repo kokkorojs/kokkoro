@@ -62,37 +62,11 @@ export class Bot extends Client {
     this.password_path = join(this.dir, 'password');
 
     this.once('system.online', async () => {
-      extension.bindBot(this);
+      extension.bind(this);
 
-      this.onOnline();
-      this.onOffline();
-      this.removeListen();
+      this.bindEvents();
       this.sendMasterMsg('おはようございます、主様♪');
     });
-  }
-
-  removeListen(): void {
-    this.removeAllListeners('system.login.slider');
-    this.removeAllListeners('system.login.device');
-    this.removeAllListeners('system.login.qrcode');
-    this.removeAllListeners('system.login.error');
-  }
-
-  inputPassword(): void {
-    process.stdin.setEncoding('utf8');
-    process.stdout.write('首次登录请输入密码：');
-    process.stdin.once('data', (password: string) => {
-      password = password.trim();
-
-      if (!password.length) return this.inputPassword();
-
-      const password_md5 = createHash('md5').update(password).digest();
-
-      writeFile(this.password_path, password_md5, { mode: 0o600 })
-        .then(() => this.logger.mark('写入 password md5 成功'))
-        .catch(error => this.logger.error(`写入 password md5 失败，${error.message}`))
-        .finally(() => this.login(password_md5));
-    })
   }
 
   linkStart() {
@@ -236,17 +210,39 @@ export class Bot extends Client {
     }
   }
 
-  private onOnline() {
-    this.on('system.online', () => {
-      this.sendMasterMsg('该账号刚刚从掉线中恢复，现在一切正常');
-      this.logger.info(`${this.nickname} 刚刚从掉线中恢复，现在一切正常`);
-    });
+  private inputPassword(): void {
+    process.stdin.setEncoding('utf8');
+    process.stdout.write('首次登录请输入密码：');
+    process.stdin.once('data', (password: string) => {
+      password = password.trim();
+
+      if (!password.length) return this.inputPassword();
+
+      const password_md5 = createHash('md5').update(password).digest();
+
+      writeFile(this.password_path, password_md5, { mode: 0o600 })
+        .then(() => this.logger.mark('写入 password md5 成功'))
+        .catch(error => this.logger.error(`写入 password md5 失败，${error.message}`))
+        .finally(() => this.login(password_md5));
+    })
   }
 
-  private onOffline() {
-    this.on('system.offline', (event: { message: string }) => {
-      this.logger.info(`${this.nickname} 已离线，${event.message}`);
-    });
+  private bindEvents(): void {
+    this.on("system.online", this.onOnline);
+    this.on("system.offline", this.onOffline);
+    this.removeAllListeners('system.login.slider');
+    this.removeAllListeners('system.login.device');
+    this.removeAllListeners('system.login.qrcode');
+    this.removeAllListeners('system.login.error');
+  }
+
+  private onOnline() {
+    this.sendMasterMsg('该账号刚刚从掉线中恢复，现在一切正常');
+    this.logger.info(`${this.nickname} 刚刚从掉线中恢复，现在一切正常`);
+  }
+
+  private onOffline(event: { message: string }) {
+    this.logger.info(`${this.nickname} 已离线，${event.message}`);
   }
 }
 
@@ -254,7 +250,7 @@ export function getBot(uin: number): Bot | undefined {
   return bl.get(uin);
 }
 
-export function getAllBot(): Map<number, Bot> {
+export function getBotList(): Map<number, Bot> {
   return bl;
 }
 

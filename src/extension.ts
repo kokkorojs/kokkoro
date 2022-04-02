@@ -1,193 +1,256 @@
 import { join } from 'path';
-import { spawn } from 'child_process';
-import { PrivateMessageEvent } from "oicq";
+// import { spawn } from 'child_process';
+// import { PrivateMessageEvent } from "oicq";
 import { Dirent } from 'fs';
 import { readdir, mkdir } from 'fs/promises';
-import { Job, scheduleJob } from "node-schedule";
+// import { Job, scheduleJob } from "node-schedule";
+import { EventEmitter } from 'events';
 
-import { AllMessageEvent, Bot, addBot, getAllBot } from "./bot";
-import { Command, CommandType, ParsedArgv } from "./command";
-import { logger } from './util';
-import { KOKKORO_VERSION } from '.';
+import { AllMessageEvent, Bot, addBot, getBotList } from "./bot";
+import { Command } from "./command";
+import { getStack, logger } from './util';
+// import { KOKKORO_VERSION } from '.';
 
-// extension list
+// // extension list
 const el: Map<string, Extension> = new Map();
 const extensions_path = join(__workname, 'extensions');
 const modules_path = join(__workname, 'node_modules');
 
-export class Extension {
+export class Extension extends EventEmitter {
   name: string;
-  version: string;
+  path: string;
+  ver: string;
   event!: AllMessageEvent;
-  args: ParsedArgv['args'];
-  jobs: Job[];
-  bots: Map<number, Bot>;
+  args: Array<string | string[]>;
+  //   jobs: Job[];
+  bl: Map<number, Bot>;
   commands: Map<string, Command>;
+  private listener: (event: AllMessageEvent) => void;
 
   constructor(name: string = '') {
-    const { version = KOKKORO_VERSION } = require('../package.json');
+    super();
+    const stack = getStack();
+    const path = stack[2].getFileName()!;
 
     this.name = name;
-    this.version = version;
+    this.path = path;
+    this.ver = '0.0.0';
     this.args = [];
-    this.jobs = [];
-    this.bots = new Map();
+    //     this.jobs = [];
+    this.bl = new Map();
     this.commands = new Map();
+    this.listener = (event: AllMessageEvent) => {
+      this.event = event;
+      this.parse(event.raw_message);
+    };
+    //     const helpCommand = new Command('help', this)
+    //       .description('帮助信息')
+    //       .action(function () {
+    //         let message = `Commands:`;
 
-    const helpCommand = new Command('help', this)
-      .description('帮助信息')
-      // .sugar(/^(帮助|h)$/)
-      .action(function () {
-        let message = `Commands:`;
+    //         for (const [_, command] of this.commands) {
+    //           const { raw_name, desc } = command;
+    //           message += `\n  ${raw_name}  ${desc}`;
+    //         }
+    //         this.event.reply(message);
+    //       });
+    //     const versionCommand = new Command('version', this)
+    //       .description('版本信息')
+    //       .action(function () {
+    //         if (this.name) {
+    //           this.event.reply(`${this.name} v${this.ver}`);
+    //         } else {
+    //           this.event.reply(`kokkoro v${KOKKORO_VERSION}`);
+    //         }
+    //       });
 
-        for (const [_, command] of this.commands) {
-          const { raw_name, desc } = command;
-          message += `\n  ${raw_name}  ${desc}`;
-        }
-        this.event.reply(message);
-      });
-    const versionCommand = new Command('version', this)
-      .description('版本信息')
-      // .sugar(/^(版本|ver|v)$/)
-      .action(function () {
-        const name = this.name || 'kokkoro';
-        this.event.reply(`${name}@${this.version}`);
-      });
-
-    setTimeout(() => {
-      this.commands.set(helpCommand.name, helpCommand);
-      this.commands.set(versionCommand.name, versionCommand);
-    }, 100);
+    //     setTimeout(() => {
+    //       this.commands.set('help', helpCommand);
+    //       this.commands.set('version', versionCommand);
+    //     }, 100);
   }
 
-  command(raw_name: string, types?: CommandType[]) {
-    const command = new Command(raw_name, this, types);
+  command(raw_name: string) {
+    const command = new Command(raw_name, this);
     this.commands.set(command.name, command);
     return command;
   }
 
-  schedule(cron: string, callback: (...args: any[]) => any) {
-    const job = scheduleJob(cron, callback);
+  //   schedule(cron: string, callback: (...args: any[]) => any) {
+  //     const job = scheduleJob(cron, callback);
 
-    this.jobs.push(job);
-    return this;
-  }
+  //     this.jobs.push(job);
+  //     return this;
+  //   }
 
   parse(raw_message: string) {
     for (const [_, command] of this.commands) {
       if (command.isMatched(raw_message)) {
         this.args = command.parseArgs(raw_message);
-        this.runMatchedCommand(command);
-        break;
+        this.runCommand(command);
+        // this.emit(`extension.${this.name}`, raw_message)
+        // break;
       }
     }
   }
 
-  bindBot(bot: Bot) {
+  version(ver: string) {
+    this.ver = ver;
+  }
+
+  bind(bot: Bot) {
     const { uin } = bot;
 
-    if (this.bots.has(uin)) {
+    if (this.bl.has(uin)) {
       throw new Error('jesus, how the hell did you get in here?');
     }
 
-    this.listenMessage(bot);
-    this.bots.set(bot.uin, bot);
+    bot.on('message', this.listener);
+    this.bl.set(uin, bot);
+    this.once('extension.unbind', () => bot.off('message', this.listener));
+  }
+
+  unbind(bot: Bot) {
+    const { uin } = bot;
+
+    if (!this.bl.has(uin)) {
+      throw new Error('jesus, how the hell did you get in here?');
+    }
+
+    this.bl.delete(uin);
+    this.emit('extension.unbind');
   }
 
   getBot() {
     const { self_id } = this.event;
-    return this.bots.get(self_id)!;
+    return this.bl.get(self_id)!;
   }
 
   getLevel() {
     const self_id = this.event.self_id;
-    const bot = this.bots.get(self_id)!;
+    const bot = this.bl.get(self_id)!;
     const level = bot.getUserLevel(this.event);
     return level;
   }
 
-  private runMatchedCommand(command: Command) {
-    if (!command.func) return;
-    command.func(...this.args);
+  destroy() {
+    for (const [_, bot] of this.bl) {
+      this.unbind(bot);
+    }
+    el.delete(this.name);
+
+    const module = require.cache[this.path]!;
+    const index = module.parent?.children.indexOf(module)!;
+
+    if (index >= 0) {
+      module.parent?.children.splice(index, 1);
+    }
+
+    for (const path in require.cache) {
+      if (require.cache[path]?.id.startsWith(module.path)) {
+        delete require.cache[path]
+      }
+    }
+
+    delete require.cache[this.path];
   }
 
-  private listenMessage(bot: Bot) {
-    bot.on('message', (event: AllMessageEvent) => {
-      this.event = event;
-      this.parse(event.raw_message);
-    });
+  private runCommand(command: Command) {
+    if (!command.func) return;
+    command.func(...this.args);
   }
 }
 
 export const extension = new Extension();
 
-//#region restart
 extension
-  .command('restart')
-  .description('重启进程')
-  .sugar(/^重启$/)
+  .command('test')
+  .description('测试')
+  .sugar(/^测试$/)
   .action(function () {
-    const level = this.getLevel();
-
-    if (level < 5) {
-      return this.event.reply('权限不足');
-    }
-    setTimeout(() => {
-      spawn(
-        process.argv.shift()!,
-        process.argv,
-        {
-          cwd: __workname,
-          detached: true,
-          stdio: 'inherit',
-        }
-      ).unref();
-      process.exit(0);
-    }, 1000);
-
-    this.event.reply('またね♪');
+    console.log('test...')
   });
-//#endregion
 
-//#region shutdown
+// //#region restart
+// extension
+//   .command('restart')
+//   .description('重启进程')
+//   .sugar(/^重启$/)
+//   .action(function () {
+//     const level = this.getLevel();
+
+//     if (level < 5) {
+//       return this.event.reply('权限不足');
+//     }
+//     setTimeout(() => {
+//       spawn(
+//         process.argv.shift()!,
+//         process.argv,
+//         {
+//           cwd: __workname,
+//           detached: true,
+//           stdio: 'inherit',
+//         }
+//       ).unref();
+//       process.exit(0);
+//     }, 1000);
+
+//     this.event.reply('またね♪');
+//   });
+// //#endregion
+
+// //#region shutdown
+// extension
+//   .command('shutdown')
+//   .description('结束进程')
+//   .sugar(/^关机$/)
+//   .action(function () {
+//     const level = this.getLevel();
+
+//     if (level < 5) {
+//       return this.event.reply('权限不足');
+//     }
+//     setTimeout(() => process.exit(0), 1000);
+//     this.event.reply('お休み♪');
+//   });
+// //#endregion
+
+// //#region print
+// extension
+//   .command('print <message>')
+//   .description('打印输出信息，一般用作测试')
+//   .sugar(/^(打印|输出)\s?(?<message>.+)$/)
+//   .action(function (message: string) {
+//     this.event.reply(message);
+//   });
+// //#endregion
+
+
+
+// //#region login
+// extension
+//   .command('login <uin>', ['private'])
+//   .description('添加登录新的 qq 账号，默认在项目启动时自动登录')
+//   .sugar(/^(登录|登陆)\s?(?<uin>[1-9][0-9]{4,11})$/)
+//   .action(function (uin: number) {
+//     const bot = this.getBot();
+//     const level = this.getLevel();
+
+//     if (level < 5) {
+//       return this.event.reply('权限不足');
+//     }
+//     addBot.call(bot, uin, <PrivateMessageEvent>this.event);
+//   });
+// //#endregion
+
+//#region reload
 extension
-  .command('shutdown')
-  .description('结束进程')
-  .sugar(/^关机$/)
-  .action(function () {
-    const level = this.getLevel();
-
-    if (level < 5) {
-      return this.event.reply('权限不足');
-    }
-    setTimeout(() => process.exit(0), 1000);
-    this.event.reply('お休み♪');
-  });
-//#endregion
-
-//#region print
-extension
-  .command('print <message>')
-  .description('打印输出信息，一般用作测试')
-  .sugar(/^(打印|输出)\s?(?<message>.+)$/)
-  .action(function (message: string) {
-    this.event.reply(message);
-  });
-//#endregion
-
-//#region login
-extension
-  .command('login <uin>', ['private'])
-  .description('添加登录新的 qq 账号，默认在项目启动时自动登录')
-  .sugar(/^(登录|登陆)\s?(?<uin>[1-9][0-9]{4,11})$/)
-  .action(function (uin: number) {
+  .command('reload <name>')
+  .description('重载扩展')
+  // .sugar(/^$/)
+  .action(function (name: string) {
     const bot = this.getBot();
-    const level = this.getLevel();
-
-    if (level < 5) {
-      return this.event.reply('权限不足');
-    }
-    addBot.call(bot, uin, <PrivateMessageEvent>this.event);
+    reloadExtension(name, bot);
   });
 //#endregion
 
@@ -196,7 +259,7 @@ extension
  * 
  * @returns 
  */
-export async function findExtension() {
+async function findExtension() {
   const modules_dir: Dirent[] = [];
   const extensions_dir: Dirent[] = [];
   const modules: string[] = [];
@@ -242,7 +305,6 @@ export async function findExtension() {
     modules, extensions,
   }
 }
-
 
 /**
  * 导入扩展模块
@@ -291,12 +353,56 @@ async function importExtension(name: string) {
 }
 
 /**
+ * 获取扩展实例
+ * 
+ * @param {string} name - 扩展名
+ * @returns {Extension} 扩展实例
+ */
+function getExtension(name: string): Extension {
+  if (!el.has(name)) {
+    throw new Error('尚未导入此扩展');
+  }
+  return el.get(name)!;
+}
+
+/**
+ * 重载扩展
+ * 
+ * @param {string} name - 扩展名
+ * @returns 
+ */
+function reloadExtension(name: string, bot: Bot) {
+  const extension = getExtension(name);
+  const bl = [...extension.bl];
+
+  extension.destroy();
+  importExtension(name).then(ext => {
+    for (const [_, bot] of bl) {
+      ext.bind(bot);
+    }
+  })
+}
+
+/**
+ * 绑定扩展 bot
+ * 
  * @param name - 扩展名字
  * @param bot - bot 实例
  * @returns 
  */
-export async function enableExtension(name: string, bot: Bot) {
-  return (await importExtension(name)).bindBot(bot);
+async function bindBot(name: string, bot: Bot) {
+  return (await importExtension(name)).bind(bot);
+}
+
+/**
+ * 解绑 bot 扩展
+ * 
+ * @param name - 扩展名字
+ * @param bot - bot 实例
+ * @returns 
+ */
+function unbindBot(name: string, bot: Bot) {
+  return getExtension(name).unbind(bot);
 }
 
 export async function bindExtension() {
@@ -305,13 +411,13 @@ export async function bindExtension() {
   const modules_length = all_modules.length;
 
   if (modules_length) {
-    const bl = getAllBot();
+    const bl = getBotList();
 
     for (let i = 0; i < modules_length; i++) {
       const name = all_modules[i];
 
       for (const [_, bot] of bl) {
-        await enableExtension(name, bot);
+        await bindBot(name, bot);
       }
     }
   }
