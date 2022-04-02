@@ -8,7 +8,7 @@
 // import { enablePlugin, disablePlugin, reloadPlugin, findAllPlugin, disableAllPlugin } from './plugin';
 import { Extension } from './extension';
 
-export type CommandType = 'group' | 'private' | 'discuss';
+// export type CommandType = 'group' | 'private' | 'discuss';
 
 interface CommandArg {
   required: boolean
@@ -16,12 +16,12 @@ interface CommandArg {
   variadic: boolean
 }
 
-export interface ParsedArgv {
-  args: Array<string | string[]>;
-  options: {
-    [k: string]: any
-  }
-}
+// export interface ParsedArgv {
+//   args: Array<string | string[]>;
+//   options: {
+//     [k: string]: any
+//   }
+// }
 
 function removeBrackets(name: string): string {
   return name.replace(/[<[].+/, '').trim();
@@ -83,11 +83,14 @@ export class Command {
   constructor(
     public raw_name: string,
     public extension: Extension,
-    public types: CommandType[] = ['group', 'private', 'discuss'],
+    //     public types: CommandType[] = ['group', 'private', 'discuss'],
   ) {
     this.name = removeBrackets(raw_name);
     this.args = findAllBrackets(raw_name);
     this.desc = '';
+    //     this.extension.on(`extension.${this.extension.name}`, (raw_message: string) => {
+    //       this.func();
+    //     });
   }
 
   description(desc: string) {
@@ -107,8 +110,8 @@ export class Command {
 
   isMatched(raw_message: string) {
     // 匹配事件类型
-    const { message_type } = this.extension.event;
-    if (!this.types.includes(message_type)) return;
+    //     const { message_type } = this.extension.event;
+    //     if (!this.types.includes(message_type)) return;
 
     // 空字段指令匹配
     const raw_name = raw_message.split(' ');
@@ -163,60 +166,60 @@ export class Command {
   }
 }
 
-// export class Plugin extends EventEmitter {
-//   name: string;
-//   jobs: Job[];
-//   commands: Command[];
-//   args: ParsedArgv['args'];
+  // export class Plugin extends EventEmitter {
+  //   name: string;
+  //   jobs: Job[];
+  //   commands: Command[];
+  //   args: ParsedArgv['args'];
 
-//   constructor(name: string = '') {
-//     super();
-//     this.name = name;
-//     this.args = [];
-//     this.jobs = [];
-//     this.commands = [];
-//   }
+  //   constructor(name: string = '') {
+  //     super();
+  //     this.name = name;
+  //     this.args = [];
+  //     this.jobs = [];
+  //     this.commands = [];
+  //   }
 
-//   // command(raw_name: string) {
-//   //   const command = new Command(raw_name, this);
-//   //   this.commands.push(command);
-//   //   return command;
-//   // }
+  //   // command(raw_name: string) {
+  //   //   const command = new Command(raw_name, this);
+  //   //   this.commands.push(command);
+  //   //   return command;
+  //   // }
 
-//   // schedule(cron: string, callback: (...args: any[]) => any) {
-//   //   const job = scheduleJob(cron, callback);
+  //   // schedule(cron: string, callback: (...args: any[]) => any) {
+  //   //   const job = scheduleJob(cron, callback);
 
-//   //   this.jobs.push(job);
-//   //   return this;
-//   // }
+  //   //   this.jobs.push(job);
+  //   //   return this;
+  //   // }
 
-//   // parse(raw_message: string) {
-//   //   for (const command of this.commands) {
-//   //     if (command.isMatched(raw_message)) {
-//   //       this.args = command.parseArgs(raw_message);
-//   //       this.runMatchedCommand(command);
-//   //       // this.emit(`extension.${this.name}`, command);
-//   //       break;
-//   //     }
-//   //   }
-//   // }
+  //   // parse(raw_message: string) {
+  //   //   for (const command of this.commands) {
+  //   //     if (command.isMatched(raw_message)) {
+  //   //       this.args = command.parseArgs(raw_message);
+  //   //       this.runMatchedCommand(command);
+  //   //       // this.emit(`extension.${this.name}`, command);
+  //   //       break;
+  //   //     }
+  //   //   }
+  //   // }
 
-//   // help() {
-//   //   let message = `Commands:`;
-//   //   const commands_length = this.commands.length;
+  //   // help() {
+  //   //   let message = `Commands:`;
+  //   //   const commands_length = this.commands.length;
 
-//   //   for (let i = 0; i < commands_length; i++) {
-//   //     const { raw_name, desc } = this.commands[i];
-//   //     message += `\n  ${raw_name}  ${desc}`;
-//   //   }
+  //   //   for (let i = 0; i < commands_length; i++) {
+  //   //     const { raw_name, desc } = this.commands[i];
+  //   //     message += `\n  ${raw_name}  ${desc}`;
+  //   //   }
 
-//   //   return message;
-//   // }
+  //   //   return message;
+  //   // }
 
-//   // private runMatchedCommand(command: Command) {
-//   //   if (!command.func) return;
-//   //   command.func(...this.args);
-//   // }
+  //   // private runMatchedCommand(command: Command) {
+  //   //   if (!command.func) return;
+  //   //   command.func(...this.args);
+  //   // }
 // }
 
 
