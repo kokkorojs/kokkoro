@@ -6,6 +6,7 @@
 // import { getList, setOption } from './setting';
 // import { addBot, AllMessageEvent, Bot, getAllBot, getBot } from './bot';
 // import { enablePlugin, disablePlugin, reloadPlugin, findAllPlugin, disableAllPlugin } from './plugin';
+import { UserLevel } from './bot';
 import { Extension } from './extension';
 
 // export type CommandType = 'group' | 'private' | 'discuss';
@@ -77,6 +78,8 @@ export class Command {
   name: string;
   desc: string;
   args: CommandArg[];
+  min_level: UserLevel;
+  max_level: UserLevel;
   regex?: RegExp;
   func?: (...args: any[]) => any;
 
@@ -88,6 +91,8 @@ export class Command {
     this.name = removeBrackets(raw_name);
     this.args = findAllBrackets(raw_name);
     this.desc = '';
+    this.min_level = 0;
+    this.max_level = 6;
     //     this.extension.on(`extension.${this.extension.name}`, (raw_message: string) => {
     //       this.func();
     //     });
@@ -105,6 +110,16 @@ export class Command {
 
   action(callback: (this: Extension, ...args: any[]) => any) {
     this.func = callback.bind(this.extension);
+    return this;
+  }
+
+  limit(min_level: UserLevel, max_level: UserLevel = 6) {
+    if (min_level > max_level) {
+      throw new Error('min level be greater than max level');
+    }
+    this.min_level = min_level;
+    this.max_level = max_level;
+
     return this;
   }
 
@@ -241,7 +256,7 @@ export class Command {
 
 // /**
 //  * 解析命令字段
-//  * 
+//  *
 //  * @param {string} command - 命令字段
 //  * @returns {Object}
 //  */
