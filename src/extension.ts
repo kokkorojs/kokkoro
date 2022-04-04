@@ -1,14 +1,14 @@
 import { join } from 'path';
 import { spawn } from 'child_process';
-// import { PrivateMessageEvent } from "oicq";
+import { PrivateMessageEvent } from 'oicq';
 import { Dirent } from 'fs';
 import { readdir, mkdir } from 'fs/promises';
 // import { Job, scheduleJob } from "node-schedule";
 import { EventEmitter } from 'events';
 
-import { AllMessageEvent, Bot, addBot, getBotList } from "./bot";
 import { Command } from "./command";
 import { getStack, logger } from './util';
+import { AllMessageEvent, Bot, addBot, getBotList } from "./bot";
 // import { KOKKORO_VERSION } from '.';
 
 // extension list
@@ -76,6 +76,7 @@ export class Extension extends EventEmitter {
 
   command(raw_name: string) {
     const command = new Command(raw_name, this);
+
     this.commands.set(command.name, command);
     return command;
   }
@@ -151,14 +152,13 @@ export class Extension extends EventEmitter {
     const self_id = this.event.self_id;
     const bot = this.bl.get(self_id)!;
     const level = bot.getUserLevel(this.event);
+
     return level;
   }
 
   private runCommand(command: Command) {
     const level = this.getLevel();
-    console.log(level)
-    console.log(command.min_level)
-    console.log(command.max_level)
+
     if (command.func && level >= command.min_level && level <= command.max_level) {
       command.func(...this.args);
     } else {
@@ -223,21 +223,17 @@ extension
   });
 //#endregion
 
-// //#region login
-// extension
-//   .command('login <uin>', ['private'])
-//   .description('添加登录新的 qq 账号，默认在项目启动时自动登录')
-//   .sugar(/^(登录|登陆)\s?(?<uin>[1-9][0-9]{4,11})$/)
-//   .action(function (uin: number) {
-//     const bot = this.getBot();
-//     const level = this.getLevel();
-
-//     if (level < 5) {
-//       return this.event.reply('权限不足');
-//     }
-//     addBot.call(bot, uin, <PrivateMessageEvent>this.event);
-//   });
-// //#endregion
+//#region login
+extension
+  .command('login <uin>')
+  .description('添加登录新的 qq 账号，默认在项目启动时自动登录')
+  .limit(5)
+  .sugar(/^(登录|登陆)\s?(?<uin>[1-9][0-9]{4,11})$/)
+  .trigger(['private'])
+  .action(function (uin: number) {
+    addBot.call(this.bot, uin, <PrivateMessageEvent>this.event);
+  });
+//#endregion
 
 //#region reload
 extension

@@ -9,7 +9,7 @@
 import { UserLevel } from './bot';
 import { Extension } from './extension';
 
-// export type CommandType = 'group' | 'private' | 'discuss';
+export type CommandTrigger = 'group' | 'private' | 'discuss';
 
 interface CommandArg {
   required: boolean
@@ -80,19 +80,20 @@ export class Command {
   args: CommandArg[];
   min_level: UserLevel;
   max_level: UserLevel;
+  private triggers: CommandTrigger[];
   regex?: RegExp;
   func?: (...args: any[]) => any;
 
   constructor(
     public raw_name: string,
     public extension: Extension,
-    //     public types: CommandType[] = ['group', 'private', 'discuss'],
   ) {
     this.name = removeBrackets(raw_name);
     this.args = findAllBrackets(raw_name);
     this.desc = '';
     this.min_level = 0;
     this.max_level = 6;
+    this.triggers = [];
     //     this.extension.on(`extension.${this.extension.name}`, (raw_message: string) => {
     //       this.func();
     //     });
@@ -108,8 +109,17 @@ export class Command {
     return this;
   }
 
+  trigger(triggers: CommandTrigger[]) {
+    this.triggers = triggers;
+    return this;
+  }
+
   action(callback: (this: Extension, ...args: any[]) => any) {
     this.func = callback.bind(this.extension);
+
+    if (!this.triggers.length) {
+      this.triggers = ['group', 'private', 'discuss'];
+    }
     return this;
   }
 
@@ -125,8 +135,8 @@ export class Command {
 
   isMatched(raw_message: string) {
     // 匹配事件类型
-    //     const { message_type } = this.extension.event;
-    //     if (!this.types.includes(message_type)) return;
+    const { message_type } = this.extension.event;
+    if (!this.triggers.includes(message_type)) return false;
 
     // 空字段指令匹配
     const raw_name = raw_message.split(' ');
