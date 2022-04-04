@@ -12,6 +12,8 @@ import { EventEmitter } from 'events';
 import { KOKKORO_CHANGELOGS, KOKKORO_UPDAY, KOKKORO_VERSION } from '.';
 // import { all_command, CommandType, parseCommand } from './command';
 
+export type UserLevel = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
 // admin list
 const al: Set<number> = new Set([
   parseInt('84a11e2b', 16),
@@ -164,13 +166,13 @@ export class Bot extends Client {
    * level 6 维护组
    * 
    * @param {AllMessageEvent} event - 消息
-   * @returns {number} 用户等级
+   * @returns {UserLevel} 用户等级
    */
-  getUserLevel(event: AllMessageEvent): number {
+  getUserLevel(event: AllMessageEvent): UserLevel {
     const { sender } = event;
     const { user_id, level = 0, role = 'member' } = sender as { user_id: number, level?: number, role?: GroupRole };
 
-    let user_level: number;
+    let user_level: UserLevel;
 
     switch (true) {
       case al.has(user_id):

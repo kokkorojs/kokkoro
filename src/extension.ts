@@ -1,5 +1,5 @@
 import { join } from 'path';
-// import { spawn } from 'child_process';
+import { spawn } from 'child_process';
 // import { PrivateMessageEvent } from "oicq";
 import { Dirent } from 'fs';
 import { readdir, mkdir } from 'fs/promises';
@@ -11,7 +11,7 @@ import { Command } from "./command";
 import { getStack, logger } from './util';
 // import { KOKKORO_VERSION } from '.';
 
-// // extension list
+// extension list
 const el: Map<string, Extension> = new Map();
 const extensions_path = join(__workname, 'extensions');
 const modules_path = join(__workname, 'node_modules');
@@ -20,6 +20,7 @@ export class Extension extends EventEmitter {
   name: string;
   path: string;
   ver: string;
+  bot!: Bot;
   event!: AllMessageEvent;
   args: Array<string | string[]>;
   //   jobs: Job[];
@@ -40,7 +41,10 @@ export class Extension extends EventEmitter {
     this.bl = new Map();
     this.commands = new Map();
     this.listener = (event: AllMessageEvent) => {
+      const { self_id } = event;
+
       this.event = event;
+      this.bot = this.bl.get(self_id)!;
       this.parse(event.raw_message);
     };
     //     const helpCommand = new Command('help', this)
@@ -121,18 +125,6 @@ export class Extension extends EventEmitter {
     this.emit('extension.unbind');
   }
 
-  getBot() {
-    const { self_id } = this.event;
-    return this.bl.get(self_id)!;
-  }
-
-  getLevel() {
-    const self_id = this.event.self_id;
-    const bot = this.bl.get(self_id)!;
-    const level = bot.getUserLevel(this.event);
-    return level;
-  }
-
   destroy() {
     for (const [_, bot] of this.bl) {
       this.unbind(bot);
@@ -155,9 +147,23 @@ export class Extension extends EventEmitter {
     delete require.cache[this.path];
   }
 
+  private getLevel() {
+    const self_id = this.event.self_id;
+    const bot = this.bl.get(self_id)!;
+    const level = bot.getUserLevel(this.event);
+    return level;
+  }
+
   private runCommand(command: Command) {
-    if (!command.func) return;
-    command.func(...this.args);
+    const level = this.getLevel();
+    console.log(level)
+    console.log(command.min_level)
+    console.log(command.max_level)
+    if (command.func && level >= command.min_level && level <= command.max_level) {
+      command.func(...this.args);
+    } else {
+      this.event.reply('权限不足');
+    }
   }
 }
 
@@ -171,61 +177,51 @@ extension
     console.log('test...')
   });
 
-// //#region restart
-// extension
-//   .command('restart')
-//   .description('重启进程')
-//   .sugar(/^重启$/)
-//   .action(function () {
-//     const level = this.getLevel();
+//#region restart
+extension
+  .command('restart')
+  .description('重启进程')
+  .limit(5)
+  .sugar(/^重启$/)
+  .action(function () {
+    setTimeout(() => {
+      spawn(
+        process.argv.shift()!,
+        process.argv,
+        {
+          cwd: __workname,
+          detached: true,
+          stdio: 'inherit',
+        }
+      ).unref();
+      process.exit(0);
+    }, 1000);
 
-//     if (level < 5) {
-//       return this.event.reply('权限不足');
-//     }
-//     setTimeout(() => {
-//       spawn(
-//         process.argv.shift()!,
-//         process.argv,
-//         {
-//           cwd: __workname,
-//           detached: true,
-//           stdio: 'inherit',
-//         }
-//       ).unref();
-//       process.exit(0);
-//     }, 1000);
+    this.event.reply('またね♪');
+  });
+//#endregion
 
-//     this.event.reply('またね♪');
-//   });
-// //#endregion
+//#region shutdown
+extension
+  .command('shutdown')
+  .description('结束进程')
+  .limit(5)
+  .sugar(/^关机$/)
+  .action(function () {
+    setTimeout(() => process.exit(0), 1000);
+    this.event.reply('お休み♪');
+  });
+//#endregion
 
-// //#region shutdown
-// extension
-//   .command('shutdown')
-//   .description('结束进程')
-//   .sugar(/^关机$/)
-//   .action(function () {
-//     const level = this.getLevel();
-
-//     if (level < 5) {
-//       return this.event.reply('权限不足');
-//     }
-//     setTimeout(() => process.exit(0), 1000);
-//     this.event.reply('お休み♪');
-//   });
-// //#endregion
-
-// //#region print
-// extension
-//   .command('print <message>')
-//   .description('打印输出信息，一般用作测试')
-//   .sugar(/^(打印|输出)\s?(?<message>.+)$/)
-//   .action(function (message: string) {
-//     this.event.reply(message);
-//   });
-// //#endregion
-
-
+//#region print
+extension
+  .command('print <message>')
+  .description('打印输出信息，一般用作测试')
+  .sugar(/^(打印|输出)\s?(?<message>.+)$/)
+  .action(function (message: string) {
+    this.event.reply(message);
+  });
+//#endregion
 
 // //#region login
 // extension
@@ -247,10 +243,12 @@ extension
 extension
   .command('reload <name>')
   .description('重载扩展')
-  // .sugar(/^$/)
+  .limit(5)
+  .sugar(/^(重载)\s?(?<name>.+)$/)
   .action(function (name: string) {
-    const bot = this.getBot();
-    reloadExtension(name, bot);
+    reloadExtension(name)
+      .then(() => this.event.reply('重载扩展成功'))
+      .catch(error => this.event.reply(error.message))
   });
 //#endregion
 
@@ -371,16 +369,20 @@ function getExtension(name: string): Extension {
  * @param {string} name - 扩展名
  * @returns 
  */
-function reloadExtension(name: string, bot: Bot) {
+async function reloadExtension(name: string) {
   const extension = getExtension(name);
   const bl = [...extension.bl];
 
-  extension.destroy();
-  importExtension(name).then(ext => {
+  try {
+    extension.destroy();
+    const ext = await importExtension(name);
+
     for (const [_, bot] of bl) {
       ext.bind(bot);
     }
-  })
+  } catch (error) {
+    throw error;
+  }
 }
 
 /**
