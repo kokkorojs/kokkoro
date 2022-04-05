@@ -9,19 +9,6 @@ import { AllMessageEvent, emitter } from './events';
 import { bindExtension, extension } from './extension';
 import { KOKKORO_CHANGELOGS, KOKKORO_UPDAY, KOKKORO_VERSION } from '.';
 
-export type UserLevel = 0 | 1 | 2 | 3 | 4 | 5 | 6;
-
-interface Config {
-  // 自动登录，默认 true
-  auto_login?: boolean;
-  // 登录模式，默认 qrcode
-  mode?: 'qrcode' | 'password';
-  // bot 主人
-  masters?: number[];
-  // 协议配置
-  protocol?: Protocol;
-}
-
 // admin list
 const al: Set<number> = new Set([
   parseInt('84a11e2b', 16),
@@ -34,6 +21,19 @@ emitter.once('kokkoro.logined', () => {
     logger.mark(`加载了${count}个扩展`);
   });
 });
+
+export type UserLevel = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
+export interface Config {
+  // 自动登录，默认 true
+  auto_login?: boolean;
+  // 登录模式，默认 qrcode
+  mode?: 'qrcode' | 'password';
+  // bot 主人
+  masters?: number[];
+  // 协议配置
+  protocol?: Protocol;
+}
 
 export class Bot extends Client {
   // master list

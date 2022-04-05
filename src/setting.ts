@@ -1,142 +1,148 @@
-// import { resolve } from 'path';
-// import { stringify, parse } from 'yaml';
-// import { writeFile, readFile } from 'fs/promises';
+import { resolve } from 'path';
+import { stringify, parse } from 'yaml';
+import { writeFile, readFile } from 'fs/promises';
 // import { GroupMessageEvent, MemberDecreaseEvent, MemberIncreaseEvent } from 'oicq';
+
+import { getConfig, KokkoroConfig } from "./config";
 
 // import { Bot } from './bot';
 // import { parseCommand } from './command';
-// import { getStack, logger } from './util';
-// import { KokkoroConfig, getConfig } from './config';
+import { getStack, logger } from './util';
 // import { getPlugin } from './plugin';
 
-// // 群聊
-// interface Group {
-//   // 群名称
-//   name: string;
-//   // 插件
-//   plugin: {
-//     // 插件名
-//     [plugin_name: string]: Option;
-//   }
-// }
+// 群聊
+interface Group {
+  // 群名称
+  name: string;
+  // 扩展
+  extension: {
+    // 插件名
+    [name: string]: Option;
+  }
+}
 
-// // 插件选项
-// export interface Option {
-//   // 插件锁定，默认 false
-//   lock?: boolean;
-//   // 插件开关，默认 true
-//   apply?: boolean;
-//   // 其它设置
-//   [param: string]: string | number | boolean | Array<string | number> | undefined;
-// }
+// 插件选项
+export interface Option {
+  // 锁定，默认 false
+  lock?: boolean;
+  // 开关，默认 true
+  apply?: boolean;
+  // 其它设置
+  [param: string]: string | number | boolean | Array<string | number> | undefined;
+}
 
-// export interface Setting {
-//   // 插件列表
-//   plugins: string[];
-//   // 群聊列表
-//   [group_id: number]: Group
-// }
+export interface Setting {
+  // 扩展列表
+  extensions: string[];
+  // 群聊列表
+  [group_id: number]: Group
+}
 
-// const all_setting: Map<number, Setting> = new Map();
+// setting list
+const sl: Map<number, Setting> = new Map();
 
-// (async () => {
-//   const kokkoro_config: KokkoroConfig = getConfig();
-//   const uins: number[] = Object.keys(kokkoro_config.bots).map(Number);
+(async () => {
+  const kokkoro_config: KokkoroConfig = getConfig();
+  const uins: number[] = Object.keys(kokkoro_config.bots).map(Number);
 
-//   for (const uin of uins) {
-//     await initSetting(uin);
-//   }
-// })();
+  for (const uin of uins) {
+    await initSetting(uin);
+  }
+})();
 
-// /**
-//  * 初始化 setting 数据
-//  * 
-//  * @param {number} uin 机器人账号
-//  */
-// async function initSetting(uin: number): Promise<void> {
-//   let setting: Setting;
-//   const setting_path = resolve(__workname, `data/bot/${uin}/setting.yml`);
+/**
+ * 初始化 setting 数据
+ *
+ * @param {number} uin 机器人账号
+ */
+async function initSetting(uin: number): Promise<void> {
+  let setting: Setting;
+  const setting_path = resolve(__workname, `data/bot/${uin}/setting.yml`);
 
-//   await readFile(setting_path, 'utf8')
-//     .then((value: string) => {
-//       setting = parse(value);
+  await readFile(setting_path, 'utf8')
+    .then((value: string) => {
+      setting = parse(value);
 
-//       if (!setting) {
-//         throw new Error('setting is empty file');
-//       }
-//     })
-//     .catch(async (error: Error) => {
-//       const rewrite = !error.message.includes('ENOENT: no such file or directory') && !error.message.includes('setting is empty file');
+      if (!setting) {
+        throw new Error('setting is empty file');
+      }
+    })
+    .catch(async (error: Error) => {
+      const rewrite = !error.message.includes('ENOENT: no such file or directory') && !error.message.includes('setting is empty file');
 
-//       if (rewrite) {
-//         throw error;
-//       }
-//       setting = { plugins: [] };
+      if (rewrite) {
+        throw error;
+      }
+      setting = { extensions: [] };
 
-//       await writeSetting(setting_path, setting)
-//         .then(() => {
-//           logger.mark(`创建了新的设置文件：data/bot/${uin}/setting.yml`);
-//         })
-//         .catch((error: Error) => {
-//           throw error;
-//         })
-//     })
-//     .finally(() => {
-//       all_setting.set(uin, setting);
-//     })
-// }
+      await writeSetting(setting_path, setting)
+        .then(() => {
+          logger.mark(`创建了新的设置文件：data/bot/${uin}/setting.yml`);
+        })
+        .catch((error: Error) => {
+          throw error;
+        })
+    })
+    .finally(() => {
+      sl.set(uin, setting);
+    })
+}
 
-// /**
-//  * 获取所有群聊插件设置
-//  * 
-//  * @returns {Map} setting 集合
-//  */
-// export function getAllSetting() {
-//   return all_setting;
-// }
+/**
+ * 获取所有群聊插件设置
+ *
+ * @returns {Map} setting 集合
+ */
+export function getSettingList() {
+  return sl;
+}
 
-// /**
-//  * 获取当前群聊插件设置
-//  * 
-//  * @param {number} uin - bot 账号
-//  * @returns {Setting} setting 对象
-//  */
-// export function getSetting(uin: number): Setting {
-//   return JSON.parse(JSON.stringify(all_setting.get(uin)));
-// }
+/**
+ * 获取当前群聊插件设置
+ *
+ * @param {number} uin - bot 账号
+ * @returns {Setting} setting 对象
+ */
+export function getSetting(uin: number): Setting | undefined {
+  return sl.get(uin);
+}
 
-// // 写入群聊插件设置
-// export async function setSetting(uin: number, setting: Setting) {
-//   const old_setting = getSetting(uin)!;
-//   const setting_path = resolve(__workname, `data/bot/${uin}/setting.yml`);
+// 写入群聊插件设置
+export async function setSetting(uin: number, setting: Setting) {
+  if (!sl.has(uin)) {
+    throw new Error(`uin: ${uin} 不存在 setting.json`);
+  }
+  const old_setting = getSetting(uin)!;
+  const setting_path = resolve(__workname, `data/bot/${uin}/setting.yml`);
 
-//   if (JSON.stringify(old_setting) === JSON.stringify(setting)) {
-//     return;
-//   }
+  if (JSON.stringify(old_setting) !== JSON.stringify(setting)) {
+    try {
+      await writeSetting(setting_path, setting);
+      sl.set(uin, setting);
+    } catch (error) {
+      throw error;
+    }
+  }
+}
 
-//   try {
-//     await writeSetting(setting_path, setting);
-//     all_setting.set(uin, setting);
-//   } catch (error) {
-//     throw error;
-//   }
-// }
+export function writeSetting(path: string, setting: Setting): Promise<void> {
+  return writeFile(path, stringify(setting));
+}
 
-// export function writeSetting(path: string, setting: Setting): Promise<void> {
-//   return writeFile(path, stringify(setting));
-// }
+export function updateExtensions(uin: number, extensions: string[]): Promise<void> {
+  if (!sl.has(uin)) {
+    throw new Error(`uin: ${uin} 不存在 setting.json`);
+  }
+  const setting = getSetting(uin)!;
+  const setting_path = resolve(__workname, `data/bot/${uin}/setting.yml`);
 
-// export function updatePlugins(uin: number, plugins: string[]): Promise<void> {
-//   const setting = getSetting(uin)!;
-//   const setting_path = resolve(__workname, `data/bot/${uin}/setting.yml`);
-
-//   setting!.plugins = [...plugins];
-//   return writeSetting(setting_path, setting);
-// }
+  setting!.extensions = [...extensions];
+  return writeSetting(setting_path, setting);
+}
 
 // /**
 //  * 获取群聊插件列表
-//  * 
+//  *
 //  * @param {Bot} this - 机器人实例
 //  * @param {number} group_id - 群号
 //  * @returns {string}
@@ -164,10 +170,10 @@
 
 // /**
 //  * 获取当前插件的群聊选项
-//  * 
-//  * @param param 
-//  * @param event 
-//  * @returns 
+//  *
+//  * @param param
+//  * @param event
+//  * @returns
 //  */
 // export async function setOption(param: ReturnType<typeof parseCommand>['param'], event: GroupMessageEvent) {
 //   let message = '';

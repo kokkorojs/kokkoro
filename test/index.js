@@ -8,7 +8,7 @@ class Puppet {
     this.uin = uin;
   }
 
-  // TODO 伪造消息段
+  // TODO ⎛⎝≥⏝⏝≤⎛⎝ 伪造消息段
   // const event = {
   //   raw_message: '',
   // }
