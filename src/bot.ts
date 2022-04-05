@@ -1,34 +1,17 @@
 import { join } from 'path';
 import { createHash } from 'crypto';
 import { writeFile, readFile } from 'fs/promises';
-import { Client, Config as Protocol, DiscussMessageEvent, GroupMessageEvent, GroupRole, PrivateMessageEvent } from 'oicq';
+import { Client, Config as Protocol, GroupRole, PrivateMessageEvent } from 'oicq';
 
-// import { restorePlugin } from './plugin';
-// import { reloadSetting } from './setting';
-import { bindExtension, extension } from './extension';
 import { setBotConfig, getConfig } from './config';
 import { deepMerge, logger, section } from './util';
-import { EventEmitter } from 'events';
+import { AllMessageEvent, emitter } from './events';
+import { bindExtension, extension } from './extension';
 import { KOKKORO_CHANGELOGS, KOKKORO_UPDAY, KOKKORO_VERSION } from '.';
-// import { all_command, CommandType, parseCommand } from './command';
 
 export type UserLevel = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
-// admin list
-const al: Set<number> = new Set([
-  parseInt('84a11e2b', 16),
-]);
-// bot list
-const bl: Map<number, Bot> = new Map();
-const emitter = new EventEmitter();
-
-emitter.once('logined', () => {
-  bindExtension().then(count => {
-    logger.mark(`加载了${count}个扩展`);
-  });
-});
-
-export interface Config {
+interface Config {
   // 自动登录，默认 true
   auto_login?: boolean;
   // 登录模式，默认 qrcode
@@ -39,9 +22,21 @@ export interface Config {
   protocol?: Protocol;
 }
 
-export type AllMessageEvent = GroupMessageEvent | PrivateMessageEvent | DiscussMessageEvent;
+// admin list
+const al: Set<number> = new Set([
+  parseInt('84a11e2b', 16),
+]);
+// bot list
+const bl: Map<number, Bot> = new Map();
+
+emitter.once('kokkoro.logined', () => {
+  bindExtension().then(count => {
+    logger.mark(`加载了${count}个扩展`);
+  });
+});
 
 export class Bot extends Client {
+  // master list
   public ml: Set<number>;
   private mode: string;
   private readonly password_path: string;
@@ -63,7 +58,7 @@ export class Bot extends Client {
     this.mode = default_config.mode!;
     this.password_path = join(this.dir, 'password');
 
-    this.once('system.online', async () => {
+    this.once('system.online', () => {
       extension.bind(this);
 
       this.bindEvents();
@@ -230,12 +225,13 @@ export class Bot extends Client {
   }
 
   private bindEvents(): void {
-    this.on("system.online", this.onOnline);
-    this.on("system.offline", this.onOffline);
     this.removeAllListeners('system.login.slider');
     this.removeAllListeners('system.login.device');
     this.removeAllListeners('system.login.qrcode');
     this.removeAllListeners('system.login.error');
+
+    this.on("system.online", this.onOnline);
+    this.on("system.offline", this.onOffline);
   }
 
   private onOnline() {
@@ -353,7 +349,7 @@ export async function startup() {
   }
 
   if (logined) {
-    emitter.emit('logined');
+    emitter.emit('kokkoro.logined');
   } else {
     logger.info('当前无可登录的账号，请检查 kokkoro.yml 相关配置');
   }
