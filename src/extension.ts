@@ -1,31 +1,30 @@
 import { join } from 'path';
-import { spawn } from 'child_process';
-import { PrivateMessageEvent } from 'oicq';
 import { Dirent } from 'fs';
 import { readdir, mkdir } from 'fs/promises';
-// import { Job, scheduleJob } from "node-schedule";
+import { spawn } from 'child_process';
 import { EventEmitter } from 'events';
+import { PrivateMessageEvent } from 'oicq';
 
+import { KOKKORO_VERSION } from '.';
 import { Command } from "./command";
 import { getStack, logger } from './util';
-import { AllMessageEvent, Bot, addBot, getBotList } from "./bot";
-// import { KOKKORO_VERSION } from '.';
+import { AllMessageEvent } from './events';
+import { Bot, addBot, getBotList, UserLevel } from "./bot";
 
 // extension list
 const el: Map<string, Extension> = new Map();
-const extensions_path = join(__workname, 'extensions');
 const modules_path = join(__workname, 'node_modules');
+const extensions_path = join(__workname, 'extensions');
 
 export class Extension extends EventEmitter {
   name: string;
   path: string;
   ver: string;
+  bl: Map<number, Bot>;
   bot!: Bot;
   event!: AllMessageEvent;
-  args: Array<string | string[]>;
-  //   jobs: Job[];
-  bl: Map<number, Bot>;
-  commands: Map<string, Command>;
+  private args: Array<string | string[]>;
+  private commands: Map<string, Command>;
   private listener: (event: AllMessageEvent) => void;
 
   constructor(name: string = '') {
@@ -37,41 +36,40 @@ export class Extension extends EventEmitter {
     this.path = path;
     this.ver = '0.0.0';
     this.args = [];
-    //     this.jobs = [];
     this.bl = new Map();
     this.commands = new Map();
     this.listener = (event: AllMessageEvent) => {
-      const { self_id } = event;
+      const { self_id, raw_message } = event;
 
       this.event = event;
       this.bot = this.bl.get(self_id)!;
-      this.parse(event.raw_message);
+      this.parse(raw_message);
     };
-    //     const helpCommand = new Command('help', this)
-    //       .description('帮助信息')
-    //       .action(function () {
-    //         let message = `Commands:`;
+    const helpCommand = new Command('help', this)
+      .description('帮助信息')
+      .action(function () {
+        let message = `Commands:`;
 
-    //         for (const [_, command] of this.commands) {
-    //           const { raw_name, desc } = command;
-    //           message += `\n  ${raw_name}  ${desc}`;
-    //         }
-    //         this.event.reply(message);
-    //       });
-    //     const versionCommand = new Command('version', this)
-    //       .description('版本信息')
-    //       .action(function () {
-    //         if (this.name) {
-    //           this.event.reply(`${this.name} v${this.ver}`);
-    //         } else {
-    //           this.event.reply(`kokkoro v${KOKKORO_VERSION}`);
-    //         }
-    //       });
+        for (const [_, command] of this.commands) {
+          const { raw_name, desc } = command;
+          message += `\n  ${raw_name}  ${desc}`;
+        }
+        this.event.reply(message);
+      });
+    const versionCommand = new Command('version', this)
+      .description('版本信息')
+      .action(function () {
+        if (this.name) {
+          this.event.reply(`${this.name} v${this.ver}`);
+        } else {
+          this.event.reply(`kokkoro v${KOKKORO_VERSION}`);
+        }
+      });
 
-    //     setTimeout(() => {
-    //       this.commands.set('help', helpCommand);
-    //       this.commands.set('version', versionCommand);
-    //     }, 100);
+    setTimeout(() => {
+      this.commands.set('help', helpCommand);
+      this.commands.set('version', versionCommand);
+    }, 100);
   }
 
   command(raw_name: string) {
@@ -81,16 +79,9 @@ export class Extension extends EventEmitter {
     return command;
   }
 
-  //   schedule(cron: string, callback: (...args: any[]) => any) {
-  //     const job = scheduleJob(cron, callback);
-
-  //     this.jobs.push(job);
-  //     return this;
-  //   }
-
   parse(raw_message: string) {
     for (const [_, command] of this.commands) {
-      if (command.isMatched(raw_message)) {
+      if (command.isMatched()) {
         this.args = command.parseArgs(raw_message);
         this.runCommand(command);
         // this.emit(`extension.${this.name}`, raw_message)
@@ -111,8 +102,8 @@ export class Extension extends EventEmitter {
     }
 
     bot.on('message', this.listener);
-    this.bl.set(uin, bot);
     this.once('extension.unbind', () => bot.off('message', this.listener));
+    this.bl.set(uin, bot);
   }
 
   unbind(bot: Bot) {
@@ -122,6 +113,9 @@ export class Extension extends EventEmitter {
       throw new Error('jesus, how the hell did you get in here?');
     }
 
+    for (const [_, command] of this.commands) {
+      command.clearSchedule();
+    }
     this.bl.delete(uin);
     this.emit('extension.unbind');
   }
@@ -149,10 +143,11 @@ export class Extension extends EventEmitter {
   }
 
   private getLevel() {
-    const self_id = this.event.self_id;
-    const bot = this.bl.get(self_id)!;
-    const level = bot.getUserLevel(this.event);
+    let level: UserLevel = 0;
 
+    if (this.event.post_type === 'message') {
+      level = this.bot.getUserLevel(this.event);
+    }
     return level;
   }
 
@@ -171,7 +166,7 @@ export const extension = new Extension();
 
 extension
   .command('test')
-  .description('测试')
+  .description('测试输出')
   .sugar(/^测试$/)
   .action(function () {
     console.log('test...')
@@ -229,7 +224,6 @@ extension
   .description('添加登录新的 qq 账号，默认在项目启动时自动登录')
   .limit(5)
   .sugar(/^(登录|登陆)\s?(?<uin>[1-9][0-9]{4,11})$/)
-  .trigger(['private'])
   .action(function (uin: number) {
     addBot.call(this.bot, uin, <PrivateMessageEvent>this.event);
   });
