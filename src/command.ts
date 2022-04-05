@@ -194,8 +194,7 @@ export class Command {
         raw_args_index++;
       } else {
         const argc = [];
-
-        // TODO 当 command 传入多字段时优化 (raw_args.length - args_index)
+        // TODO ⎛⎝≥⏝⏝≤⎛⎝ 当 command 传入多字段时优化 (raw_args.length - args_index)
         for (; raw_args_index < raw_args.length; raw_args_index++) {
           argc.push(raw_args[raw_args_index]);
         }
