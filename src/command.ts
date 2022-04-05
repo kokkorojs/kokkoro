@@ -1,15 +1,16 @@
 // import { stringify } from 'yaml';
 // import { spawn } from 'child_process';
 // import { GroupMessageEvent, PrivateMessageEvent } from 'oicq';
-// import { HELP_ALL, KOKKORO_VERSION } from './help';
 // import { cutBotConfig, getConfig } from './config';
 // import { getList, setOption } from './setting';
 // import { addBot, AllMessageEvent, Bot, getAllBot, getBot } from './bot';
 // import { enablePlugin, disablePlugin, reloadPlugin, findAllPlugin, disableAllPlugin } from './plugin';
+import { Job, scheduleJob, JobCallback } from 'node-schedule';
+
 import { UserLevel } from './bot';
 import { Extension } from './extension';
 
-export type CommandTrigger = 'group' | 'private' | 'discuss';
+export type CommandMessageType = 'all' | 'group' | 'private';
 
 interface CommandArg {
   required: boolean
@@ -77,10 +78,11 @@ function parseGroups(groups: { [key: string]: string; } = {}) {
 export class Command {
   name: string;
   desc: string;
+  jobs: Job[];
   args: CommandArg[];
   min_level: UserLevel;
   max_level: UserLevel;
-  private triggers: CommandTrigger[];
+  message_type: CommandMessageType;
   regex?: RegExp;
   func?: (...args: any[]) => any;
 
@@ -89,14 +91,15 @@ export class Command {
     public extension: Extension,
   ) {
     this.name = removeBrackets(raw_name);
-    this.args = findAllBrackets(raw_name);
     this.desc = '';
+    this.jobs = [];
+    this.args = findAllBrackets(raw_name);
     this.min_level = 0;
     this.max_level = 6;
-    this.triggers = [];
-    //     this.extension.on(`extension.${this.extension.name}`, (raw_message: string) => {
-    //       this.func();
-    //     });
+    this.message_type = 'all';
+    // this.extension.on(`extension.${this.extension.name}`, (raw_message: string) => {
+    //   this.func();
+    // });
   }
 
   description(desc: string) {
@@ -109,17 +112,13 @@ export class Command {
     return this;
   }
 
-  trigger(triggers: CommandTrigger[]) {
-    this.triggers = triggers;
+  message(message_type: CommandMessageType) {
+    this.message_type = message_type;
     return this;
   }
 
   action(callback: (this: Extension, ...args: any[]) => any) {
     this.func = callback.bind(this.extension);
-
-    if (!this.triggers.length) {
-      this.triggers = ['group', 'private', 'discuss'];
-    }
     return this;
   }
 
@@ -133,17 +132,33 @@ export class Command {
     return this;
   }
 
-  isMatched(raw_message: string) {
-    // 匹配事件类型
-    const { message_type } = this.extension.event;
-    if (!this.triggers.includes(message_type)) return false;
+  schedule(cron: string, func: JobCallback) {
+    const job = scheduleJob(cron, func);
 
+    this.jobs.push(job);
+    return this;
+  }
+
+  clearSchedule() {
+    for (const job of this.jobs) {
+      job.cancel();
+    }
+  }
+
+  isMatched() {
+    const { message_type } = this.extension.event;
+
+    // 匹配事件类型
+    if (this.message_type !== 'all' && this.message_type !== message_type) {
+      return false;
+    }
     // 空字段指令匹配
+    const raw_message = this.extension.event.raw_message;
     const raw_name = raw_message.split(' ');
+
     if (this.extension.name === '') {
       raw_name.unshift('');
     }
-
     let [extension_name, command_name] = raw_name;
 
     // 语法糖解析
@@ -191,79 +206,6 @@ export class Command {
   }
 }
 
-  // export class Plugin extends EventEmitter {
-  //   name: string;
-  //   jobs: Job[];
-  //   commands: Command[];
-  //   args: ParsedArgv['args'];
-
-  //   constructor(name: string = '') {
-  //     super();
-  //     this.name = name;
-  //     this.args = [];
-  //     this.jobs = [];
-  //     this.commands = [];
-  //   }
-
-  //   // command(raw_name: string) {
-  //   //   const command = new Command(raw_name, this);
-  //   //   this.commands.push(command);
-  //   //   return command;
-  //   // }
-
-  //   // schedule(cron: string, callback: (...args: any[]) => any) {
-  //   //   const job = scheduleJob(cron, callback);
-
-  //   //   this.jobs.push(job);
-  //   //   return this;
-  //   // }
-
-  //   // parse(raw_message: string) {
-  //   //   for (const command of this.commands) {
-  //   //     if (command.isMatched(raw_message)) {
-  //   //       this.args = command.parseArgs(raw_message);
-  //   //       this.runMatchedCommand(command);
-  //   //       // this.emit(`extension.${this.name}`, command);
-  //   //       break;
-  //   //     }
-  //   //   }
-  //   // }
-
-  //   // help() {
-  //   //   let message = `Commands:`;
-  //   //   const commands_length = this.commands.length;
-
-  //   //   for (let i = 0; i < commands_length; i++) {
-  //   //     const { raw_name, desc } = this.commands[i];
-  //   //     message += `\n  ${raw_name}  ${desc}`;
-  //   //   }
-
-  //   //   return message;
-  //   // }
-
-  //   // private runMatchedCommand(command: Command) {
-  //   //   if (!command.func) return;
-  //   //   command.func(...this.args);
-  //   // }
-// }
-
-
-// export type CommandType = 'all' | 'group' | 'private';
-
-// export const all_command: {
-//   [type in CommandType]: {
-//     [command: string]: (
-//       this: Bot,
-//       param: ReturnType<typeof parseCommand>['param'],
-//       event: AllMessageEvent,
-//     ) => Promise<string>
-//   }
-// } = {
-//   all: {},
-//   group: {},
-//   private: {},
-// };
-
 // /**
 //  * 解析命令字段
 //  *
@@ -277,16 +219,6 @@ export class Command {
 //     order, param,
 //   };
 // }
-
-// all_command.all = {
-//   async version() {
-//     return `kokkoro@${KOKKORO_VERSION}`;
-//   },
-
-//   async echo(param) {
-//     return param.join(' ');
-//   },
-// };
 
 // all_command.group = {
 //   async list(param, event) {

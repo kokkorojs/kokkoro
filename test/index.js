@@ -7,6 +7,11 @@ class Puppet {
   constructor(uin) {
     this.uin = uin;
   }
+
+  // TODO 伪造消息段
+  // const event = {
+  //   raw_message: '',
+  // }
 }
 
 const puppet = new Puppet(1145141919);
