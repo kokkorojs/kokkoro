@@ -186,7 +186,7 @@ export async function setOption(param: ReturnType<typeof parseCommand>['param'],
   switch (true) {
     case !option_name:
       const option = {
-        setu: plugin[plugin_name]
+        [plugin_name]: plugin[plugin_name]
       }
       message = stringify(option);
       break;
