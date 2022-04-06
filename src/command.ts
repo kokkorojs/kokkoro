@@ -229,76 +229,6 @@ export class Command {
 // };
 
 // all_command.private = {
-//   async help(param) {
-//     const [key] = param;
-//     return HELP_ALL[key] ?? HELP_ALL.default;
-//   },
-
-//   async config() {
-//     const kokkoro_config = getConfig();
-//     return stringify(kokkoro_config.bots[this.uin]);
-//   },
-
-//   async restart() {
-//     setTimeout(() => {
-//       spawn(
-//         process.argv.shift()!,
-//         process.argv,
-//         {
-//           cwd: __workname,
-//           detached: true,
-//           stdio: 'inherit',
-//         }
-//       ).unref();
-//       process.exit(0);
-//     }, 1000);
-
-//     return `またね♪`;
-//   },
-
-//   async shutdown() {
-//     setTimeout(() => process.exit(0), 1000);
-//     return `お休み♪`;
-//   },
-
-//   async enable(param) {
-//     const name = param[0];
-//     const uin = this.uin;
-//     const bot = getBot(uin)!;
-
-//     try {
-//       await enablePlugin(name, bot);
-//       return `${bot.nickname} (${uin}) 启用插件成功`;
-//     } catch (error: any) {
-//       return error.message;
-//     }
-//   },
-
-//   async disable(param) {
-//     const name = param[0];
-//     const uin = this.uin;
-//     const bot = getBot(uin)!;
-
-//     try {
-//       await disablePlugin(name, bot);
-//       return `${bot.nickname} (${uin}) 禁用插件成功`;
-//     } catch (error: any) {
-//       return error.message;
-//     }
-//   },
-
-//   async reload(param) {
-//     const name = param[0];
-//     const uin = this.uin;
-//     const bot = getBot(uin)!;
-
-//     try {
-//       await reloadPlugin(name, bot);
-//       return `${bot.nickname} (${uin}) 重启插件成功`;
-//     } catch (error: any) {
-//       return error.message;
-//     }
-//   },
 
 //   async plugin() {
 //     const message: string[] = [];
@@ -322,52 +252,6 @@ export class Command {
 //     return message.join('\n');
 //   },
 
-//   async bot() {
-//     const all_bot = getAllBot();
-//     const message: string[] = [];
-
-//     for (const [uin, bot] of all_bot) {
-//       message.push(`${bot.nickname} (${uin})\n  状　态：${bot.isOnline() ? '在线' : '离线'}\n  群　聊：${bot.gl.size} 个\n  好　友：${bot.fl.size} 个\n  消息量：${bot.stat.msg_cnt_per_min}/分`);
-//     }
-//     return message.join('\n');
-//   },
-
-//   async login(param, event) {
-//     const uin = +param[0];
-//     const all_bot = getAllBot();
-
-//     switch (true) {
-//       case all_bot.has(uin):
-//         const bot = all_bot.get(uin);
-
-//         if (bot!.isOnline()) {
-//           return 'Error：已经登录过这个账号了';
-//         } else {
-//           bot!.login();
-//           return 'Sucess：已将该账号上线';
-//         }
-//       case !uin:
-//         return 'Error：请输入账号';
-//     }
-//     addBot.call(this, uin, <PrivateMessageEvent>event);
-
-//     return `>开始登录流程，账号 ${uin}`;
-//   },
-
-//   async logout(param) {
-//     const uin = +param[0];
-//     const bot = getBot(uin);
-
-//     if (!bot) return `Error: 账号输入错误，无法找到该实例`;
-//     if (uin === this.uin) return `Error: 该账号为当前 bot 实例，无法下线`;
-
-//     try {
-//       await bot.logout();
-//     } catch (error: any) {
-//       return `Error：${error.message}`;
-//     }
-//     return `Success：已将该账号下线`;
-//   },
 
 //   async delete(param) {
 //     const uin = +param[0];
