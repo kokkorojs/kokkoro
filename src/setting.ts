@@ -8,6 +8,7 @@ import { getConfig, KokkoroConfig } from "./config";
 // import { Bot } from './bot';
 // import { parseCommand } from './command';
 import { getStack, logger } from './util';
+import { getExtensionList } from './extension';
 // import { getPlugin } from './plugin';
 
 // 群聊
@@ -16,12 +17,12 @@ interface Group {
   name: string;
   // 扩展
   extension: {
-    // 插件名
+    // 扩展名
     [name: string]: Option;
   }
 }
 
-// 插件选项
+// 扩展选项
 export interface Option {
   // 锁定，默认 false
   lock?: boolean;
@@ -38,24 +39,14 @@ export interface Setting {
   [group_id: number]: Group
 }
 
-// setting list
-const sl: Map<number, Setting> = new Map();
-
-(async () => {
-  const kokkoro_config: KokkoroConfig = getConfig();
-  const uins: number[] = Object.keys(kokkoro_config.bots).map(Number);
-
-  for (const uin of uins) {
-    await initSetting(uin);
-  }
-})();
+const setting_list: Map<number, Setting> = new Map();
 
 /**
  * 初始化 setting 数据
  *
  * @param {number} uin 机器人账号
  */
-async function initSetting(uin: number): Promise<void> {
+export async function initSetting(uin: number): Promise<void> {
   let setting: Setting;
   const setting_path = resolve(__workname, `data/bot/${uin}/setting.yml`);
 
@@ -73,7 +64,10 @@ async function initSetting(uin: number): Promise<void> {
       if (rewrite) {
         throw error;
       }
-      setting = { extensions: [] };
+      const extension_list = getExtensionList();
+      const extension_keys = extension_list.keys();
+
+      setting = { extensions: [...extension_keys] };
 
       await writeSetting(setting_path, setting)
         .then(() => {
@@ -84,32 +78,32 @@ async function initSetting(uin: number): Promise<void> {
         })
     })
     .finally(() => {
-      sl.set(uin, setting);
+      setting_list.set(uin, setting);
     })
 }
 
 /**
- * 获取所有群聊插件设置
+ * 获取所有群聊扩展设置
  *
  * @returns {Map} setting 集合
  */
 export function getSettingList() {
-  return sl;
+  return setting_list;
 }
 
 /**
- * 获取当前群聊插件设置
+ * 获取当前群聊扩展设置
  *
  * @param {number} uin - bot 账号
  * @returns {Setting} setting 对象
  */
 export function getSetting(uin: number): Setting | undefined {
-  return sl.get(uin);
+  return setting_list.get(uin);
 }
 
-// 写入群聊插件设置
+// 写入群聊扩展设置
 export async function setSetting(uin: number, setting: Setting) {
-  if (!sl.has(uin)) {
+  if (!setting_list.has(uin)) {
     throw new Error(`uin: ${uin} 不存在 setting.json`);
   }
   const old_setting = getSetting(uin)!;
@@ -118,7 +112,7 @@ export async function setSetting(uin: number, setting: Setting) {
   if (JSON.stringify(old_setting) !== JSON.stringify(setting)) {
     try {
       await writeSetting(setting_path, setting);
-      sl.set(uin, setting);
+      setting_list.set(uin, setting);
     } catch (error) {
       throw error;
     }
@@ -130,7 +124,7 @@ export function writeSetting(path: string, setting: Setting): Promise<void> {
 }
 
 export function updateExtensions(uin: number, extensions: string[]): Promise<void> {
-  if (!sl.has(uin)) {
+  if (!setting_list.has(uin)) {
     throw new Error(`uin: ${uin} 不存在 setting.json`);
   }
   const setting = getSetting(uin)!;
@@ -141,7 +135,7 @@ export function updateExtensions(uin: number, extensions: string[]): Promise<voi
 }
 
 // /**
-//  * 获取群聊插件列表
+//  * 获取群聊扩展列表
 //  *
 //  * @param {Bot} this - 机器人实例
 //  * @param {number} group_id - 群号
@@ -155,7 +149,7 @@ export function updateExtensions(uin: number, extensions: string[]): Promise<voi
 //   return stringify(message);
 // }
 
-// // 获取当前插件的群聊选项
+// // 获取当前扩展的群聊选项
 // export function getOption(event: GroupMessageEvent | MemberIncreaseEvent | MemberDecreaseEvent) {
 //   const self_id = event.self_id;
 //   const group_id = event.group_id;
@@ -169,7 +163,7 @@ export function updateExtensions(uin: number, extensions: string[]): Promise<voi
 // }
 
 // /**
-//  * 获取当前插件的群聊选项
+//  * 获取当前扩展的群聊选项
 //  *
 //  * @param param
 //  * @param event
