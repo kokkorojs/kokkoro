@@ -9,12 +9,11 @@ import { KOKKORO_VERSION } from '.';
 import { Command } from "./command";
 import { getStack, logger } from './util';
 import { AllMessageEvent } from './events';
-import { Bot, addBot, getBotList, UserLevel } from "./bot";
+import { Bot, addBot, getBotList, UserLevel, getBot } from "./bot";
 
-// extension list
-const el: Map<string, Extension> = new Map();
 const modules_path = join(__workname, 'node_modules');
 const extensions_path = join(__workname, 'extensions');
+const extension_list: Map<string, Extension> = new Map();
 
 export class Extension extends EventEmitter {
   name: string;
@@ -124,22 +123,8 @@ export class Extension extends EventEmitter {
     for (const [_, bot] of this.bl) {
       this.unbind(bot);
     }
-    el.delete(this.name);
-
-    const module = require.cache[this.path]!;
-    const index = module.parent?.children.indexOf(module)!;
-
-    if (index >= 0) {
-      module.parent?.children.splice(index, 1);
-    }
-
-    for (const path in require.cache) {
-      if (require.cache[path]?.id.startsWith(module.path)) {
-        delete require.cache[path]
-      }
-    }
-
-    delete require.cache[this.path];
+    extension_list.delete(this.name);
+    destroyExtension(this.path);
   }
 
   private getLevel() {
@@ -218,14 +203,117 @@ extension
   });
 //#endregion
 
+//#region bot
+extension
+  .command('bot')
+  .description('查看 bot 运行信息')
+  .sugar(/^(状态)$/)
+  .action(function () {
+    const bot_list = getBotList();
+    const message: string[] = [];
+
+    for (const [uin, bot] of bot_list) {
+      const nickname = bot.nickname ?? 'unknown';
+      const state = bot.isOnline() ? '在线' : '离线';
+      const group_count = `${bot.gl.size} 个`;
+      const friend_count = `${bot.fl.size} 个`;
+      const message_min_count = `${bot.stat.msg_cnt_per_min}/分`;
+      const bot_info = `${nickname}(${uin})
+  状　态：${state}
+  群　聊：${group_count}
+  好　友：${friend_count}
+  消息量：${message_min_count}`;
+
+      message.push(bot_info);
+    }
+    this.event.reply(message.join('\n'));
+  });
+//#endregion
+
 //#region login
 extension
   .command('login <uin>')
   .description('添加登录新的 qq 账号，默认在项目启动时自动登录')
   .limit(5)
   .sugar(/^(登录|登陆)\s?(?<uin>[1-9][0-9]{4,11})$/)
-  .action(function (uin: number) {
-    addBot.call(this.bot, uin, <PrivateMessageEvent>this.event);
+  .action(function (uin: string) {
+    const bot_list = getBotList();
+
+    if (!bot_list.has(+uin)) {
+      addBot.call(this.bot, +uin, <PrivateMessageEvent>this.event);
+    } else {
+      const bot = getBot(+uin);
+
+      if (bot!.isOnline()) {
+        this.event.reply('Error: 已经登录过这个账号了');
+      } else {
+        bot!.login()
+          .then(() => {
+            this.event.reply('Sucess: 已将该账号上线');
+          })
+          .catch(error => {
+            this.event.reply(`Error: ${error.message}`);
+          })
+      }
+    }
+  });
+//#endregion
+
+//#region logout
+extension
+  .command('logout <uin>')
+  .description('下线已登录的 qq 账号')
+  .limit(5)
+  .sugar(/^(下线|登出)\s?(?<uin>[1-9][0-9]{4,11})$/)
+  .action(function (uin: string) {
+    let message = '';
+    const bot = getBot(+uin);
+
+    switch (true) {
+      case !bot:
+        message = 'Error: 账号输入错误，无法找到该 bot 实例';
+        break;
+      case +uin === this.bot.uin:
+        message = 'Error: 该账号为当前 bot 实例，无法下线';
+        break;
+    }
+
+    if (message) {
+      return this.event.reply(message);
+    }
+    bot!.logout()
+      .then(() => {
+        this.event.reply('Success: 已将该账号下线');
+      })
+      .catch(error => {
+        this.event.reply(`Error: ${error.message}`);
+      })
+  });
+//#endregion
+
+//#region enable
+extension
+  .command('enable <name>')
+  .description('启用扩展')
+  .limit(5)
+  .sugar(/^(启用)\s?(?<name>.+)$/)
+  .action(function (name: string) {
+    enableExtension(name)
+      .then(() => this.event.reply('启用扩展成功'))
+      .catch(error => this.event.reply(`Error: ${error.message}`))
+  });
+//#endregion
+
+//#region disable
+extension
+  .command('disable <name>')
+  .description('禁用扩展')
+  .limit(5)
+  .sugar(/^(禁用)\s?(?<name>.+)$/)
+  .action(function (name: string) {
+    disableExtension(name)
+      .then(() => this.event.reply('禁用扩展成功'))
+      .catch(error => this.event.reply(`Error: ${error.message}`))
   });
 //#endregion
 
@@ -301,7 +389,7 @@ async function findExtension() {
  * @returns {Extension} 扩展实例对象
  */
 async function importExtension(name: string) {
-  if (el.has(name)) return el.get(name)!;
+  if (extension_list.has(name)) return extension_list.get(name)!;
 
   let extension_path = '';
   try {
@@ -325,19 +413,46 @@ async function importExtension(name: string) {
     }
     if (!extension_path) throw new Error('cannot find this extension');
 
-    const { extension } = require(extension_path) as { extension: Extension };
+    const { extension } = require(extension_path) as { extension?: Extension };
 
     if (extension instanceof Extension) {
-      el.set(name, extension);
+      extension_list.set(name, extension);
       return extension;
     }
-    throw new Error('Extension not instantiated');
+    throw new Error(`Extension not instantiated`);
   } catch (error) {
-    const { message } = error as Error;
+    const message = `"${name}" import module failed, ${(error as Error).message}`;
 
     logger.error(message);
-    throw new Error(`import module failed, ${message}`);
+    destroyExtension(require.resolve(extension_path));
+    throw new Error(message);
   }
+}
+
+/**
+ * 销毁扩展
+ * 
+ * @param extension_path - 扩展路径
+ * @returns 
+ */
+function destroyExtension(extension_path: string) {
+  const module = require.cache[extension_path];
+  const index = module?.parent?.children.indexOf(module);
+
+  if (!module) {
+    return;
+  }
+  if (index && index >= 0) {
+    module.parent?.children.splice(index, 1);
+  }
+
+  for (const path in require.cache) {
+    if (require.cache[path]?.id.startsWith(module.path)) {
+      delete require.cache[path]
+    }
+  }
+
+  delete require.cache[extension_path];
 }
 
 /**
@@ -347,10 +462,46 @@ async function importExtension(name: string) {
  * @returns {Extension} 扩展实例
  */
 function getExtension(name: string): Extension {
-  if (!el.has(name)) {
+  if (!extension_list.has(name)) {
     throw new Error('尚未导入此扩展');
   }
-  return el.get(name)!;
+  return extension_list.get(name)!;
+}
+
+export function getExtensionList(): Map<string, Extension> {
+  return extension_list;
+}
+
+/**
+ * 启用扩展
+ * 
+ * @param name - 扩展名
+ */
+async function enableExtension(name: string) {
+  if (extension_list.has(name)) {
+    throw new Error('已启用当前扩展');
+  }
+  const bot_list = getBotList();
+
+  for (const [_, bot] of bot_list) {
+    await bindBot(name, bot);
+  }
+}
+
+/**
+ * 禁用扩展
+ * 
+ * @param name - 扩展名
+ */
+async function disableExtension(name: string) {
+  if (!extension_list.has(name)) {
+    throw new Error('未启用当前扩展');
+  }
+  const bot_list = getBotList();
+
+  for (const [_, bot] of bot_list) {
+    unbindBot(name, bot);
+  }
 }
 
 /**
@@ -383,7 +534,11 @@ async function reloadExtension(name: string) {
  * @returns 
  */
 async function bindBot(name: string, bot: Bot) {
-  return (await importExtension(name)).bind(bot);
+  try {
+    return (await importExtension(name)).bind(bot);
+  } catch (error) {
+    throw error;
+  }
 }
 
 /**
@@ -403,15 +558,15 @@ export async function bindExtension() {
   const modules_length = all_modules.length;
 
   if (modules_length) {
-    const bl = getBotList();
+    const bot_list = getBotList();
 
     for (let i = 0; i < modules_length; i++) {
       const name = all_modules[i];
 
-      for (const [_, bot] of bl) {
+      for (const [_, bot] of bot_list) {
         await bindBot(name, bot);
       }
     }
   }
-  return el.size;
+  return extension_list.size;
 }

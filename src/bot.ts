@@ -6,20 +6,27 @@ import { Client, Config as Protocol, GroupRole, PrivateMessageEvent } from 'oicq
 import { setBotConfig, getConfig } from './config';
 import { deepMerge, logger, section } from './util';
 import { AllMessageEvent, emitter } from './events';
-import { bindExtension, extension } from './extension';
+import { bindExtension, extension, getExtensionList } from './extension';
 import { KOKKORO_CHANGELOGS, KOKKORO_UPDAY, KOKKORO_VERSION } from '.';
+import { getSetting, initSetting, Setting } from './setting';
 
-// admin list
-const al: Set<number> = new Set([
+const admins: Set<number> = new Set([
   parseInt('84a11e2b', 16),
 ]);
-// bot list
-const bl: Map<number, Bot> = new Map();
+const bot_list: Map<number, Bot> = new Map();
 
 emitter.once('kokkoro.logined', () => {
-  bindExtension().then(count => {
-    logger.mark(`加载了${count}个扩展`);
-  });
+  bindExtension()
+    .then(async count => {
+      logger.mark(`加载了${count}个扩展`);
+      const bots = getConfig().bots;
+      const uins = Object.keys(bots).map(Number);
+
+      for (const uin of uins) {
+        await initSetting(uin);
+      }
+    })
+    .catch(error => { })
 });
 
 export type UserLevel = 0 | 1 | 2 | 3 | 4 | 5 | 6;
@@ -36,9 +43,9 @@ export interface Config {
 }
 
 export class Bot extends Client {
-  // master list
-  public ml: Set<number>;
   private mode: string;
+  private setting: Setting;
+  private masters: Set<number>;
   private readonly password_path: string;
 
   constructor(uin: number, config?: Config) {
@@ -54,11 +61,19 @@ export class Bot extends Client {
 
     super(uin, default_config.protocol);
 
-    this.ml = new Set(default_config.masters);
     this.mode = default_config.mode!;
+    this.setting = getSetting(this.uin)!;
+    this.masters = new Set(default_config.masters);
     this.password_path = join(this.dir, 'password');
 
     this.once('system.online', () => {
+      const extension_list = getExtensionList();
+
+      // extension module 集合
+      for (const [_, ext] of extension_list) {
+        ext.bind(this);
+      }
+      // 自带扩展
       extension.bind(this);
 
       this.bindEvents();
@@ -170,10 +185,10 @@ export class Bot extends Client {
     let user_level: UserLevel;
 
     switch (true) {
-      case al.has(user_id):
+      case admins.has(user_id):
         user_level = 6
         break;
-      case this.ml.has(user_id):
+      case this.masters.has(user_id):
         user_level = 5
         break;
       case role === 'owner':
@@ -202,7 +217,7 @@ export class Bot extends Client {
    * @param {string} message - 通知信息 
    */
   sendMasterMsg(message: string): void {
-    for (const uin of this.ml) {
+    for (const uin of this.masters) {
       this.sendPrivateMsg(uin, message);
     }
   }
@@ -235,21 +250,21 @@ export class Bot extends Client {
   }
 
   private onOnline() {
-    this.sendMasterMsg('该账号刚刚从掉线中恢复，现在一切正常');
-    this.logger.info(`${this.nickname} 刚刚从掉线中恢复，现在一切正常`);
+    this.sendMasterMsg('该账号刚刚从离线中恢复，现在一切正常');
+    this.logger.mark(`${this.nickname} 刚刚从离线中恢复，现在一切正常`);
   }
 
   private onOffline(event: { message: string }) {
-    this.logger.info(`${this.nickname} 已离线，${event.message}`);
+    this.logger.mark(`${this.nickname} 已离线，${event.message}`);
   }
 }
 
 export function getBot(uin: number): Bot | undefined {
-  return bl.get(uin);
+  return bot_list.get(uin);
 }
 
 export function getBotList(): Map<number, Bot> {
-  return bl;
+  return bot_list;
 }
 
 /**
@@ -257,13 +272,13 @@ export function getBotList(): Map<number, Bot> {
  * 
  * @param {Bot} this - 被私聊的 bot 对象
  * @param {number} uin - 添加的 uin
- * @param {PrivateMessageEvent} delegate 私聊消息 event
+ * @param {PrivateMessageEvent} private_event 私聊消息 event
  */
-export function addBot(this: Bot, uin: number, delegate: PrivateMessageEvent) {
+export function addBot(this: Bot, uin: number, private_event: PrivateMessageEvent) {
   const config: Config = {
     auto_login: true,
     mode: 'qrcode',
-    masters: [delegate.from_id],
+    masters: [private_event.from_id],
     protocol: {
       log_level: 'info',
       platform: 1,
@@ -279,32 +294,34 @@ export function addBot(this: Bot, uin: number, delegate: PrivateMessageEvent) {
 
   bot
     .on('system.login.qrcode', (event) => {
-      delegate.reply([
+      private_event.reply([
         section.image(event.image),
         '\n使用手机 QQ 扫码登录，输入 “cancel” 取消登录',
       ]);
 
+      const listenLogin = function (this: Bot, event: PrivateMessageEvent) {
+        if (event.from_id === private_event.from_id && event.raw_message === 'cancel') {
+          bot.terminate();
+          clearInterval(interval_id);
+          private_event.reply('登录已取消');
+        }
+      }
       const interval_id = setInterval(async () => {
         const { retcode } = await bot.queryQrcodeResult();
 
         if (retcode === 0 || ![48, 53].includes(retcode)) {
           bot.login();
           clearInterval(interval_id);
+          retcode && private_event.reply(`Error: 错误代码 ${retcode}`);
+          this.off('message.private', listenLogin);
         }
       }, 2000);
 
-      this.on('message.private', function listenLogin(event) {
-        if (event.from_id === delegate.from_id && event.raw_message === 'cancel') {
-          bot.terminate();
-          clearInterval(interval_id);
-          delegate.reply('登录已取消');
-          this.off('message.private', listenLogin);
-        }
-      })
+      this.on('message.private', listenLogin)
     })
     .once('system.login.error', data => {
       this.terminate();
-      delegate.reply(`Error: ${data.message}`);
+      private_event.reply(`Error: ${data.message}`);
     })
     .once('system.online', () => {
       setBotConfig(uin, config)
@@ -315,8 +332,8 @@ export function addBot(this: Bot, uin: number, delegate: PrivateMessageEvent) {
           bot.logger.error('写入 kokkoro.yml 失败');
         })
         .finally(() => {
-          bl.set(uin, bot);
-          delegate.reply('登录成功');
+          bot_list.set(uin, bot);
+          private_event.reply('登录成功');
         });
     })
     .login();
@@ -326,11 +343,11 @@ export async function startup() {
   process.title = 'kokkoro';
 
   let logined = false;
-  const { bots } = getConfig();
+  const bots = getConfig().bots;
 
   logger.mark(`----------`);
   logger.mark(`Package Version: kokkoro@${KOKKORO_VERSION} (Released on ${KOKKORO_UPDAY})`);
-  logger.mark(`View Changelogs：${KOKKORO_CHANGELOGS}`);
+  logger.mark(`View Changelogs: ${KOKKORO_CHANGELOGS}`);
   logger.mark(`----------`);
   logger.mark(`项目启动完成，开始登录账号`);
 
@@ -339,7 +356,7 @@ export async function startup() {
     const qq = +uin;
     const bot = new Bot(qq, config);
 
-    bl.set(qq, bot);
+    bot_list.set(qq, bot);
 
     if (!config.auto_login) continue;
     await bot
