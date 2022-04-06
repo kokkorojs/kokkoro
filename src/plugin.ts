@@ -97,7 +97,11 @@ class Plugin {
     }
     if (extension.onMemberIncrease) {
       extension.onMemberIncrease = extension.onMemberIncrease.bind(extension);
-      bot.on('notice.group.increase', extension.onMemberIncrease);
+      bot.on('notice.group.increase', event => {
+        setTimeout(() => {
+          extension.onMemberIncrease!(event)
+        }, 500);
+      });
     }
     if (extension.onMemberDecrease) {
       extension.onMemberDecrease = extension.onMemberDecrease.bind(extension);
