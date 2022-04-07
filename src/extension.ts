@@ -3,28 +3,31 @@ import { Dirent } from 'fs';
 import { readdir, mkdir } from 'fs/promises';
 import { spawn } from 'child_process';
 import { EventEmitter } from 'events';
-import { PrivateMessageEvent } from 'oicq';
+import { EventMap, PrivateMessageEvent } from 'oicq';
+import { Job, JobCallback, scheduleJob } from 'node-schedule';
 
 import { KOKKORO_VERSION } from '.';
-import { Command } from "./command";
+import { Listen } from './listen';
 import { getStack, logger } from './util';
 import { AllMessageEvent } from './events';
-import { Bot, addBot, getBotList, UserLevel, getBot } from "./bot";
+import { Bot, getBotList, addBot, getBot } from './bot';
+import { Command, CommandMessageType } from './command';
 
 const modules_path = join(__workname, 'node_modules');
 const extensions_path = join(__workname, 'extensions');
 const extension_list: Map<string, Extension> = new Map();
 
 export class Extension extends EventEmitter {
-  name: string;
-  path: string;
-  ver: string;
-  bl: Map<number, Bot>;
-  bot!: Bot;
-  event!: AllMessageEvent;
-  private args: Array<string | string[]>;
-  private commands: Map<string, Command>;
-  private listener: (event: AllMessageEvent) => void;
+  public name: string;
+  public ver: string;
+  public path: string;
+
+  private args: (string | string[])[];
+  private jobs: Job[];
+  private bot_list: Map<number, Bot>;
+  private events: Set<string>;
+  private command_list: Map<string, Command>;
+  private listen_list: Map<string, Listen>
 
   constructor(name: string = '') {
     super();
@@ -35,129 +38,172 @@ export class Extension extends EventEmitter {
     this.path = path;
     this.ver = '0.0.0';
     this.args = [];
-    this.bl = new Map();
-    this.commands = new Map();
-    this.listener = (event: AllMessageEvent) => {
-      const { self_id, raw_message } = event;
+    this.jobs = [];
+    this.bot_list = new Map();
+    this.events = new Set();
+    this.command_list = new Map();
+    this.listen_list = new Map();
 
-      this.event = event;
-      this.bot = this.bl.get(self_id)!;
-      this.parse(raw_message);
-    };
-    const helpCommand = new Command('help', this)
+    //#region 帮助指令
+    const helpCommand = new Command('help', this).type('all')
       .description('帮助信息')
       .action(function () {
-        let message = `Commands:`;
+        const message = ['Commands: '];
 
-        for (const [_, command] of this.commands) {
+        for (const [_, command] of this.extension.command_list) {
           const { raw_name, desc } = command;
-          message += `\n  ${raw_name}  ${desc}`;
+          message.push(`  ${raw_name}  ${desc}`);
         }
-        this.event.reply(message);
+        this.event.reply(message.join('\n'));
       });
-    const versionCommand = new Command('version', this)
+    //#endregion
+    //#region 版本指令
+    const versionCommand = new Command('version', this).type('all')
       .description('版本信息')
       .action(function () {
-        if (this.name) {
-          this.event.reply(`${this.name} v${this.ver}`);
+        const extension = this.extension;
+
+        if (extension.name) {
+          this.event.reply(`${extension.name} v${extension.ver}`);
         } else {
           this.event.reply(`kokkoro v${KOKKORO_VERSION}`);
         }
       });
+    //#endregion
 
     setTimeout(() => {
-      this.commands.set('help', helpCommand);
-      this.commands.set('version', versionCommand);
-    }, 100);
+      this.command_list.set(helpCommand.name, helpCommand);
+      this.command_list.set(versionCommand.name, versionCommand);
+      this.bindEvents();
+    });
   }
 
-  command(raw_name: string) {
-    const command = new Command(raw_name, this);
+  command(raw_name: string, message_type: CommandMessageType = 'all') {
+    const command = new Command(raw_name, this).type(message_type);
 
-    this.commands.set(command.name, command);
+    this.events.add('message');
+    this.command_list.set(command.name, command);
     return command;
   }
 
-  parse(raw_message: string) {
-    for (const [_, command] of this.commands) {
-      if (command.isMatched()) {
-        this.args = command.parseArgs(raw_message);
+  listen<T extends keyof EventMap>(event_name: T) {
+    const listener = new Listen(event_name, this);
+
+    this.events.add(event_name);
+    this.listen_list.set(listener.name, listener);
+    return listener;
+  }
+
+  schedule(cron: string, func: JobCallback) {
+    const job = scheduleJob(cron, func);
+
+    this.jobs.push(job);
+    return this;
+  }
+
+  private clearSchedule() {
+    for (const job of this.jobs) {
+      job.cancel();
+    }
+  }
+
+  private parse(event: AllMessageEvent) {
+    for (const [_, command] of this.command_list) {
+      if (command.isMatched(event)) {
+        this.args = command.parseArgs(event.raw_message);
         this.runCommand(command);
-        // this.emit(`extension.${this.name}`, raw_message)
-        // break;
+        // TODO ⎛⎝≥⏝⏝≤⎛⎝ 扩展事件
+        // this.emit(`extension.${this.name}`, event);
       }
     }
   }
 
-  version(ver: string) {
-    this.ver = ver;
-  }
-
-  bind(bot: Bot) {
-    const { uin } = bot;
-
-    if (this.bl.has(uin)) {
-      throw new Error('jesus, how the hell did you get in here?');
+  private trigger(event: any) {
+    for (const [_, listen] of this.listen_list) {
+      listen.func && listen.func(event);
     }
-
-    bot.on('message', this.listener);
-    this.once('extension.unbind', () => bot.off('message', this.listener));
-    this.bl.set(uin, bot);
-  }
-
-  unbind(bot: Bot) {
-    const { uin } = bot;
-
-    if (!this.bl.has(uin)) {
-      throw new Error('jesus, how the hell did you get in here?');
-    }
-
-    for (const [_, command] of this.commands) {
-      command.clearSchedule();
-    }
-    this.bl.delete(uin);
-    this.emit('extension.unbind');
-  }
-
-  destroy() {
-    for (const [_, bot] of this.bl) {
-      this.unbind(bot);
-    }
-    extension_list.delete(this.name);
-    destroyExtension(this.path);
-  }
-
-  private getLevel() {
-    let level: UserLevel = 0;
-
-    if (this.event.post_type === 'message') {
-      level = this.bot.getUserLevel(this.event);
-    }
-    return level;
   }
 
   private runCommand(command: Command) {
-    const level = this.getLevel();
+    const args_length = this.args.length;
+
+    for (let i = 0; i < args_length; i++) {
+      const { required, value } = command.args[i];
+      const argv = this.args[i];
+
+      if (required && !argv) {
+        return command.event.reply(`Error: <${value}> cannot be empty`);
+      } else if (required && !argv.length) {
+        return command.event.reply(`Error: <...${value}> cannot be empty`);
+      }
+    }
+    const level = command.getLevel();
 
     if (command.func && level >= command.min_level && level <= command.max_level) {
       command.func(...this.args);
     } else {
-      this.event.reply('权限不足');
+      command.event.reply('权限不足');
     }
+  }
+
+  bindEvents(): void {
+    this.parse = this.parse.bind(this);
+    this.trigger = this.trigger.bind(this);
+
+    for (const event_name of this.events) {
+      for (const [_, bot] of this.bot_list) {
+        if (event_name === 'message') {
+          bot.on(event_name, this.parse);
+          this.once('extension.unbind', () => bot.off(event_name, this.parse));
+        } else {
+          bot.on(event_name, this.trigger);
+          this.once('extension.unbind', () => bot.off(event_name, this.trigger));
+        }
+      }
+    }
+  }
+
+  getBot(uin: number): Bot | undefined {
+    return this.bot_list.get(uin);
+  }
+
+  getBotList(): Map<number, Bot> {
+    return this.bot_list;
+  }
+
+  bindBot(bot: Bot): this {
+    const { uin } = bot;
+
+    if (this.bot_list.has(uin)) {
+      throw new Error('jesus, how the hell did you get in here?');
+    }
+    this.bot_list.set(uin, bot);
+    return this;
+  }
+
+  unbindBot(bot: Bot): void {
+    const { uin } = bot;
+
+    if (!this.bot_list.has(uin)) {
+      throw new Error('jesus, how the hell did you get in here?');
+    }
+    this.clearSchedule();
+    this.bot_list.delete(uin);
+    this.emit('extension.unbind');
+  }
+
+  destroy() {
+    for (const [_, bot] of this.bot_list) {
+      this.unbindBot(bot);
+    }
+    extension_list.delete(this.name);
+    destroyExtension(this.path);
   }
 }
 
 export const extension = new Extension();
 
-extension
-  .command('test')
-  .description('测试输出')
-  .sugar(/^测试$/)
-  .action(function () {
-    console.log('test...')
-  });
-
-//#region restart
+//#region 重启
 extension
   .command('restart')
   .description('重启进程')
@@ -181,7 +227,7 @@ extension
   });
 //#endregion
 
-//#region shutdown
+//#region 关机
 extension
   .command('shutdown')
   .description('结束进程')
@@ -193,7 +239,7 @@ extension
   });
 //#endregion
 
-//#region print
+//#region 打印
 extension
   .command('print <message>')
   .description('打印输出信息，一般用作测试')
@@ -203,7 +249,7 @@ extension
   });
 //#endregion
 
-//#region bot
+//#region 状态
 extension
   .command('bot')
   .description('查看 bot 运行信息')
@@ -512,14 +558,14 @@ async function disableExtension(name: string) {
  */
 async function reloadExtension(name: string) {
   const extension = getExtension(name);
-  const bl = [...extension.bl];
+  const bots = [...extension.getBotList()];
 
   try {
     extension.destroy();
     const ext = await importExtension(name);
 
-    for (const [_, bot] of bl) {
-      ext.bind(bot);
+    for (const [_, bot] of bots) {
+      ext.bindBot(bot);
     }
   } catch (error) {
     throw error;
@@ -535,7 +581,7 @@ async function reloadExtension(name: string) {
  */
 async function bindBot(name: string, bot: Bot) {
   try {
-    return (await importExtension(name)).bind(bot);
+    return (await importExtension(name)).bindBot(bot);
   } catch (error) {
     throw error;
   }
@@ -549,7 +595,7 @@ async function bindBot(name: string, bot: Bot) {
  * @returns 
  */
 function unbindBot(name: string, bot: Bot) {
-  return getExtension(name).unbind(bot);
+  return getExtension(name).unbindBot(bot);
 }
 
 export async function bindExtension() {

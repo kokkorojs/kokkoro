@@ -18,10 +18,10 @@ export const KOKKORO_VERSION = version;
 export const KOKKORO_CHANGELOGS = changelogs;
 
 export { Bot, startup } from './bot';
-export { Extension } from './extension';
-export { colors, logger } from './util';
+// export { Extension } from './extension';
+// export { colors, logger } from './util';
 
-// export { AllMessageEvent, Bot, startup } from './bot';
-// export { Extension, Order } from './plugin';
-// export { Option, getOption, getSetting } from './setting';
-// export { colors, logger, section, getOrder, deepMerge, deepClone } from './util';
+// // export { AllMessageEvent, Bot, startup } from './bot';
+// // export { Extension, Order } from './plugin';
+// // export { Option, getOption, getSetting } from './setting';
+// // export { colors, logger, section, getOrder, deepMerge, deepClone } from './util';
