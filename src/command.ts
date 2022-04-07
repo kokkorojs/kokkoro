@@ -118,12 +118,13 @@ export class Command {
   }
 
   isMatched(event: AllMessageEvent) {
-    const { raw_message, message_type, self_id } = this.event;
+    const { raw_message, message_type, self_id } = event;
 
     // 匹配事件类型
     if (this.message_type !== 'all' && this.message_type !== message_type) {
       return false;
     }
+
     this.event = event;
     this.bot = this.extension.getBot(self_id)!;
 
