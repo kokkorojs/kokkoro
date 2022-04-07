@@ -71,7 +71,7 @@ export class Extension extends EventEmitter {
       });
     //#endregion
 
-    setTimeout(() => {
+    this.once('extension.bind', () => {
       this.command_list.set(helpCommand.name, helpCommand);
       this.command_list.set(versionCommand.name, versionCommand);
       this.bindEvents();
@@ -178,6 +178,7 @@ export class Extension extends EventEmitter {
       throw new Error('jesus, how the hell did you get in here?');
     }
     this.bot_list.set(uin, bot);
+    this.emit('extension.bind');
     return this;
   }
 
