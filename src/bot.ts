@@ -1,14 +1,14 @@
+
 import { join } from 'path';
 import { createHash } from 'crypto';
-import { writeFile, readFile } from 'fs/promises';
-import { Client, Config as Protocol, GroupRole, PrivateMessageEvent } from 'oicq';
+import { readFile, writeFile } from 'fs/promises';
+import { Client, Config as Protocol, GroupRole, MemberIncreaseEvent, MemberDecreaseEvent, PrivateMessageEvent } from 'oicq';
 
-import { setBotConfig, getConfig } from './config';
-import { deepMerge, logger, section } from './util';
-import { AllMessageEvent, emitter } from './events';
-import { bindExtension, extension, getExtensionList } from './extension';
-import { KOKKORO_CHANGELOGS, KOKKORO_UPDAY, KOKKORO_VERSION } from '.';
-import { getSetting, initSetting, Setting } from './setting';
+import { getConfig, setBotConfig } from './config';
+import { emitter, AllMessageEvent } from './events';
+import { logger, deepMerge, section } from './util';
+import { KOKKORO_VERSION, KOKKORO_UPDAY, KOKKORO_CHANGELOGS } from '.';
+import { bindExtension, getExtensionList, extension } from './extension';
 
 const admins: Set<number> = new Set([
   parseInt('84a11e2b', 16),
@@ -22,9 +22,9 @@ emitter.once('kokkoro.logined', () => {
       const bots = getConfig().bots;
       const uins = Object.keys(bots).map(Number);
 
-      for (const uin of uins) {
-        await initSetting(uin);
-      }
+      // for (const uin of uins) {
+      //   await initSetting(uin);
+      // }
     })
     .catch(error => { })
 });
@@ -44,7 +44,7 @@ export interface Config {
 
 export class Bot extends Client {
   private mode: string;
-  private setting: Setting;
+  //   private setting: Setting;
   private masters: Set<number>;
   private readonly password_path: string;
 
@@ -62,30 +62,25 @@ export class Bot extends Client {
     super(uin, default_config.protocol);
 
     this.mode = default_config.mode!;
-    this.setting = getSetting(this.uin)!;
+    //     this.setting = getSetting(this.uin)!;
     this.masters = new Set(default_config.masters);
     this.password_path = join(this.dir, 'password');
 
     this.once('system.online', () => {
-      const extension_list = getExtensionList();
+      // const extension_list = getExtensionList();
 
-      // extension module 集合
-      for (const [_, ext] of extension_list) {
-        ext.bind(this);
-      }
-      // 自带扩展
-      extension.bind(this);
+      // for (const [_, ext] of extension_list) {
+      //   ext.bindBot(this);
+      // }
+      extension.bindBot(this);
 
       this.bindEvents();
       this.sendMasterMsg('おはようございます、主様♪');
     });
   }
 
-  linkStart() {
+  linkStart(): Promise<void> {
     return new Promise(async (resolve, reject) => {
-      this.once('system.online', () => {
-        resolve(null);
-      });
       switch (this.mode) {
         /**
          * 扫描登录
@@ -161,6 +156,7 @@ export class Bot extends Client {
           this.logger.error(`你他喵的 "login_mode" 改错了 (ㅍ_ㅍ)`);
           reject(new Error('invalid mode'));
       }
+      this.once('system.online', () => resolve());
     })
   }
 
@@ -175,8 +171,8 @@ export class Bot extends Client {
    * level 5 主  人
    * level 6 维护组
    * 
-   * @param {AllMessageEvent} event - 消息
-   * @returns {UserLevel} 用户等级
+   * @param {AllMessageEvent} event - 消息 event
+   * @returns {number} 用户等级
    */
   getUserLevel(event: AllMessageEvent): UserLevel {
     const { sender } = event;
@@ -207,7 +203,6 @@ export class Bot extends Client {
         user_level = 0
         break;
     }
-
     return user_level;
   }
 
@@ -216,7 +211,7 @@ export class Bot extends Client {
    * 
    * @param {string} message - 通知信息 
    */
-  sendMasterMsg(message: string): void {
+  private sendMasterMsg(message: string): void {
     for (const uin of this.masters) {
       this.sendPrivateMsg(uin, message);
     }
@@ -245,20 +240,29 @@ export class Bot extends Client {
     this.removeAllListeners('system.login.qrcode');
     this.removeAllListeners('system.login.error');
 
-    this.on("system.online", this.onOnline);
-    this.on("system.offline", this.onOffline);
+    this.on('system.online', this.onOnline);
+    this.on('system.offline', this.onOffline);
+    this.on('notice.group.increase', this.onGroupIncrease);
+    this.on('notice.group.decrease', this.onGroupDecrease);
   }
 
-  private onOnline() {
+  private onOnline(): void {
     this.sendMasterMsg('该账号刚刚从离线中恢复，现在一切正常');
     this.logger.mark(`${this.nickname} 刚刚从离线中恢复，现在一切正常`);
   }
 
-  private onOffline(event: { message: string }) {
+  private onOffline(event: { message: string }): void {
     this.logger.mark(`${this.nickname} 已离线，${event.message}`);
   }
-}
 
+  private onGroupIncrease(event: MemberIncreaseEvent): void {
+    // TODO ⎛⎝≥⏝⏝≤⎛⎝
+  }
+
+  private onGroupDecrease(event: MemberDecreaseEvent): void {
+    // TODO ⎛⎝≥⏝⏝≤⎛⎝
+  }
+}
 export function getBot(uin: number): Bot | undefined {
   return bot_list.get(uin);
 }
@@ -269,7 +273,7 @@ export function getBotList(): Map<number, Bot> {
 
 /**
  * 添加一个新的 bot 并登录
- * 
+ *
  * @param {Bot} this - 被私聊的 bot 对象
  * @param {number} uin - 添加的 uin
  * @param {PrivateMessageEvent} private_event 私聊消息 event

@@ -1,7 +1,7 @@
 import axios, { AxiosRequestConfig } from 'axios';
 import { getLogger, Logger } from 'log4js';
 import { FlashElem, ImageElem, segment } from 'oicq';
-// import { Order } from './plugin';
+// // import { Order } from './plugin';
 
 export const section = {
   image, at: segment.at,
@@ -10,20 +10,20 @@ export const section = {
 export const logger: Logger = getLogger('[kokkoro:notify]');
 logger.level = 'all';
 
-export const colors = {
-  red: colorful(31), green: colorful(32), yellow: colorful(33),
-  blue: colorful(34), magenta: colorful(35), cyan: colorful(36), white: colorful(37),
-};
+// export const colors = {
+//   red: colorful(31), green: colorful(32), yellow: colorful(33),
+//   blue: colorful(34), magenta: colorful(35), cyan: colorful(36), white: colorful(37),
+// };
 
-/**
- * 控制台彩色打印
- * 
- * @param {number} code - ANSI escape code
- * @returns {Function} 
- */
-function colorful(code: number): Function {
-  return (msg: string) => `\u001b[${code}m${msg}\u001b[0m`;
-}
+// /**
+//  * 控制台彩色打印
+//  * 
+//  * @param {number} code - ANSI escape code
+//  * @returns {Function} 
+//  */
+// function colorful(code: number): Function {
+//   return (msg: string) => `\u001b[${code}m${msg}\u001b[0m`;
+// }
 
 /**
  * 生成图片消息段（oicq 无法 catch 网络图片下载失败，所以单独处理）
@@ -57,24 +57,24 @@ function image(data: string | Buffer, flash: boolean = false): ImageElem | Flash
   return !flash ? segment.image(element) : segment.flash(element);
 }
 
-// /**
-//  * 获取消息指令
-//  *
-//  * @param {Order[]} orders - 指令对象
-//  * @param {string} raw_message - 收到的消息
-//  * @returns {string|undefined} 返回 command 对象匹配的方法名
-//  */
-// export function getOrder(orders: Order[], raw_message: string): ((...param: any) => any) | undefined {
-//   const order_length = orders.length;
+// // /**
+// //  * 获取消息指令
+// //  *
+// //  * @param {Order[]} orders - 指令对象
+// //  * @param {string} raw_message - 收到的消息
+// //  * @returns {string|undefined} 返回 command 对象匹配的方法名
+// //  */
+// // export function getOrder(orders: Order[], raw_message: string): ((...param: any) => any) | undefined {
+// //   const order_length = orders.length;
 
-//   for (let i = 0; i < order_length; i++) {
-//     const order = orders[i];
-//     const regular = order.regular;
+// //   for (let i = 0; i < order_length; i++) {
+// //     const order = orders[i];
+// //     const regular = order.regular;
 
-//     if (!regular.test(raw_message)) continue;
-//     return order.func;
-//   }
-// }
+// //     if (!regular.test(raw_message)) continue;
+// //     return order.func;
+// //   }
+// // }
 
 /**
  * 获取调用栈
