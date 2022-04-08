@@ -18,7 +18,7 @@ export const KOKKORO_VERSION = version;
 export const KOKKORO_CHANGELOGS = changelogs;
 
 export { Bot, startup } from './bot';
-// export { Extension } from './extension';
+export { Extension } from './extension';
 // export { colors, logger } from './util';
 
 // // export { AllMessageEvent, Bot, startup } from './bot';

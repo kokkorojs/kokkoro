@@ -6,9 +6,10 @@ import { Client, Config as Protocol, GroupRole, MemberIncreaseEvent, MemberDecre
 
 import { getConfig, setBotConfig } from './config';
 import { emitter, AllMessageEvent } from './events';
-import { logger, deepMerge, section } from './util';
+import { importAllExtension, extension } from './extension';
+import { initSetting, Setting, writeSetting } from './setting';
+import { logger, deepMerge, section, deepClone } from './util';
 import { KOKKORO_VERSION, KOKKORO_UPDAY, KOKKORO_CHANGELOGS } from '.';
-import { bindExtension, getExtensionList, extension } from './extension';
 
 const admins: Set<number> = new Set([
   parseInt('84a11e2b', 16),
@@ -16,17 +17,51 @@ const admins: Set<number> = new Set([
 const bot_list: Map<number, Bot> = new Map();
 
 emitter.once('kokkoro.logined', () => {
-  bindExtension()
-    .then(async count => {
-      logger.mark(`加载了${count}个扩展`);
-      const bots = getConfig().bots;
-      const uins = Object.keys(bots).map(Number);
+  // 导入扩展模块
+  importAllExtension()
+    .then(async extension_list => {
+      logger.mark(`加载了${extension_list.size}个扩展`);
 
-      // for (const uin of uins) {
-      //   await initSetting(uin);
-      // }
+      for (const [uin, bot] of bot_list) {
+        try {
+          // 初始化 setting.json
+          const setting = await initSetting(uin);
+
+          // 恢复绑定 extensions
+          for (const name of setting.extensions) {
+            const extension = extension_list.get(name)?.bindBot(bot);
+
+            if (extension) {
+              const group_list = bot.getGroupList();
+
+              // 校验 option
+              for (const [group_id, group_info] of group_list) {
+                const { group_name } = group_info;
+
+                setting[group_id] ||= {
+                  name: group_name, extension: {},
+                };
+
+                if (setting[group_id].name !== group_name) {
+                  setting[group_id].name = group_name;
+                }
+                const option = setting[group_id].extension[name];
+
+                setting[group_id].extension[name] = deepMerge(extension.getOption(), option);
+              }
+            } else {
+              logger.error(`"${name}" import module failed, extension is undefined`);
+            }
+          }
+          await bot.setSetting(setting);
+        } catch (error) {
+          throw error;
+        }
+      }
     })
-    .catch(error => { })
+    .catch(error => {
+      throw error;
+    })
 });
 
 export type UserLevel = 0 | 1 | 2 | 3 | 4 | 5 | 6;
@@ -44,7 +79,7 @@ export interface Config {
 
 export class Bot extends Client {
   private mode: string;
-  //   private setting: Setting;
+  private setting!: Setting;
   private masters: Set<number>;
   private readonly password_path: string;
 
@@ -62,16 +97,10 @@ export class Bot extends Client {
     super(uin, default_config.protocol);
 
     this.mode = default_config.mode!;
-    //     this.setting = getSetting(this.uin)!;
     this.masters = new Set(default_config.masters);
     this.password_path = join(this.dir, 'password');
 
     this.once('system.online', () => {
-      // const extension_list = getExtensionList();
-
-      // for (const [_, ext] of extension_list) {
-      //   ext.bindBot(this);
-      // }
       extension.bindBot(this);
 
       this.bindEvents();
@@ -206,6 +235,24 @@ export class Bot extends Client {
     return user_level;
   }
 
+  async setSetting(setting: Setting) {
+    await writeSetting(this.uin, setting)
+      .then(() => {
+        this.setting = setting;
+      })
+      .catch(error => {
+        this.logger.error(error.message);
+      })
+  }
+
+  getSetting() {
+    return deepClone(this.setting);
+  }
+
+  getOption(group_id: number) {
+    return deepClone(this.setting[group_id].extension);
+  }
+
   /**
    * 给 bot 主人发送信息
    * 
@@ -282,7 +329,7 @@ export function addBot(this: Bot, uin: number, private_event: PrivateMessageEven
   const config: Config = {
     auto_login: true,
     mode: 'qrcode',
-    masters: [private_event.from_id],
+    masters: [private_event.sender.user_id],
     protocol: {
       log_level: 'info',
       platform: 1,
@@ -303,8 +350,8 @@ export function addBot(this: Bot, uin: number, private_event: PrivateMessageEven
         '\n使用手机 QQ 扫码登录，输入 “cancel” 取消登录',
       ]);
 
-      const listenLogin = function (this: Bot, event: PrivateMessageEvent) {
-        if (event.from_id === private_event.from_id && event.raw_message === 'cancel') {
+      const listenLogin = (event: PrivateMessageEvent) => {
+        if (event.sender.user_id === private_event.sender.user_id && event.raw_message === 'cancel') {
           bot.terminate();
           clearInterval(interval_id);
           private_event.reply('登录已取消');
@@ -338,6 +385,7 @@ export function addBot(this: Bot, uin: number, private_event: PrivateMessageEven
         .finally(() => {
           bot_list.set(uin, bot);
           private_event.reply('登录成功');
+          // TODO ⎛⎝≥⏝⏝≤⎛⎝ 绑定扩展 bindAllExtension & setting 更新
         });
     })
     .login();

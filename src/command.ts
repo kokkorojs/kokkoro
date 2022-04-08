@@ -1,3 +1,5 @@
+import { GroupMessageEvent } from 'oicq';
+
 import { Bot, UserLevel } from './bot';
 import { Extension } from './extension';
 import { AllMessageEvent } from './events';
@@ -71,6 +73,7 @@ export class Command {
   message_type!: CommandMessageType;
   regex?: RegExp;
   func?: (...args: any[]) => any;
+  stop?: (...args: any[]) => any;
 
   constructor(
     public raw_name: string,
@@ -103,6 +106,11 @@ export class Command {
     return this;
   }
 
+  prevent(callback: (this: this, ...args: any[]) => any) {
+    this.stop = callback;
+    return this;
+  }
+
   limit(min_level: UserLevel, max_level: UserLevel = 6) {
     if (min_level > max_level) {
       throw new Error('min level be greater than max level');
@@ -115,6 +123,13 @@ export class Command {
 
   getLevel(): UserLevel {
     return this.bot.getUserLevel(this.event);
+  }
+
+  isApply(): boolean {
+    const group_id = (this.event as GroupMessageEvent).group_id;
+    const option = this.bot.getOption(group_id);
+
+    return option[this.extension.name].apply;
   }
 
   isMatched(event: AllMessageEvent) {
@@ -187,20 +202,6 @@ export class Command {
     return args;
   }
 }
-
-// // /**
-// //  * 解析命令字段
-// //  *
-// //  * @param {string} command - 命令字段
-// //  * @returns {Object}
-// //  */
-// // export function parseCommand(command: string) {
-// //   const [order, ...param] = command.split(' ');
-
-// //   return {
-// //     order, param,
-// //   };
-// // }
 
 // // all_command.group = {
 // //   async list(param, event) {

@@ -6,22 +6,33 @@ import { EventEmitter } from 'events';
 import { EventMap, PrivateMessageEvent } from 'oicq';
 import { Job, JobCallback, scheduleJob } from 'node-schedule';
 
-import { KOKKORO_VERSION } from '.';
 import { Listen } from './listen';
-import { getStack, logger } from './util';
+import { KOKKORO_VERSION } from '.';
 import { AllMessageEvent } from './events';
-import { Bot, getBotList, addBot, getBot } from './bot';
 import { Command, CommandMessageType } from './command';
+import { Bot, getBotList, addBot, getBot } from './bot';
+import { deepClone, getStack, logger, section } from './util';
 
 const modules_path = join(__workname, 'node_modules');
 const extensions_path = join(__workname, 'extensions');
 const extension_list: Map<string, Extension> = new Map();
+
+// 扩展选项
+export interface Option {
+  // 锁定，默认 false
+  lock: boolean;
+  // 开关，默认 true
+  apply: boolean;
+  // 其它设置
+  [param: string]: string | number | boolean | Array<string | number>;
+}
 
 export class Extension extends EventEmitter {
   public name: string;
   public ver: string;
   public path: string;
 
+  private option: Option;
   private args: (string | string[])[];
   private jobs: Job[];
   private bot_list: Map<number, Bot>;
@@ -29,14 +40,14 @@ export class Extension extends EventEmitter {
   private command_list: Map<string, Command>;
   private listen_list: Map<string, Listen>
 
-  constructor(name: string = '') {
+  constructor(name: string = '', option: Option = { apply: true, lock: false }) {
     super();
     const stack = getStack();
     const path = stack[2].getFileName()!;
-
     this.name = name;
     this.path = path;
     this.ver = '0.0.0';
+    this.option = option;
     this.args = [];
     this.jobs = [];
     this.bot_list = new Map();
@@ -71,11 +82,11 @@ export class Extension extends EventEmitter {
       });
     //#endregion
 
-    this.once('extension.bind', () => {
-      this.command_list.set(helpCommand.name, helpCommand);
-      this.command_list.set(versionCommand.name, versionCommand);
-      this.bindEvents();
-    });
+    this.parse = this.parse.bind(this);
+    this.trigger = this.trigger.bind(this);
+    this.on('extension.bind', this.bindEvents);
+    this.command_list.set(helpCommand.name, helpCommand);
+    this.command_list.set(versionCommand.name, versionCommand);
   }
 
   command(raw_name: string, message_type: CommandMessageType = 'all') {
@@ -107,6 +118,7 @@ export class Extension extends EventEmitter {
     }
   }
 
+  // 指令解析器
   private parse(event: AllMessageEvent) {
     for (const [_, command] of this.command_list) {
       if (command.isMatched(event)) {
@@ -118,12 +130,14 @@ export class Extension extends EventEmitter {
     }
   }
 
+  // 事件触发器
   private trigger(event: any) {
     for (const [_, listen] of this.listen_list) {
       listen.func && listen.func(event);
     }
   }
 
+  // 执行指令
   private runCommand(command: Command) {
     const args_length = this.args.length;
 
@@ -139,28 +153,30 @@ export class Extension extends EventEmitter {
     }
     const level = command.getLevel();
 
-    if (command.func && level >= command.min_level && level <= command.max_level) {
-      command.func(...this.args);
-    } else {
+    if (level < command.min_level && level < command.max_level) {
       command.event.reply('权限不足');
+    } else if (command.message_type !== 'private' && command.stop && !command.isApply()) {
+      command.stop();
+    } else if (command.func) {
+      command.func(...this.args);
     }
   }
 
-  bindEvents(): void {
-    this.parse = this.parse.bind(this);
-    this.trigger = this.trigger.bind(this);
-
+  // 绑定 bot 事件
+  bindEvents(bot: Bot): void {
     for (const event_name of this.events) {
-      for (const [_, bot] of this.bot_list) {
-        if (event_name === 'message') {
-          bot.on(event_name, this.parse);
-          this.once('extension.unbind', () => bot.off(event_name, this.parse));
-        } else {
-          bot.on(event_name, this.trigger);
-          this.once('extension.unbind', () => bot.off(event_name, this.trigger));
-        }
+      if (event_name === 'message') {
+        bot.on(event_name, this.parse);
+        this.once('extension.unbind', () => bot.off(event_name, this.parse));
+      } else {
+        bot.on(event_name, this.trigger);
+        this.once('extension.unbind', () => bot.off(event_name, this.trigger));
       }
     }
+  }
+
+  getOption() {
+    return deepClone(this.option);
   }
 
   getBot(uin: number): Bot | undefined {
@@ -178,7 +194,7 @@ export class Extension extends EventEmitter {
       throw new Error('jesus, how the hell did you get in here?');
     }
     this.bot_list.set(uin, bot);
-    this.emit('extension.bind');
+    this.emit('extension.bind', bot);
     return this;
   }
 
@@ -193,16 +209,28 @@ export class Extension extends EventEmitter {
     this.emit('extension.unbind');
   }
 
+  // 销毁
   destroy() {
     for (const [_, bot] of this.bot_list) {
       this.unbindBot(bot);
     }
+    this.off('extension.bind', this.bindEvents);
     extension_list.delete(this.name);
     destroyExtension(this.path);
   }
 }
 
 export const extension = new Extension();
+
+//#region 测试
+extension
+  .command('test')
+  .description('测试')
+  .sugar(/^(测试)$/)
+  .action(function () {
+
+  });
+//#endregion
 
 //#region 重启
 extension
@@ -279,28 +307,57 @@ extension
 
 //#region login
 extension
-  .command('login <uin>')
+  .command('login <uin>', 'private')
   .description('添加登录新的 qq 账号，默认在项目启动时自动登录')
   .limit(5)
   .sugar(/^(登录|登陆)\s?(?<uin>[1-9][0-9]{4,11})$/)
   .action(function (uin: string) {
+    // TODO ⎛⎝≥⏝⏝≤⎛⎝ 优化
     const bot_list = getBotList();
 
     if (!bot_list.has(+uin)) {
       addBot.call(this.bot, +uin, <PrivateMessageEvent>this.event);
     } else {
-      const bot = getBot(+uin);
+      const bot = getBot(+uin)!;
 
-      if (bot!.isOnline()) {
+      if (bot.isOnline()) {
         this.event.reply('Error: 已经登录过这个账号了');
       } else {
-        bot!.login()
-          .then(() => {
+        bot
+          .on('system.login.qrcode', (event) => {
+            this.event.reply([
+              section.image(event.image),
+              '\n使用手机 QQ 扫码登录，输入 “cancel” 取消登录',
+            ]);
+
+            const listenLogin = (event: PrivateMessageEvent) => {
+              if (event.sender.user_id === this.event.sender.user_id && event.raw_message === 'cancel') {
+                bot.terminate();
+                clearInterval(interval_id);
+                this.event.reply('登录已取消');
+              }
+            }
+            const interval_id = setInterval(async () => {
+              const { retcode } = await bot.queryQrcodeResult();
+
+              if (retcode === 0 || ![48, 53].includes(retcode)) {
+                bot.login();
+                clearInterval(interval_id);
+                retcode && this.event.reply(`Error: 错误代码 ${retcode}`);
+                bot.off('message.private', listenLogin);
+              }
+            }, 2000);
+
+            bot.on('message.private', listenLogin)
+          })
+          .once('system.login.error', data => {
+            bot.terminate();
+            this.event.reply(`Error: ${data.message}`);
+          })
+          .once('system.online', () => {
             this.event.reply('Sucess: 已将该账号上线');
           })
-          .catch(error => {
-            this.event.reply(`Error: ${error.message}`);
-          })
+          .login();
       }
     }
   });
@@ -308,7 +365,7 @@ extension
 
 //#region logout
 extension
-  .command('logout <uin>')
+  .command('logout <uin>', 'private')
   .description('下线已登录的 qq 账号')
   .limit(5)
   .sugar(/^(下线|登出)\s?(?<uin>[1-9][0-9]{4,11})$/)
@@ -599,21 +656,24 @@ function unbindBot(name: string, bot: Bot) {
   return getExtension(name).unbindBot(bot);
 }
 
-export async function bindExtension() {
+/**
+ * 导入所有扩展模块
+ * 
+ * @returns 
+ */
+export async function importAllExtension() {
   const { modules, extensions } = await findExtension();
   const all_modules = [...modules, ...extensions];
   const modules_length = all_modules.length;
 
   if (modules_length) {
-    const bot_list = getBotList();
-
     for (let i = 0; i < modules_length; i++) {
       const name = all_modules[i];
 
-      for (const [_, bot] of bot_list) {
-        await bindBot(name, bot);
-      }
+      try {
+        await importExtension(name);
+      } catch { }
     }
   }
-  return extension_list.size;
+  return extension_list;
 }
