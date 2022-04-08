@@ -147,9 +147,9 @@ export class Bot extends Client {
         case 'password':
           this
             .on('system.login.slider', (event: { url: string; }) => {
-              this.logger.mark('取 ticket 教程：https://github.com/takayama-lily/oicq/wiki/01.滑动验证码和设备锁');
+              this.logger.mark('取 ticket 教程: https://github.com/takayama-lily/oicq/wiki/01.滑动验证码和设备锁');
 
-              process.stdout.write('请输入 ticket ：');
+              process.stdout.write('请输入 ticket : ');
               process.stdin.once('data', (event: string) => {
                 this.submitSlider(event);
               });

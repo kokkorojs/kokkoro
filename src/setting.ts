@@ -84,15 +84,15 @@ export function initSetting(uin: number): Promise<Setting> {
 //   return setting_list;
 // }
 
-// /**
-//  * 获取当前群聊扩展设置
-//  *
-//  * @param {number} uin - bot 账号
-//  * @returns {Setting} setting 对象
-//  */
-// export function getSetting(uin: number): Setting | undefined {
-//   return setting_list.get(uin);
-// }
+/**
+ * 获取当前群聊扩展设置
+ *
+ * @param {number} uin - bot 账号
+ * @returns {Setting} setting 对象
+ */
+export function getSetting(uin: number): Setting | undefined {
+  return setting_list.get(uin);
+}
 
 // // 写入群聊扩展设置
 // export async function setSetting(uin: number, setting: Setting) {
@@ -123,16 +123,15 @@ export function writeSetting(uin: number, setting: Setting): Promise<void> {
   }
 }
 
-// export function updateExtensions(uin: number, extensions: string[]): Promise<void> {
-//   if (!setting_list.has(uin)) {
-//     throw new Error(`uin: ${uin} 不存在 setting.json`);
-//   }
-//   const setting = getSetting(uin)!;
-//   const setting_path = resolve(__workname, `data/bot/${uin}/setting.yml`);
+export function updateExtensions(uin: number, extensions: string[]): Promise<void> {
+  if (!setting_list.has(uin)) {
+    throw new Error(`uin: ${uin} 不存在 setting.json`);
+  }
+  const setting = getSetting(uin)!;
 
-//   setting!.extensions = [...extensions];
-//   return writeSetting(setting_path, setting);
-// }
+  setting.extensions = [...extensions];
+  return writeSetting(uin, setting);
+}
 
 // // /**
 // //  * 获取群聊扩展列表
