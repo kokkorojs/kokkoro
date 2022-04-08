@@ -1,86 +1,79 @@
-// import { resolve } from 'path';
-// import { stringify, parse } from 'yaml';
-// import { writeFile, readFile } from 'fs/promises';
+import { resolve } from 'path';
+import { stringify, parse } from 'yaml';
+import { writeFile, readFile } from 'fs/promises';
 // // import { GroupMessageEvent, MemberDecreaseEvent, MemberIncreaseEvent } from 'oicq';
 
 // import { getConfig, KokkoroConfig } from "./config";
 
 // // import { Bot } from './bot';
 // // import { parseCommand } from './command';
-// import { getStack, logger } from './util';
-// import { getExtensionList } from './extension';
+import { deepClone, getStack, logger } from './util';
+import { getExtensionList, Option } from './extension';
 // // import { getPlugin } from './plugin';
 
-// // 群聊
-// interface Group {
-//   // 群名称
-//   name: string;
-//   // 扩展
-//   extension: {
-//     // 扩展名
-//     [name: string]: Option;
-//   }
-// }
+// 群聊
+export interface Group {
+  // 群名称
+  name: string;
+  // 扩展
+  extension: {
+    // 扩展名
+    [name: string]: Option;
+  }
+}
 
-// // 扩展选项
-// export interface Option {
-//   // 锁定，默认 false
-//   lock?: boolean;
-//   // 开关，默认 true
-//   apply?: boolean;
-//   // 其它设置
-//   [param: string]: string | number | boolean | Array<string | number> | undefined;
-// }
+export interface Setting {
+  // 扩展列表
+  extensions: string[];
+  // 群聊列表
+  [group_id: number]: Group
+}
 
-// export interface Setting {
-//   // 扩展列表
-//   extensions: string[];
-//   // 群聊列表
-//   [group_id: number]: Group
-// }
+const setting_list: Map<number, Setting> = new Map();
 
-// const setting_list: Map<number, Setting> = new Map();
+/**
+ * 初始化 setting 数据
+ *
+ * @param {number} uin 机器人账号
+ */
+export function initSetting(uin: number): Promise<Setting> {
+  let setting: Setting;
+  const setting_path = resolve(__workname, `data/bot/${uin}/setting.yml`);
 
-// /**
-//  * 初始化 setting 数据
-//  *
-//  * @param {number} uin 机器人账号
-//  */
-// export async function initSetting(uin: number): Promise<void> {
-//   let setting: Setting;
-//   const setting_path = resolve(__workname, `data/bot/${uin}/setting.yml`);
+  return new Promise(async (resolve, reject) => {
+    await readFile(setting_path, 'utf8')
+      .then((value: string) => {
+        setting = parse(value);
 
-//   await readFile(setting_path, 'utf8')
-//     .then((value: string) => {
-//       setting = parse(value);
+        if (!setting) {
+          throw new Error('setting is empty file');
+        }
+      })
+      .catch(async (error: Error) => {
+        const rewrite = !error.message.includes('ENOENT: no such file or directory') && !error.message.includes('setting is empty file');
 
-//       if (!setting) {
-//         throw new Error('setting is empty file');
-//       }
-//     })
-//     .catch(async (error: Error) => {
-//       const rewrite = !error.message.includes('ENOENT: no such file or directory') && !error.message.includes('setting is empty file');
+        if (rewrite) {
+          reject(error);
+        }
+        const extension_list = getExtensionList();
+        const extension_keys = extension_list.keys();
 
-//       if (rewrite) {
-//         throw error;
-//       }
-//       const extension_list = getExtensionList();
-//       const extension_keys = extension_list.keys();
+        setting = { extensions: [...extension_keys] };
 
-//       setting = { extensions: [...extension_keys] };
-
-//       await writeSetting(setting_path, setting)
-//         .then(() => {
-//           logger.mark(`创建了新的设置文件：data/bot/${uin}/setting.yml`);
-//         })
-//         .catch((error: Error) => {
-//           throw error;
-//         })
-//     })
-//     .finally(() => {
-//       setting_list.set(uin, setting);
-//     })
-// }
+        await writeSetting(uin, setting)
+          .then(() => {
+            logger.mark(`创建了新的设置文件: data/bot/${uin}/setting.yml`);
+          })
+          .catch((error: Error) => {
+            reject(error);
+          })
+      })
+      .finally(() => {
+        setting_list.set(uin, setting);
+        resolve(deepClone(setting));
+      })
+  })
+}
 
 // /**
 //  * 获取所有群聊扩展设置
@@ -119,9 +112,16 @@
 //   }
 // }
 
-// export function writeSetting(path: string, setting: Setting): Promise<void> {
-//   return writeFile(path, stringify(setting));
-// }
+export function writeSetting(uin: number, setting: Setting): Promise<void> {
+  const old_setting = setting_list.get(uin);
+  const setting_path = resolve(__workname, `data/bot/${uin}/setting.yml`);
+
+  if (JSON.stringify(old_setting) !== JSON.stringify(setting)) {
+    return writeFile(setting_path, stringify(setting));
+  } else {
+    return Promise.resolve();
+  }
+}
 
 // export function updateExtensions(uin: number, extensions: string[]): Promise<void> {
 //   if (!setting_list.has(uin)) {
