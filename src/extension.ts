@@ -12,6 +12,7 @@ import { AllMessageEvent } from './events';
 import { Command, CommandMessageType } from './command';
 import { Bot, getBotList, addBot, getBot } from './bot';
 import { deepClone, getStack, logger, section } from './util';
+import { updateExtensions } from './setting';
 
 const modules_path = join(__workname, 'node_modules');
 const extensions_path = join(__workname, 'extensions');
@@ -582,14 +583,16 @@ export function getExtensionList(): Map<string, Extension> {
  * @param name - 扩展名
  */
 async function enableExtension(name: string) {
-  if (extension_list.has(name)) {
-    throw new Error('已启用当前扩展');
-  }
-  const bot_list = getBotList();
+  // TODO ⎛⎝≥⏝⏝≤⎛⎝
 
-  for (const [_, bot] of bot_list) {
-    await bindBot(name, bot);
-  }
+  // if (extension_list.has(name)) {
+  //   throw new Error('已启用当前扩展');
+  // }
+  // const bot_list = getBotList();
+
+  // for (const [_, bot] of bot_list) {
+  //   await bindBot(name, bot);
+  // }
 }
 
 /**
@@ -598,14 +601,21 @@ async function enableExtension(name: string) {
  * @param name - 扩展名
  */
 async function disableExtension(name: string) {
-  if (!extension_list.has(name)) {
-    throw new Error('未启用当前扩展');
-  }
-  const bot_list = getBotList();
+  // if (!extension_list.has(name)) {
+  //   throw new Error('未启用当前扩展');
+  // }
+  // const bot_list = getBotList();
 
-  for (const [_, bot] of bot_list) {
-    unbindBot(name, bot);
-  }
+  // for (const [_, bot] of bot_list) {
+  //   unbindBot(name, bot);
+  // }
+  // extension_list.delete(name)
+
+  // TODO ⎛⎝≥⏝⏝≤⎛⎝
+
+  // const extensions = [...extension_list.keys()].filter(i => i !== name);
+
+  // updateExtensions(uin, extensions);
 }
 
 /**
