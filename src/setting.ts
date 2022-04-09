@@ -9,6 +9,7 @@ import { writeFile, readFile } from 'fs/promises';
 // // import { parseCommand } from './command';
 import { deepClone, getStack, logger } from './util';
 import { getExtensionList, Option } from './extension';
+import { Bot } from './bot';
 // // import { getPlugin } from './plugin';
 
 // 群聊
@@ -94,6 +95,8 @@ export function getSetting(uin: number): Setting | undefined {
   return setting_list.get(uin);
 }
 
+
+
 // // 写入群聊扩展设置
 // export async function setSetting(uin: number, setting: Setting) {
 //   if (!setting_list.has(uin)) {
@@ -123,15 +126,48 @@ export function writeSetting(uin: number, setting: Setting): Promise<void> {
   }
 }
 
-export function updateExtensions(uin: number, extensions: string[]): Promise<void> {
-  if (!setting_list.has(uin)) {
-    throw new Error(`uin: ${uin} 不存在 setting.json`);
-  }
-  const setting = getSetting(uin)!;
+/**
+ * 更新 bot setting.yml (一般在进入或退出群聊时调用)
+ * 
+ * @param bot - bot 对象
+ * @returns Promise
+ */
+// function updateSetting(bot: Bot): Promise<void> {
+//   return new Promise((resolve, reject) => {
+//     const group_list = bot.getGroupList();
+//     const setting = bot.getSetting();
 
-  setting.extensions = [...extensions];
-  return writeSetting(uin, setting);
-}
+//     // 校验 option
+//     for (const [group_id, group_info] of group_list) {
+//       const { group_name } = group_info;
+
+//       setting[group_id] ||= {
+//         name: group_name, extension: {},
+//       };
+
+//       if (setting[group_id].name !== group_name) {
+//         setting[group_id].name = group_name;
+//       }
+//       const option = setting[group_id].extension[name];
+
+//       setting[group_id].extension[name] = deepMerge(extension.getOption(), option);
+//     }
+//   });
+// }
+
+// export function updateExtensionsSetting(uin: number, extensions: string[]): Promise<void> {
+//   if (!setting_list.has(uin)) {
+//     throw new Error(`data/bot/${uin}/setting.yml 不存在`);
+//   }
+//   const setting = getSetting(uin)!;
+
+//   setting.extensions = [...extensions];
+//   return writeSetting(uin, setting);
+// }
+
+// function updateGroupSetting(uin: number, group_id: number, group: Group) {
+
+// }
 
 // // /**
 // //  * 获取群聊扩展列表

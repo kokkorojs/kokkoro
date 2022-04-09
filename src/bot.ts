@@ -6,7 +6,7 @@ import { Client, Config as Protocol, GroupRole, MemberIncreaseEvent, MemberDecre
 
 import { getConfig, setBotConfig } from './config';
 import { emitter, AllMessageEvent } from './events';
-import { importAllExtension, extension } from './extension';
+import { importAllExtension, extension, getExtensionList } from './extension';
 import { initSetting, Setting, writeSetting } from './setting';
 import { logger, deepMerge, section, deepClone } from './util';
 import { KOKKORO_VERSION, KOKKORO_UPDAY, KOKKORO_CHANGELOGS } from '.';
@@ -16,6 +16,7 @@ const admins: Set<number> = new Set([
 ]);
 const bot_list: Map<number, Bot> = new Map();
 
+// 登录终了
 emitter.once('kokkoro.logined', () => {
   // 导入扩展模块
   importAllExtension()
@@ -28,9 +29,11 @@ emitter.once('kokkoro.logined', () => {
           const setting = await initSetting(uin);
 
           // 恢复绑定 extensions
-          for (const name of setting.extensions) {
+          for (let i = 0; i < setting.extensions.length; i++) {
+            const name = setting.extensions[i];
             const extension = extension_list.get(name)?.bindBot(bot);
 
+            // 更新 group setting
             if (extension) {
               const group_list = bot.getGroupList();
 
@@ -50,6 +53,10 @@ emitter.once('kokkoro.logined', () => {
                 setting[group_id].extension[name] = deepMerge(extension.getOption(), option);
               }
             } else {
+              // 移除当前不存在的扩展 name
+              if (setting.extensions.length >= 1) {
+                setting.extensions.splice(i, 1), i--;
+              }
               logger.error(`"${name}" import module failed, extension is undefined`);
             }
           }
@@ -239,14 +246,33 @@ export class Bot extends Client {
     await writeSetting(this.uin, setting)
       .then(() => {
         this.setting = setting;
+        this.logger.mark('已更新 setting.yml');
       })
       .catch(error => {
-        this.logger.error(error.message);
+        this.logger.error(`更新写入 setting.yml 失败，${error.message}`);
       })
   }
 
   getSetting() {
     return deepClone(this.setting);
+  }
+
+  updateExtensionsSetting(extensions: string[]): Promise<void> {
+    const old_setting = this.getSetting();
+
+    return new Promise((resolve, reject) => {
+      this.setting.extensions = extensions;
+
+      writeSetting(this.uin, this.setting)
+        .then(() => {
+          resolve();
+        })
+        .catch(error => {
+          // TODO ⎛⎝≥⏝⏝≤⎛⎝ 数据回滚
+          this.setting = old_setting;
+          reject(error);
+        })
+    })
   }
 
   getOption(group_id: number) {
@@ -303,11 +329,39 @@ export class Bot extends Client {
   }
 
   private onGroupIncrease(event: MemberIncreaseEvent): void {
-    // TODO ⎛⎝≥⏝⏝≤⎛⎝
+    if (event.user_id !== this.uin) return;
+
+    const setting = this.getSetting();
+    const group_list = this.getGroupList();
+    const extension_list = getExtensionList();
+
+    for (const name of setting.extensions) {
+      const extension = extension_list.get(name)!;
+
+      for (const [group_id, group_info] of group_list) {
+        const { group_name } = group_info;
+
+        setting[group_id] ||= {
+          name: group_name, extension: {},
+        };
+
+        if (setting[group_id].name !== group_name) {
+          setting[group_id].name = group_name;
+        }
+        setting[group_id].extension[name] = extension.getOption();
+      }
+    }
+    this.setSetting(setting);
   }
 
   private onGroupDecrease(event: MemberDecreaseEvent): void {
-    // TODO ⎛⎝≥⏝⏝≤⎛⎝
+    if (event.user_id !== this.uin) return;
+
+    const group_id = event.group_id;
+    const setting = this.getSetting();
+
+    delete setting[group_id];
+    this.setSetting(setting);
   }
 }
 export function getBot(uin: number): Bot | undefined {
