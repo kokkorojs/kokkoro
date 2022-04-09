@@ -8,11 +8,10 @@ import { Job, JobCallback, scheduleJob } from 'node-schedule';
 
 import { Listen } from './listen';
 import { KOKKORO_VERSION } from '.';
-import { AllMessageEvent } from './events';
-import { Command, CommandMessageType } from './command';
+import { AllMessageEvent, emitter } from './events';
 import { Bot, getBotList, addBot, getBot } from './bot';
 import { deepClone, getStack, logger, section } from './util';
-import { updateExtensions } from './setting';
+import { Command, commandEvent, CommandMessageType } from './command';
 
 const modules_path = join(__workname, 'node_modules');
 const extensions_path = join(__workname, 'extensions');
@@ -57,7 +56,7 @@ export class Extension extends EventEmitter {
     this.listen_list = new Map();
 
     //#region 帮助指令
-    const helpCommand = new Command('help', this).type('all')
+    const helpCommand = new Command('all', 'help', this)
       .description('帮助信息')
       .action(function () {
         const message = ['Commands: '];
@@ -70,7 +69,7 @@ export class Extension extends EventEmitter {
       });
     //#endregion
     //#region 版本指令
-    const versionCommand = new Command('version', this).type('all')
+    const versionCommand = new Command('all', 'version', this)
       .description('版本信息')
       .action(function () {
         const extension = this.extension;
@@ -90,12 +89,12 @@ export class Extension extends EventEmitter {
     this.command_list.set(versionCommand.name, versionCommand);
   }
 
-  command(raw_name: string, message_type: CommandMessageType = 'all') {
-    const command = new Command(raw_name, this).type(message_type);
+  command<T extends keyof commandEvent>(raw_name: string, message_type: T | CommandMessageType = 'all'): Command<T> {
+    const command = new Command(message_type, raw_name, this);
 
     this.events.add('message');
     this.command_list.set(command.name, command);
-    return command;
+    return command as unknown as Command<T>;
   }
 
   listen<T extends keyof EventMap>(event_name: T) {
@@ -317,7 +316,7 @@ extension
     const bot_list = getBotList();
 
     if (!bot_list.has(+uin)) {
-      addBot.call(this.bot, +uin, <PrivateMessageEvent>this.event);
+      addBot.call(this.bot, +uin, this.event);
     } else {
       const bot = getBot(+uin)!;
 
@@ -398,40 +397,89 @@ extension
 
 //#region enable
 extension
-  .command('enable <name>')
+  .command('enable <...names>', 'private')
   .description('启用扩展')
   .limit(5)
-  .sugar(/^(启用)\s?(?<name>.+)$/)
-  .action(function (name: string) {
-    enableExtension(name)
-      .then(() => this.event.reply('启用扩展成功'))
-      .catch(error => this.event.reply(`Error: ${error.message}`))
+  .sugar(/^(启用)\s?(?<names>[a-z]+)$/)
+  .action(async function (names: string[]) {
+    const message: string[] = [];
+    const names_length = names.length;
+    const setting = this.bot.getSetting();
+
+    for (let i = 0; i < names_length; i++) {
+      const name = names[i];
+
+      await enableExtension(name)
+        .then(() => {
+          setting.extensions.push(name);
+          message.push(`${name}: 启用扩展成功`);
+        })
+        .catch(error => {
+          message.push(`${name}: 启用扩展失败，${error.message}`);
+        })
+    }
+    this.event.reply(message.join('\n'));
+    this.bot.updateExtensionsSetting(setting.extensions);
+
+    // TODO ⎛⎝≥⏝⏝≤⎛⎝ 更新 setting
+    // emitter.emit('extension.enable', names);
   });
 //#endregion
 
 //#region disable
 extension
-  .command('disable <name>')
+  .command('disable <...names>', 'private')
   .description('禁用扩展')
   .limit(5)
-  .sugar(/^(禁用)\s?(?<name>.+)$/)
-  .action(function (name: string) {
-    disableExtension(name)
-      .then(() => this.event.reply('禁用扩展成功'))
-      .catch(error => this.event.reply(`Error: ${error.message}`))
+  .sugar(/^(禁用)\s?(?<names>[a-z]+)$/)
+  .action(async function (names: string[]) {
+    const message: string[] = [];
+    const names_length = names.length;
+    const setting = this.bot.getSetting();
+    const extensions_set = new Set(setting.extensions);
+
+    for (let i = 0; i < names_length; i++) {
+      const name = names[i];
+
+      await disableExtension(name)
+        .then(() => {
+          extensions_set.delete(name);
+          message.push(`${name}: 禁用扩展成功`);
+        })
+        .catch(error => {
+          message.push(`${name}: 禁用扩展失败，${error.message}`);
+        })
+    }
+    this.event.reply(message.join('\n'));
+    this.bot.updateExtensionsSetting([...extensions_set]);
+
+    // TODO ⎛⎝≥⏝⏝≤⎛⎝
+    // emitter.emit('extension.disable', names);
   });
 //#endregion
 
 //#region reload
 extension
-  .command('reload <name>')
+  .command('reload <name>', 'private')
   .description('重载扩展')
   .limit(5)
-  .sugar(/^(重载)\s?(?<name>.+)$/)
+  .sugar(/^(重载)\s?(?<name>[a-z]+)$/)
   .action(function (name: string) {
     reloadExtension(name)
       .then(() => this.event.reply('重载扩展成功'))
       .catch(error => this.event.reply(error.message))
+  });
+//#endregion
+
+//#region 扩展
+extension
+  .command('extension', 'private')
+  .description('扩展模块')
+  .sugar(/^(扩展)$/)
+  .action(async function () {
+    const { modules, extensions } = await findExtension();
+
+    this.event.reply(`node_module: \n  ${modules.join(', ')}\nextension: \n  ${extensions.join(', ')}`);
   });
 //#endregion
 
@@ -583,16 +631,14 @@ export function getExtensionList(): Map<string, Extension> {
  * @param name - 扩展名
  */
 async function enableExtension(name: string) {
-  // TODO ⎛⎝≥⏝⏝≤⎛⎝
+  if (extension_list.has(name)) {
+    throw new Error('已启用当前扩展');
+  }
+  const bot_list = getBotList();
 
-  // if (extension_list.has(name)) {
-  //   throw new Error('已启用当前扩展');
-  // }
-  // const bot_list = getBotList();
-
-  // for (const [_, bot] of bot_list) {
-  //   await bindBot(name, bot);
-  // }
+  for (const [_, bot] of bot_list) {
+    await bindBot(name, bot);
+  }
 }
 
 /**
@@ -601,21 +647,19 @@ async function enableExtension(name: string) {
  * @param name - 扩展名
  */
 async function disableExtension(name: string) {
-  // if (!extension_list.has(name)) {
-  //   throw new Error('未启用当前扩展');
-  // }
-  // const bot_list = getBotList();
+  if (!extension_list.has(name)) {
+    throw new Error('未启用当前扩展');
+  }
+  const bot_list = getBotList();
 
-  // for (const [_, bot] of bot_list) {
-  //   unbindBot(name, bot);
-  // }
-  // extension_list.delete(name)
-
-  // TODO ⎛⎝≥⏝⏝≤⎛⎝
+  for (const [_, bot] of bot_list) {
+    unbindBot(name, bot);
+  }
+  extension_list.delete(name);
 
   // const extensions = [...extension_list.keys()].filter(i => i !== name);
 
-  // updateExtensions(uin, extensions);
+  // updateExtensionsSetting(uin, extensions);
 }
 
 /**

@@ -1,4 +1,4 @@
-import { GroupMessageEvent } from 'oicq';
+import { GroupMessageEvent, PrivateMessageEvent } from 'oicq';
 
 import { Bot, UserLevel } from './bot';
 import { Extension } from './extension';
@@ -10,6 +10,12 @@ interface CommandArg {
   required: boolean
   value: string
   variadic: boolean
+}
+
+export interface commandEvent {
+  'all': AllMessageEvent;
+  'group': GroupMessageEvent;
+  'private': PrivateMessageEvent;
 }
 
 function removeBrackets(name: string): string {
@@ -62,20 +68,20 @@ function parseGroups(groups: { [key: string]: string; } = {}): string[] {
   return raw_args;
 }
 
-export class Command {
+export class Command<T extends keyof commandEvent = CommandMessageType> {
   name: string;
   desc: string;
   args: CommandArg[];
   min_level: UserLevel;
   max_level: UserLevel;
   bot!: Bot;
-  event!: AllMessageEvent;
-  message_type!: CommandMessageType;
+  event!: commandEvent[T];
   regex?: RegExp;
   func?: (...args: any[]) => any;
   stop?: (...args: any[]) => any;
 
   constructor(
+    public message_type: T,
     public raw_name: string,
     public extension: Extension,
   ) {
@@ -93,11 +99,6 @@ export class Command {
 
   sugar(regex: RegExp) {
     this.regex = regex;
-    return this;
-  }
-
-  type(message_type: CommandMessageType) {
-    this.message_type = message_type;
     return this;
   }
 
@@ -132,7 +133,7 @@ export class Command {
     return option[this.extension.name].apply;
   }
 
-  isMatched(event: AllMessageEvent) {
+  isMatched(event: commandEvent[T]) {
     const { raw_message, message_type, self_id } = event;
 
     // 匹配事件类型
