@@ -1,12 +1,11 @@
-
 import { join } from 'path';
 import { createHash } from 'crypto';
 import { readFile, writeFile } from 'fs/promises';
 import { Client, Config as Protocol, GroupRole, MemberIncreaseEvent, MemberDecreaseEvent, PrivateMessageEvent } from 'oicq';
 
-import { getConfig, setBotConfig } from './config';
+import { getConfig } from './config';
 import { emitter, AllMessageEvent } from './events';
-import { importAllExtension, extension, getExtensionList } from './extension';
+import { importAllExtension, bindBot, extension } from './extension';
 import { initSetting, Setting, writeSetting } from './setting';
 import { logger, deepMerge, section, deepClone } from './util';
 import { KOKKORO_VERSION, KOKKORO_UPDAY, KOKKORO_CHANGELOGS } from '.';
@@ -24,46 +23,30 @@ emitter.once('kokkoro.logined', () => {
       logger.mark(`加载了${extension_list.size}个扩展`);
 
       for (const [uin, bot] of bot_list) {
-        try {
-          // 初始化 setting.json
-          const setting = await initSetting(uin);
+        /**
+         * 初始化 setting.json 文件
+         * 
+         * 不做 catch 处理，如果在这里就报错，项目不应该继续执行下去
+         * 出现异常多半是在 Linux 环境下权限不足导致的本地文件读写失败
+         */
+        const setting = await initSetting(uin);
+        const extensions = setting.extensions;
 
-          // 恢复绑定 extensions
-          for (let i = 0; i < setting.extensions.length; i++) {
-            const name = setting.extensions[i];
-            const extension = extension_list.get(name)?.bindBot(bot);
+        // 恢复绑定 extensions
+        for (let i = 0; i < extensions.length; i++) {
+          const name = extensions[i];
 
-            // 更新 group setting
-            if (extension) {
-              const group_list = bot.getGroupList();
-
-              // 校验 option
-              for (const [group_id, group_info] of group_list) {
-                const { group_name } = group_info;
-
-                setting[group_id] ||= {
-                  name: group_name, extension: {},
-                };
-
-                if (setting[group_id].name !== group_name) {
-                  setting[group_id].name = group_name;
-                }
-                const option = setting[group_id].extension[name];
-
-                setting[group_id].extension[name] = deepMerge(extension.getOption(), option);
-              }
-            } else {
-              // 移除当前不存在的扩展 name
-              if (setting.extensions.length >= 1) {
-                setting.extensions.splice(i, 1), i--;
-              }
-              logger.error(`"${name}" import module failed, extension is undefined`);
+          try {
+            bindBot(name, bot);
+          } catch (error) {
+            // 移除当前不存在的扩展 name
+            if (extensions.length >= 1) {
+              extensions.splice(i, 1), i--;
             }
+            logger.error(`import module failed, ${(error as Error).message}`);
           }
-          await bot.setSetting(setting);
-        } catch (error) {
-          throw error;
         }
+        await bot.setSetting(setting);
       }
     })
     .catch(error => {
@@ -243,10 +226,13 @@ export class Bot extends Client {
   }
 
   async setSetting(setting: Setting) {
-    await writeSetting(this.uin, setting)
-      .then(() => {
+    await writeSetting(this.uin)
+      .then(rewrite => {
         this.setting = setting;
-        this.logger.mark('已更新 setting.yml');
+
+        if (rewrite) {
+          this.logger.mark('已更新 setting.yml');
+        }
       })
       .catch(error => {
         this.logger.error(`更新写入 setting.yml 失败，${error.message}`);
@@ -254,22 +240,20 @@ export class Bot extends Client {
   }
 
   getSetting() {
-    return deepClone(this.setting);
+    return this.setting;
   }
 
   updateExtensionsSetting(extensions: string[]): Promise<void> {
-    const old_setting = this.getSetting();
+    const setting = deepClone(this.setting);
 
     return new Promise((resolve, reject) => {
-      this.setting.extensions = extensions;
+      setting.extensions = extensions;
 
-      writeSetting(this.uin, this.setting)
+      this.setSetting(setting)
         .then(() => {
           resolve();
         })
         .catch(error => {
-          // TODO ⎛⎝≥⏝⏝≤⎛⎝ 数据回滚
-          this.setting = old_setting;
           reject(error);
         })
     })
@@ -315,8 +299,8 @@ export class Bot extends Client {
 
     this.on('system.online', this.onOnline);
     this.on('system.offline', this.onOffline);
-    this.on('notice.group.increase', this.onGroupIncrease);
-    this.on('notice.group.decrease', this.onGroupDecrease);
+    // this.on('notice.group.increase', this.onGroupIncrease);
+    // this.on('notice.group.decrease', this.onGroupDecrease);
   }
 
   private onOnline(): void {
@@ -328,122 +312,123 @@ export class Bot extends Client {
     this.logger.mark(`${this.nickname} 已离线，${event.message}`);
   }
 
-  private onGroupIncrease(event: MemberIncreaseEvent): void {
-    if (event.user_id !== this.uin) return;
+  //   private onGroupIncrease(event: MemberIncreaseEvent): void {
+  //     if (event.user_id !== this.uin) return;
 
-    const setting = this.getSetting();
-    const group_list = this.getGroupList();
-    const extension_list = getExtensionList();
+  //     const setting = this.getSetting();
+  //     const group_list = this.getGroupList();
+  //     const extension_list = getExtensionList();
 
-    for (const name of setting.extensions) {
-      const extension = extension_list.get(name)!;
+  //     for (const name of setting.extensions) {
+  //       const extension = extension_list.get(name)!;
 
-      for (const [group_id, group_info] of group_list) {
-        const { group_name } = group_info;
+  //       for (const [group_id, group_info] of group_list) {
+  //         const { group_name } = group_info;
 
-        setting[group_id] ||= {
-          name: group_name, extension: {},
-        };
+  //         setting[group_id] ||= {
+  //           name: group_name, extension: {},
+  //         };
 
-        if (setting[group_id].name !== group_name) {
-          setting[group_id].name = group_name;
-        }
-        setting[group_id].extension[name] = extension.getOption();
-      }
-    }
-    this.setSetting(setting);
-  }
+  //         if (setting[group_id].name !== group_name) {
+  //           setting[group_id].name = group_name;
+  //         }
+  //         setting[group_id].extension[name] = extension.getOption();
+  //       }
+  //     }
+  //     this.setSetting(setting);
+  //   }
 
-  private onGroupDecrease(event: MemberDecreaseEvent): void {
-    if (event.user_id !== this.uin) return;
+  //   private onGroupDecrease(event: MemberDecreaseEvent): void {
+  //     if (event.user_id !== this.uin) return;
 
-    const group_id = event.group_id;
-    const setting = this.getSetting();
+  //     const group_id = event.group_id;
+  //     const setting = this.getSetting();
 
-    delete setting[group_id];
-    this.setSetting(setting);
-  }
+  //     delete setting[group_id];
+  //     this.setSetting(setting);
+  //   }
 }
-export function getBot(uin: number): Bot | undefined {
-  return bot_list.get(uin);
-}
+
+// export function getBot(uin: number): Bot | undefined {
+//   return bot_list.get(uin);
+// }
 
 export function getBotList(): Map<number, Bot> {
   return bot_list;
 }
 
-/**
- * 添加一个新的 bot 并登录
- *
- * @param {Bot} this - 被私聊的 bot 对象
- * @param {number} uin - 添加的 uin
- * @param {PrivateMessageEvent} private_event 私聊消息 event
- */
-export function addBot(this: Bot, uin: number, private_event: PrivateMessageEvent) {
-  const config: Config = {
-    auto_login: true,
-    mode: 'qrcode',
-    masters: [private_event.sender.user_id],
-    protocol: {
-      log_level: 'info',
-      platform: 1,
-      ignore_self: true,
-      resend: true,
-      data_dir: './data/bot',
-      reconn_interval: 5,
-      cache_group_member: true,
-      auto_server: true,
-    }
-  };
-  const bot = new Bot(uin);
+// /**
+//  * 添加一个新的 bot 并登录
+//  *
+//  * @param {Bot} this - 被私聊的 bot 对象
+//  * @param {number} uin - 添加的 uin
+//  * @param {PrivateMessageEvent} private_event 私聊消息 event
+//  */
+// export function addBot(this: Bot, uin: number, private_event: PrivateMessageEvent) {
+//   const config: Config = {
+//     auto_login: true,
+//     mode: 'qrcode',
+//     masters: [private_event.sender.user_id],
+//     protocol: {
+//       log_level: 'info',
+//       platform: 1,
+//       ignore_self: true,
+//       resend: true,
+//       data_dir: './data/bot',
+//       reconn_interval: 5,
+//       cache_group_member: true,
+//       auto_server: true,
+//     }
+//   };
+//   const bot = new Bot(uin);
 
-  bot
-    .on('system.login.qrcode', (event) => {
-      private_event.reply([
-        section.image(event.image),
-        '\n使用手机 QQ 扫码登录，输入 “cancel” 取消登录',
-      ]);
+//   bot
+//     .on('system.login.qrcode', (event) => {
+//       private_event.reply([
+//         section.image(event.image),
+//         '\n使用手机 QQ 扫码登录，输入 “cancel” 取消登录',
+//       ]);
 
-      const listenLogin = (event: PrivateMessageEvent) => {
-        if (event.sender.user_id === private_event.sender.user_id && event.raw_message === 'cancel') {
-          bot.terminate();
-          clearInterval(interval_id);
-          private_event.reply('登录已取消');
-        }
-      }
-      const interval_id = setInterval(async () => {
-        const { retcode } = await bot.queryQrcodeResult();
+//       const listenLogin = (event: PrivateMessageEvent) => {
+//         if (event.sender.user_id === private_event.sender.user_id && event.raw_message === 'cancel') {
+//           bot.terminate();
+//           clearInterval(interval_id);
+//           private_event.reply('登录已取消');
+//         }
+//       }
+//       const interval_id = setInterval(async () => {
+//         const { retcode } = await bot.queryQrcodeResult();
 
-        if (retcode === 0 || ![48, 53].includes(retcode)) {
-          bot.login();
-          clearInterval(interval_id);
-          retcode && private_event.reply(`Error: 错误代码 ${retcode}`);
-          this.off('message.private', listenLogin);
-        }
-      }, 2000);
+//         if (retcode === 0 || ![48, 53].includes(retcode)) {
+//           bot.login();
+//           clearInterval(interval_id);
+//           retcode && private_event.reply(`Error: 错误代码 ${retcode}`);
+//           this.off('message.private', listenLogin);
+//         }
+//       }, 2000);
 
-      this.on('message.private', listenLogin)
-    })
-    .once('system.login.error', data => {
-      this.terminate();
-      private_event.reply(`Error: ${data.message}`);
-    })
-    .once('system.online', () => {
-      setBotConfig(uin, config)
-        .then(() => {
-          bot.logger.mark('写入 kokkoro.yml 成功');
-        })
-        .catch(() => {
-          bot.logger.error('写入 kokkoro.yml 失败');
-        })
-        .finally(() => {
-          bot_list.set(uin, bot);
-          private_event.reply('登录成功');
-          // TODO ⎛⎝≥⏝⏝≤⎛⎝ 绑定扩展 bindAllExtension & setting 更新
-        });
-    })
-    .login();
-}
+//       this.on('message.private', listenLogin)
+//     })
+//     .once('system.login.error', data => {
+//       this.terminate();
+//       private_event.reply(`Error: ${data.message}`);
+//     })
+//     .once('system.online', () => {
+//       setBotConfig(uin, config)
+//         .then(() => {
+//           bot.logger.mark('写入 kokkoro.yml 成功');
+//         })
+//         .catch(() => {
+//           bot.logger.error('写入 kokkoro.yml 失败');
+//         })
+//         .finally(() => {
+//           bot_list.set(uin, bot);
+//           private_event.reply('登录成功');
+//           // TODO ⎛⎝≥⏝⏝≤⎛⎝ 绑定扩展 bindAllExtension & setting 更新
+//         });
+//     })
+//     .login();
+// }
 
 export async function startup() {
   process.title = 'kokkoro';
@@ -459,16 +444,15 @@ export async function startup() {
 
   for (const uin in bots) {
     const config = bots[uin];
-    const qq = +uin;
-    const bot = new Bot(qq, config);
+    const bot = new Bot(+uin, config);
 
-    bot_list.set(qq, bot);
+    bot_list.set(bot.uin, bot);
 
     if (!config.auto_login) continue;
-    await bot
-      .linkStart()
-      .catch(error => { })
-      .finally(() => { logined = true; })
+
+    await bot.linkStart()
+      .then(() => { logined = true; })
+      .catch(error => { bot.logger.error(error.message); })
   }
 
   if (logined) {

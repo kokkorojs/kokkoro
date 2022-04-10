@@ -5,11 +5,10 @@ import { writeFile, readFile } from 'fs/promises';
 
 // import { getConfig, KokkoroConfig } from "./config";
 
-// // import { Bot } from './bot';
-// // import { parseCommand } from './command';
-import { deepClone, getStack, logger } from './util';
-import { getExtensionList, Option } from './extension';
 import { Bot } from './bot';
+// // import { parseCommand } from './command';
+import { deepClone, deepMerge, getStack, logger } from './util';
+import { getExtensionList, Option } from './extension';
 // // import { getPlugin } from './plugin';
 
 // 群聊
@@ -38,20 +37,19 @@ const setting_list: Map<number, Setting> = new Map();
  * @param {number} uin 机器人账号
  */
 export function initSetting(uin: number): Promise<Setting> {
-  let setting: Setting;
+  const setting: Setting = { extensions: [] };
   const setting_path = resolve(__workname, `data/bot/${uin}/setting.yml`);
 
+  setting_list.set(uin, setting);
   return new Promise(async (resolve, reject) => {
     await readFile(setting_path, 'utf8')
-      .then((value: string) => {
-        setting = parse(value);
+      .then(base_setting => {
+        const local_setting = parse(base_setting);
 
-        if (!setting) {
-          throw new Error('setting is empty file');
-        }
+        deepMerge(setting, local_setting);
       })
       .catch(async (error: Error) => {
-        const rewrite = !error.message.includes('ENOENT: no such file or directory') && !error.message.includes('setting is empty file');
+        const rewrite = !error.message.includes('ENOENT: no such file or directory');
 
         if (rewrite) {
           reject(error);
@@ -59,19 +57,20 @@ export function initSetting(uin: number): Promise<Setting> {
         const extension_list = getExtensionList();
         const extension_keys = extension_list.keys();
 
-        setting = { extensions: [...extension_keys] };
+        // 不存在 setting.yml 就将本地全部模块写入列表
+        setting.extensions = [...extension_keys];
 
-        await writeSetting(uin, setting)
+        await writeSetting(uin)
           .then(() => {
             logger.mark(`创建了新的设置文件: data/bot/${uin}/setting.yml`);
           })
           .catch((error: Error) => {
+            logger.error(`Error: ${error.message}`);
             reject(error);
           })
       })
       .finally(() => {
-        setting_list.set(uin, setting);
-        resolve(deepClone(setting));
+        resolve(setting);
       })
   })
 }
@@ -95,8 +94,6 @@ export function getSetting(uin: number): Setting | undefined {
   return setting_list.get(uin);
 }
 
-
-
 // // 写入群聊扩展设置
 // export async function setSetting(uin: number, setting: Setting) {
 //   if (!setting_list.has(uin)) {
@@ -115,20 +112,28 @@ export function getSetting(uin: number): Setting | undefined {
 //   }
 // }
 
-export function writeSetting(uin: number, setting: Setting): Promise<void> {
-  const old_setting = setting_list.get(uin);
+export async function writeSetting(uin: number): Promise<boolean> {
+  const setting = getSetting(uin);
   const setting_path = resolve(__workname, `data/bot/${uin}/setting.yml`);
 
-  if (JSON.stringify(old_setting) !== JSON.stringify(setting)) {
-    return writeFile(setting_path, stringify(setting));
-  } else {
-    return Promise.resolve();
+  try {
+    const base_setting = await readFile(setting_path, 'utf8');
+    const local_setting: Setting = parse(base_setting);
+
+    if (JSON.stringify(local_setting) !== JSON.stringify(setting)) {
+      await writeFile(setting_path, stringify(setting));
+      return true;
+    } else {
+      return false;
+    }
+  } catch (error) {
+    throw error;
   }
 }
 
 /**
  * 更新 bot setting.yml (一般在进入或退出群聊时调用)
- * 
+ *
  * @param bot - bot 对象
  * @returns Promise
  */
