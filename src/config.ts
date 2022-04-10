@@ -17,23 +17,23 @@ export interface KokkoroConfig {
 }
 
 const config_path: string = resolve(__workname, 'kokkoro.yml');
-const config_data: string = readFileSync(config_path, 'utf8');
-const kokkoro_config: KokkoroConfig = parse(config_data);
+const base_config: string = readFileSync(config_path, 'utf8');
+const kokkoro_config: KokkoroConfig = parse(base_config);
 
 function writeConfig() {
   return writeFile(config_path, stringify(kokkoro_config));
 }
 
-export function setBotConfig(uin: number, config: Config) {
-  kokkoro_config.bots[uin] = config;
-  return writeConfig();
-}
+// export function setBotConfig(uin: number, config: Config) {
+//   kokkoro_config.bots[uin] = config;
+//   return writeConfig();
+// }
 
-export function cutBotConfig(uin: number) {
-  const { bots } = kokkoro_config;
-  delete bots[uin];
-  return writeConfig();
-}
+// export function cutBotConfig(uin: number) {
+//   const { bots } = kokkoro_config;
+//   delete bots[uin];
+//   return writeConfig();
+// }
 
 export function getConfig() {
   return kokkoro_config;
