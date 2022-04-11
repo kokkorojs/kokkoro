@@ -1,7 +1,7 @@
 import { GroupMessageEvent, PrivateMessageEvent } from 'oicq';
 
 import { Bot, UserLevel } from './bot';
-import { Extension } from './extension';
+import { Plugin } from './plugin';
 import { AllMessageEvent } from './events';
 
 export type CommandMessageType = 'all' | 'group' | 'private';
@@ -69,21 +69,22 @@ function parseGroups(groups: { [key: string]: string; } = {}): string[] {
 }
 
 export class Command<T extends keyof commandEvent = CommandMessageType> {
-  public name: string;
-  private desc: string;
-  public args: CommandArg[];
+  private regex?: RegExp;
   private min_level: UserLevel;
   private max_level: UserLevel;
+
   public bot!: Bot;
   public event!: commandEvent[T];
-  private regex?: RegExp;
+  public name: string;
+  public desc: string;
+  public args: CommandArg[];
   public func?: (...args: any[]) => any;
   public stop?: (...args: any[]) => any;
 
   constructor(
     public message_type: T,
-    private raw_name: string,
-    private extension: Extension,
+    public raw_name: string,
+    public plugin: Plugin,
   ) {
     this.name = removeBrackets(raw_name);
     this.args = findAllBrackets(raw_name);
@@ -130,7 +131,7 @@ export class Command<T extends keyof commandEvent = CommandMessageType> {
     const group_id = (this.event as GroupMessageEvent).group_id;
     const option = this.bot.getOption(group_id);
 
-    return option[this.extension.name].apply;
+    return option[this.plugin.name].apply;
   }
 
   isLimit(): boolean {
@@ -147,22 +148,22 @@ export class Command<T extends keyof commandEvent = CommandMessageType> {
     }
 
     this.event = event;
-    this.bot = this.extension.getBot(self_id)!;
+    this.bot = this.plugin.getBot(self_id)!;
 
     // 空字段指令匹配
     const raw_name = raw_message.split(' ');
 
-    if (this.extension.name === '') {
+    if (this.plugin.name === '') {
       raw_name.unshift('');
     }
-    let [extension_name, command_name] = raw_name;
+    let [plugin_name, command_name] = raw_name;
 
     // 语法糖解析
     if (this.regex && this.regex.test(raw_message)) {
       command_name = this.name;
-      extension_name = this.extension.name;
+      plugin_name = this.plugin.name;
     }
-    return this.extension.name === extension_name && this.name === command_name;
+    return this.plugin.name === plugin_name && this.name === command_name;
   }
 
   parseArgs(raw_message: string): (string | string[])[] {
@@ -178,7 +179,7 @@ export class Command<T extends keyof commandEvent = CommandMessageType> {
     } else {
       raw_args.push(
         ...raw_message
-          .replace(new RegExp(this.extension.name), '')
+          .replace(new RegExp(this.plugin.name), '')
           .replace(new RegExp(this.name), '')
           .split(' ')
           .filter(i => i !== '')
@@ -197,7 +198,7 @@ export class Command<T extends keyof commandEvent = CommandMessageType> {
          * TODO ⎛⎝≥⏝⏝≤⎛⎝ 当 command 传入多字段时优化
          *
          * 例如 command('test <...argv1> <argv2>') 时，argv2 是 unfettered
-         * 待定解决方案， (raw_args.length - args_index)
+         * 暂定解决方案， (raw_args.length - args_index)
          */
         for (; raw_args_index < raw_args.length; raw_args_index++) {
           argv.push(raw_args[raw_args_index]);
@@ -208,69 +209,3 @@ export class Command<T extends keyof commandEvent = CommandMessageType> {
     return args;
   }
 }
-
-// // // all_command.group = {
-// // //   async list(param, event) {
-// // //     const { uin } = this;
-// // //     const { group_id } = event as GroupMessageEvent;
-
-// // //     return getList(uin, group_id);
-// // //   },
-// // // };
-
-// // // all_command.private = {
-
-// // //   async plugin() {
-// // //     const message: string[] = [];
-
-// // //     await findAllPlugin()
-// // //       .then(({ plugin_modules, node_modules, all_plugin }) => {
-// // //         const plugins = [...plugin_modules, ...node_modules].map(i => i.replace('kokkoro-plugin-', ''));
-
-// // //         message.push(`# 当前目录共检索到 ${plugins.length} 个插件\nplugins:`);
-
-// // //         for (let plugin_name of plugins) {
-// // //           const plugin = all_plugin.get(plugin_name);
-
-// // //           message.push(`  ${plugin_name}: ${plugin?.roster.has(this.uin) ? 'enable' : 'disable'}`);
-// // //         }
-// // //       })
-// // //       .catch(error => {
-// // //         message.push(`Error: ${error.message}`);
-// // //       })
-
-// // //     return message.join('\n');
-// // //   },
-
-
-// // //   async delete(param) {
-// // //     const uin = +param[0];
-// // //     const bot = getBot(uin);
-
-// // //     if (!bot)
-// // //       return `Error: 账号输入错误，无法找到该实例`;
-// // //     if (bot.isOnline()) {
-// // //       return `Error：此机器人正在登录中，请先注销在删除`;
-// // //     }
-// // //     await disableAllPlugin(bot);
-// // //     await cutBotConfig(uin);
-
-// // //     return `Sucess：已删除此机器人实例`;
-// // //   },
-// // // };
-
-// // // /**
-// // //  * 添加插件命令
-// // //  */
-// // // async function addPluginCommand() {
-// // //   const { plugin_modules, node_modules } = await findAllPlugin();
-// // //   const plugins = [...plugin_modules, ...node_modules].map(i => i.replace('kokkoro-plugin-', ''));
-
-// // //   for (const plugin_name of plugins) {
-// // //     all_command.group[plugin_name] = async (param, event, plugin = plugin_name) => {
-// // //       return setOption([plugin, ...param], <GroupMessageEvent>event);
-// // //     }
-// // //   }
-// // // }
-
-// // // addPluginCommand();

@@ -24,10 +24,10 @@ function writeConfig() {
   return writeFile(config_path, stringify(kokkoro_config));
 }
 
-// export function setBotConfig(uin: number, config: Config) {
-//   kokkoro_config.bots[uin] = config;
-//   return writeConfig();
-// }
+export function setBotConfig(uin: number, config: Config) {
+  kokkoro_config.bots[uin] = config;
+  return writeConfig();
+}
 
 // export function cutBotConfig(uin: number) {
 //   const { bots } = kokkoro_config;
