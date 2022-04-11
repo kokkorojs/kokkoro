@@ -8,23 +8,23 @@ import { writeFile, readFile } from 'fs/promises';
 import { Bot } from './bot';
 // // import { parseCommand } from './command';
 import { deepClone, deepMerge, getStack, logger } from './util';
-import { getExtensionList, Option } from './extension';
+import { getPluginList, Option } from './plugin';
 // // import { getPlugin } from './plugin';
 
 // 群聊
 export interface Group {
   // 群名称
   name: string;
-  // 扩展
-  extension: {
-    // 扩展名
+  // 插件
+  plugin: {
+    // 插件名
     [name: string]: Option;
   }
 }
 
 export interface Setting {
-  // 扩展列表
-  extensions: string[];
+  // 插件列表
+  plugins: string[];
   // 群聊列表
   [group_id: number]: Group
 }
@@ -37,7 +37,7 @@ const setting_list: Map<number, Setting> = new Map();
  * @param {number} uin 机器人账号
  */
 export function initSetting(uin: number): Promise<Setting> {
-  const setting: Setting = { extensions: [] };
+  const setting: Setting = { plugins: [] };
   const setting_path = resolve(__workname, `data/bot/${uin}/setting.yml`);
 
   setting_list.set(uin, setting);
@@ -54,13 +54,13 @@ export function initSetting(uin: number): Promise<Setting> {
         if (rewrite) {
           reject(error);
         }
-        const extension_list = getExtensionList();
-        const extension_keys = extension_list.keys();
+        const plugin_list = getPluginList();
+        const plugin_keys = plugin_list.keys();
 
         // 不存在 setting.yml 就将本地全部模块写入列表
-        setting.extensions = [...extension_keys];
+        setting.plugins = [...plugin_keys];
 
-        await writeSetting(uin)
+        await writeFile(setting_path, stringify(setting))
           .then(() => {
             logger.mark(`创建了新的设置文件: data/bot/${uin}/setting.yml`);
           })
@@ -76,7 +76,7 @@ export function initSetting(uin: number): Promise<Setting> {
 }
 
 // /**
-//  * 获取所有群聊扩展设置
+//  * 获取所有群聊插件设置
 //  *
 //  * @returns {Map} setting 集合
 //  */
@@ -85,50 +85,59 @@ export function initSetting(uin: number): Promise<Setting> {
 // }
 
 /**
- * 获取当前群聊扩展设置
+ * 获取当前群聊插件设置
  *
  * @param {number} uin - bot 账号
  * @returns {Setting} setting 对象
  */
-export function getSetting(uin: number): Setting | undefined {
-  return setting_list.get(uin);
+export async function getSetting(uin: number): Promise<Setting> {
+  if (!setting_list.has(uin)) {
+    throw new Error(`setting "${uin}" is undefined`);
+  }
+  return setting_list.get(uin)!;
 }
 
-// // 写入群聊扩展设置
-// export async function setSetting(uin: number, setting: Setting) {
+/**
+ * 写入群聊插件设置
+ * 
+ * @param uin - bot uin
+ * @param local_setting - local setting data
+ * @returns {Promise}
+ */
+// export async function setSetting(uin: number, local_setting: Setting): Promise<void> {
 //   if (!setting_list.has(uin)) {
-//     throw new Error(`uin: ${uin} 不存在 setting.json`);
+//     throw new Error(`setting "${uin}" is undefined`);
 //   }
-//   const old_setting = getSetting(uin)!;
-//   const setting_path = resolve(__workname, `data/bot/${uin}/setting.yml`);
-
-//   if (JSON.stringify(old_setting) !== JSON.stringify(setting)) {
-//     try {
-//       await writeSetting(setting_path, setting);
-//       setting_list.set(uin, setting);
-//     } catch (error) {
+//   getSetting(uin)
+//     .then(setting => {
+//       setting = local_setting;
+//     })
+//     .catch(error => {
 //       throw error;
-//     }
-//   }
+//     })
 // }
 
-export async function writeSetting(uin: number): Promise<boolean> {
-  const setting = getSetting(uin);
+export function writeSetting(uin: number): Promise<boolean> {
   const setting_path = resolve(__workname, `data/bot/${uin}/setting.yml`);
 
-  try {
-    const base_setting = await readFile(setting_path, 'utf8');
-    const local_setting: Setting = parse(base_setting);
+  return new Promise((resolve, reject) => {
+    Promise.all([getSetting(uin), readFile(setting_path, 'utf8')])
+      .then(async values => {
+        const [setting, base_setting] = values;
+        const local_setting: Setting = parse(base_setting);
 
-    if (JSON.stringify(local_setting) !== JSON.stringify(setting)) {
-      await writeFile(setting_path, stringify(setting));
-      return true;
-    } else {
-      return false;
-    }
-  } catch (error) {
-    throw error;
-  }
+        // 与本地 setting 作对比
+        if (JSON.stringify(local_setting) !== JSON.stringify(setting)) {
+          await writeFile(setting_path, stringify(setting));
+          resolve(true);
+        } else {
+          resolve(false);
+        }
+      })
+      .catch(error => {
+        reject(error);
+      })
+  })
 }
 
 /**
@@ -147,26 +156,26 @@ export async function writeSetting(uin: number): Promise<boolean> {
 //       const { group_name } = group_info;
 
 //       setting[group_id] ||= {
-//         name: group_name, extension: {},
+//         name: group_name, plugin: {},
 //       };
 
 //       if (setting[group_id].name !== group_name) {
 //         setting[group_id].name = group_name;
 //       }
-//       const option = setting[group_id].extension[name];
+//       const option = setting[group_id].plugin[name];
 
-//       setting[group_id].extension[name] = deepMerge(extension.getOption(), option);
+//       setting[group_id].plugin[name] = deepMerge(plugin.getOption(), option);
 //     }
 //   });
 // }
 
-// export function updateExtensionsSetting(uin: number, extensions: string[]): Promise<void> {
+// export function updatePluginsSetting(uin: number, plugins: string[]): Promise<void> {
 //   if (!setting_list.has(uin)) {
 //     throw new Error(`data/bot/${uin}/setting.yml 不存在`);
 //   }
 //   const setting = getSetting(uin)!;
 
-//   setting.extensions = [...extensions];
+//   setting.plugins = [...plugins];
 //   return writeSetting(uin, setting);
 // }
 
@@ -175,7 +184,7 @@ export async function writeSetting(uin: number): Promise<boolean> {
 // }
 
 // // /**
-// //  * 获取群聊扩展列表
+// //  * 获取群聊插件列表
 // //  *
 // //  * @param {Bot} this - 机器人实例
 // //  * @param {number} group_id - 群号
@@ -189,7 +198,7 @@ export async function writeSetting(uin: number): Promise<boolean> {
 // //   return stringify(message);
 // // }
 
-// // // 获取当前扩展的群聊选项
+// // // 获取当前插件的群聊选项
 // // export function getOption(event: GroupMessageEvent | MemberIncreaseEvent | MemberDecreaseEvent) {
 // //   const self_id = event.self_id;
 // //   const group_id = event.group_id;
@@ -203,7 +212,7 @@ export async function writeSetting(uin: number): Promise<boolean> {
 // // }
 
 // // /**
-// //  * 获取当前扩展的群聊选项
+// //  * 获取当前插件的群聊选项
 // //  *
 // //  * @param param
 // //  * @param event

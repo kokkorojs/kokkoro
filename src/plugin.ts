@@ -1,362 +1,927 @@
-// import { join } from 'path';
-// import { Dirent } from 'fs';
-// import { readdir, mkdir } from 'fs/promises';
-// import { PrivateMessageEvent, GroupMessageEvent, GroupInfo, MemberIncreaseEvent, MemberDecreaseEvent } from 'oicq';
+import { join } from 'path';
+import { stringify } from 'yaml';
+import { Dirent } from 'fs';
+import { readdir, mkdir } from 'fs/promises';
+import { spawn } from 'child_process';
+import { EventEmitter } from 'events';
+import { EventMap, PrivateMessageEvent } from 'oicq';
+import { Job, JobCallback, scheduleJob } from 'node-schedule';
 
-// import { deepClone, logger } from './util';
-// import { AllMessageEvent, Bot, getBot } from './bot';
-// import { getSetting, setSetting, Option } from './setting';
+import { Listen } from './listen';
+import { KOKKORO_VERSION } from '.';
+import { AllMessageEvent, emitter } from './events';
+import { getSetting, writeSetting } from './setting';
+import { Bot, getBotList, addBot, getBot } from './bot';
+import { Command, commandEvent, CommandMessageType } from './command';
+import { deepClone, deepMerge, getStack, logger, section } from './util';
 
-// // 所有插件实例
-// const all_plugin = new Map<string, Plugin>();
-// const plugins_path = join(__workname, '/plugins');
-// const modules_path = join(__workname, '/node_modules');
+const modules_path = join(__workname, 'node_modules');
+const plugins_path = join(__workname, 'plugins');
+const plugin_list: Map<string, Plugin> = new Map();
 
-// export interface Order {
-//   func: (...param: any) => any;
-//   regular: RegExp;
-// }
+// 插件选项
+export interface Option {
+  // 锁定，默认 false
+  lock: boolean;
+  // 开关，默认 true
+  apply: boolean;
+  // 其它设置
+  [param: string]: string | number | boolean | Array<string | number>;
+}
 
-// export interface Extension {
-//   bot: Bot;
-//   option?: Option;
-//   orders?: Order[];
-//   onInit?(): void;
-//   onDestroy?(): void;
-//   onMessage?(event: AllMessageEvent): void;
-//   onGroupMessage?(event: GroupMessageEvent): void;
-//   onPrivateMessage?(event: PrivateMessageEvent): void;
-//   onMemberIncrease?(event: MemberIncreaseEvent): void;
-//   onMemberDecrease?(event: MemberDecreaseEvent): void;
-// }
+export class Plugin extends EventEmitter {
+  private ver: string;
+  private path: string;
 
-// class Plugin {
-//   private option: Option;
-//   private readonly name: string;
-//   private readonly path: string;
-//   public readonly roster = new Map<number, Extension>();
+  private args: (string | string[])[];
+  private jobs: Job[];
+  private bot_list: Map<number, Bot>;
+  private events: Set<string>;
+  private command_list: Map<string, Command>;
+  private listen_list: Map<string, Listen>
 
-//   constructor(name: string, path: string) {
-//     require(path);
+  constructor(
+    public name: string = '',
+    private option: Option = { apply: true, lock: false },
+  ) {
+    super();
+    const stack = getStack();
+    const path = stack[2].getFileName()!;
 
-//     this.name = name;
-//     this.path = require.resolve(path);
-//     this.option = { lock: false, apply: true };
-//   }
+    this.path = path;
+    this.ver = '0.0.0';
+    this.args = [];
+    this.jobs = [];
+    this.bot_list = new Map();
+    this.events = new Set();
+    this.command_list = new Map();
+    this.listen_list = new Map();
 
-//   private update(bot: Bot, method: 'add' | 'delete') {
-//     const uin = bot.uin;
-//     const group_list = bot.getGroupList();
-//     const setting = getSetting(uin)!;
-//     const plugins = new Set(setting.plugins);
+    //#region 帮助指令
+    const helpCommand = new Command('all', 'help', this)
+      .description('帮助信息')
+      .action(function () {
+        const message = ['Commands: '];
 
-//     for (const [group_id, group] of group_list) {
-//       setting[group_id] ||= {
-//         name: group.group_name, plugin: {},
-//       };
+        for (const [_, command] of this.plugin.command_list) {
+          const { raw_name, desc } = command;
+          message.push(`  ${raw_name}  ${desc}`);
+        }
+        this.event.reply(message.join('\n'));
+      });
+    //#endregion
+    //#region 版本指令
+    const versionCommand = new Command('all', 'version', this)
+      .description('版本信息')
+      .action(function () {
+        const plugin = this.plugin;
 
-//       if (setting[group_id].name !== group.group_name) {
-//         setting[group_id].name = group.group_name;
-//       }
+        if (plugin.name) {
+          this.event.reply(`${plugin.name} v${plugin.ver}`);
+        } else {
+          this.event.reply(`kokkoro v${KOKKORO_VERSION}`);
+        }
+      });
+    //#endregion
 
-//       const option = setting[group_id].plugin[this.name];
-//       setting[group_id].plugin[this.name] = { ...deepClone(this.option), ...option };
-//     }
+    this.parse = this.parse.bind(this);
+    this.trigger = this.trigger.bind(this);
+    this.on('plugin.bind', this.bindEvents);
+    this.command_list.set(helpCommand.name, helpCommand);
+    this.command_list.set(versionCommand.name, versionCommand);
+  }
 
-//     plugins[method](this.name);
-//     setting.plugins = [...plugins];
+  command<T extends keyof commandEvent>(raw_name: string, message_type: T | CommandMessageType = 'all'): Command<T> {
+    const command = new Command(message_type, raw_name, this);
 
-//     return setSetting(uin, setting);
-//   }
+    this.events.add('message');
+    this.command_list.set(command.name, command);
+    return command as unknown as Command<T>;
+  }
 
-//   async enable(bot: Bot): Promise<void> {
-//     const { uin } = bot;
+  listen<T extends keyof EventMap>(event_name: T) {
+    const listener = new Listen(event_name, this);
 
-//     if (this.roster.has(uin)) {
-//       throw new Error("这个机器人实例已经启用了此扩展");
-//     }
+    this.events.add(event_name);
+    this.listen_list.set(listener.name, listener);
+    return listener;
+  }
 
-//     const module = require.cache[this.path]!;
-//     const extension: Extension = module.exports.default
-//       ? new module.exports.default(bot)
-//       : new module.exports(bot);
+  schedule(cron: string, func: JobCallback) {
+    const job = scheduleJob(cron, func);
 
-//     if (extension.option) Object.assign(this.option, extension.option);
-//     if (extension.onInit) extension.onInit();
-//     if (extension.onMessage) {
-//       extension.onMessage = extension.onMessage.bind(extension);
-//       bot.on('message', extension.onMessage);
-//     };
-//     if (extension.onGroupMessage) {
-//       extension.onGroupMessage = extension.onGroupMessage.bind(extension);
-//       bot.on('message.group', extension.onGroupMessage);
-//     }
-//     if (extension.onPrivateMessage) {
-//       extension.onPrivateMessage = extension.onPrivateMessage.bind(extension);
-//       bot.on('message.private', extension.onPrivateMessage);
-//     }
-//     if (extension.onMemberIncrease) {
-//       extension.onMemberIncrease = extension.onMemberIncrease.bind(extension);
-//       bot.on('notice.group.increase', extension.onMemberIncrease);
-//     }
-//     if (extension.onMemberDecrease) {
-//       extension.onMemberDecrease = extension.onMemberDecrease.bind(extension);
-//       bot.on('notice.group.decrease', extension.onMemberDecrease);
-//     }
+    this.jobs.push(job);
+    return this;
+  }
 
-//     await this.update(bot, 'add')
-//       .then(() => { this.roster.set(uin, extension); })
-//       .catch(error => { throw error; })
-//   }
+  private clearSchedule() {
+    for (const job of this.jobs) {
+      job.cancel();
+    }
+  }
 
-//   async disable(bot: Bot, update: boolean = true): Promise<void> {
-//     const { uin } = bot;
+  // 指令解析器
+  private parse(event: AllMessageEvent) {
+    for (const [_, command] of this.command_list) {
+      if (command.isMatched(event)) {
+        this.args = command.parseArgs(event.raw_message);
+        this.runCommand(command);
+        // TODO ⎛⎝≥⏝⏝≤⎛⎝ 插件事件
+        // this.emit(`plugin.${this.name}`, event);
+      }
+    }
+  }
 
-//     if (!this.roster.has(uin)) {
-//       throw new Error(`这个机器人实例尚未启用此扩展`);
-//     }
+  // 事件触发器
+  private trigger(event: any) {
+    for (const [_, listen] of this.listen_list) {
+      listen.func && listen.func(event);
+    }
+  }
 
-//     const extension = this.roster.get(uin)!;
+  // 执行指令
+  private runCommand(command: Command) {
+    const args_length = this.args.length;
 
-//     if (extension.onDestroy) extension.onDestroy();
-//     if (extension.onMessage) bot.off('message', extension.onMessage);
-//     if (extension.onGroupMessage) bot.off('message.group', extension.onGroupMessage);
-//     if (extension.onPrivateMessage) bot.off('message.private', extension.onPrivateMessage);
-//     if (extension.onMemberIncrease) bot.off('notice.group.increase', extension.onMemberIncrease);
-//     if (extension.onMemberDecrease) bot.off('notice.group.decrease', extension.onMemberDecrease);
+    for (let i = 0; i < args_length; i++) {
+      const { required, value } = command.args[i];
+      const argv = this.args[i];
 
-//     if (update) {
-//       await this.update(bot, 'delete')
-//         .catch(error => { throw error; })
-//     }
-//     this.roster.delete(uin);
-//   }
+      if (required && !argv) {
+        return command.event.reply(`Error: <${value}> cannot be empty`);
+      } else if (required && !argv.length) {
+        return command.event.reply(`Error: <...${value}> cannot be empty`);
+      }
+    }
 
-//   async destroy() {
-//     const uins = [...this.roster.keys()];
+    // TODO ⎛⎝≥⏝⏝≤⎛⎝ 待优化
+    if (command.isLimit()) {
+      command.event.reply('权限不足');
+    } else if (command.func && !command.plugin.name) {
+      command.func(...this.args);
+    } else if (command.message_type !== 'private' && command.stop && !command.isApply()) {
+      command.stop();
+    } else if (command.message_type !== 'private' && command.func && command.isApply()) {
+      command.func(...this.args);
+    } else if (command.message_type === 'private' && command.func) {
+      command.func(...this.args);
+    }
+  }
 
-//     for (const uin of uins) {
-//       const bot = getBot(uin)!;
+  // 绑定 bot 事件
+  bindEvents(bot: Bot): void {
+    for (const event_name of this.events) {
+      if (event_name === 'message') {
+        bot.on(event_name, this.parse);
+        this.once('plugin.unbind', () => bot.off(event_name, this.parse));
+      } else {
+        bot.on(event_name, this.trigger);
+        this.once('plugin.unbind', () => bot.off(event_name, this.trigger));
+      }
+    }
+  }
 
-//       await this.disable(bot, false)
-//         .catch(error => { throw new Error(`重启插件时遇到错误\n${error.message}`); });
-//     }
+  getOption() {
+    // 深拷贝防止 default option 被修改
+    return deepClone(this.option);
+  }
 
-//     const module = require.cache[this.path]!;
-//     const index = module.parent?.children.indexOf(module) as number;
+  hasBot(uin: number) {
+    return this.bot_list.has(uin);
+  }
 
-//     if (index >= 0) {
-//       module.parent?.children.splice(index, 1);
-//     }
+  getBot(uin: number): Bot | undefined {
+    return this.bot_list.get(uin);
+  }
 
-//     for (const path in require.cache) {
-//       if (require.cache[path]?.id.startsWith(module.path)) {
-//         delete require.cache[path]
-//       }
-//     }
+  getBotList(): Map<number, Bot> {
+    return this.bot_list;
+  }
 
-//     delete require.cache[this.path];
-//   }
+  bindBot(bot: Bot): Plugin {
+    const { uin } = bot;
 
-//   async reload(): Promise<void> {
-//     const uins = [...this.roster.keys()];
+    if (this.bot_list.has(uin)) {
+      throw new Error('jesus, how the hell did you get in here?');
+    }
+    this.bot_list.set(uin, bot);
+    this.emit('plugin.bind', bot);
+    return this;
+  }
 
-//     try {
-//       await this.destroy()
-//       require(this.path);
+  unbindBot(bot: Bot): void {
+    const { uin } = bot;
 
-//       for (const uin of uins) {
-//         const bot = getBot(uin)!;
-//         await this.enable(bot);
-//       }
-//     } catch (error) {
-//       const { message } = error as Error;
-//       throw new Error(`重启插件时遇到错误\n${message}`);
-//     }
-//   }
+    if (!this.bot_list.has(uin)) {
+      throw new Error('jesus, how the hell did you get in here?');
+    }
+    this.clearSchedule();
+    this.bot_list.delete(uin);
+    this.emit('plugin.unbind');
+  }
 
-//   getOption() {
-//     return this.option;
-//   }
-// }
+  // 销毁
+  destroy() {
+    for (const [_, bot] of this.bot_list) {
+      this.unbindBot(bot);
+    }
+    this.off('plugin.bind', this.bindEvents);
+    plugin_list.delete(this.name);
+    destroyPlugin(this.path);
+  }
+}
 
-// /**
-//  * 导入插件
-//  *
-//  * @param {string} name - 插件名
-//  * @returns {Plugin} 插件实例对象
-//  */
-// async function importPlugin(name: string): Promise<Plugin> {
-//   if (all_plugin.has(name)) return all_plugin.get(name)!;
+export const extension = new Plugin();
 
-//   let plugin_path = '';
-//   const plugins_dir = await readdir(plugins_path, { withFileTypes: true });
+//#region 测试
+extension
+  .command('test')
+  .description('测试')
+  .sugar(/^(测试)$/)
+  .action(function () {
+    // ...
+  });
+//#endregion
 
-//   for (const dir of plugins_dir) {
-//     if ((dir.isDirectory() || dir.isSymbolicLink()) && (dir.name === name || dir.name === 'kokkoro-plugin-' + name)) {
-//       plugin_path = join(plugins_path, dir.name);
-//       break;
-//     }
-//   }
+//#region 重启
+extension
+  .command('restart')
+  .description('重启进程')
+  .limit(5)
+  .sugar(/^重启$/)
+  .action(function () {
+    setTimeout(() => {
+      spawn(
+        process.argv.shift()!,
+        process.argv,
+        {
+          cwd: __workname,
+          detached: true,
+          stdio: 'inherit',
+        }
+      ).unref();
+      process.exit(0);
+    }, 1000);
 
-//   // 检索 npm 插件
-//   if (!plugin_path) {
-//     const module_dirs = await readdir(modules_path, { withFileTypes: true });
+    this.event.reply('またね♪');
+  });
+//#endregion
 
-//     for (const dir of module_dirs) {
-//       if (dir.isDirectory() && (dir.name === name || dir.name === 'kokkoro-plugin-' + name)) {
-//         plugin_path = join(modules_path, dir.name);
-//         break;
-//       }
-//     }
-//   }
+//#region 关机
+extension
+  .command('shutdown')
+  .description('结束进程')
+  .limit(5)
+  .sugar(/^关机$/)
+  .action(function () {
+    setTimeout(() => process.exit(0), 1000);
+    this.event.reply('お休み♪');
+  });
+//#endregion
 
-//   if (!plugin_path) throw new Error(`插件名错误，无法找到此插件`);
+//#region 打印
+extension
+  .command('print <message>')
+  .description('打印输出信息，一般用作测试')
+  .sugar(/^(打印|输出)\s?(?<message>.+)$/)
+  .action(function (message: string) {
+    this.event.reply(message);
+  });
+//#endregion
 
-//   try {
-//     const plugin = new Plugin(name, plugin_path);
+//#region 状态
+extension
+  .command('state', 'private')
+  .description('查看 bot 运行信息')
+  .limit(5)
+  .sugar(/^(状态)$/)
+  .action(function () {
+    const bot_list = getBotList();
+    const message: string[] = [];
 
-//     all_plugin.set(name, plugin);
+    for (const [uin, bot] of bot_list) {
+      const nickname = bot.nickname ?? 'unknown';
+      const state = bot.isOnline() ? '在线' : '离线';
+      const group_count = `${bot.gl.size} 个`;
+      const friend_count = `${bot.fl.size} 个`;
+      const message_min_count = `${bot.stat.msg_cnt_per_min}/分`;
+      const bot_info = `${nickname}(${uin})
+  状　态：${state}
+  群　聊：${group_count}
+  好　友：${friend_count}
+  消息量：${message_min_count}`;
 
-//     return plugin;
-//   } catch (error) {
-//     const { message } = error as Error;
-//     throw new Error(`导入插件失败，不合法的 package\n${message}`);
-//   }
-// }
+      message.push(bot_info);
+    }
+    this.event.reply(message.join('\n'));
+  });
+//#endregion
 
-// /**
-//  * 获取插件实例
-//  * 
-//  * @param {string} name - 插件名
-//  * @returns {Plugin} 插件实例
-//  */
-// export function getPlugin(name: string): Plugin {
-//   if (!all_plugin.has(name)) {
-//     throw new Error('尚未启用此插件');
-//   }
+//#region 登录
+extension
+  .command('login <uin>', 'private')
+  .description('添加登录新的 qq 账号，默认在项目启动时自动登录')
+  .limit(5)
+  .sugar(/^(登录|登陆)\s?(?<uin>[1-9][0-9]{4,11})$/)
+  .action(async function (uin: string) {
+    const qq = +uin;
+    const bot_list = getBotList();
 
-//   return all_plugin.get(name)!;
-// }
+    if (!bot_list.has(qq)) {
+      addBot.call(this.bot, qq, this.event);
+    } else {
+      const bot = await getBot(qq);
 
-// /**
-//  * 删除插件实例
-//  * 
-//  * @param name - 插件名
-//  */
-// async function deletePlugin(name: string): Promise<void> {
-//   await getPlugin(name).destroy();
+      if (bot.isOnline()) {
+        this.event.reply('Error: 已经登录过这个账号了');
+      } else {
+        bot
+          .on('system.login.qrcode', (event) => {
+            this.event.reply([
+              section.image(event.image),
+              '\n使用手机 QQ 扫码登录，输入 “cancel” 取消登录',
+            ]);
 
-//   all_plugin.delete(name);
-// }
+            const listenLogin = (event: PrivateMessageEvent) => {
+              if (event.sender.user_id === this.event.sender.user_id && event.raw_message === 'cancel') {
+                bot.terminate();
+                clearInterval(interval_id);
+                this.event.reply('登录已取消');
+              }
+            }
+            const interval_id = setInterval(async () => {
+              const { retcode } = await bot.queryQrcodeResult();
 
-// /**
-//  * 重载插件
-//  * 
-//  * @param {string} name - 插件名
-//  * @returns {Promise}
-//  */
-// export function reloadPlugin(name: string, bot: Bot): Promise<void> {
-//   return getPlugin(name).reload();
-// }
+              if (retcode === 0 || ![48, 53].includes(retcode)) {
+                bot.login();
+                clearInterval(interval_id);
+                retcode && this.event.reply(`Error: 错误代码 ${retcode}`);
+                bot.off('message.private', listenLogin);
+              }
+            }, 2000);
 
-// /**
-//  * @param name - 插件名字
-//  * @param bot - bot 实例
-//  * @returns - void
-//  */
-// export async function enablePlugin(name: string, bot: Bot): Promise<void> {
-//   return (await importPlugin(name)).enable(bot);
-// }
+            bot.on('message.private', listenLogin)
+          })
+          .once('system.login.error', data => {
+            bot.terminate();
+            this.event.reply(`Error: ${data.message}`);
+          })
+          .once('system.online', () => {
+            this.event.reply('Sucess: 已将该账号上线');
+          })
+          .login();
+      }
+    }
+  });
+//#endregion
 
-// /**
-//  * 禁用插件
-//  * 
-//  * @param {string} name - 插件名字
-//  * @param {Bot} bot - bot 实例
-//  * @returns {Promise}
-//  */
-// export function disablePlugin(name: string, bot: Bot): Promise<void> {
-//   return getPlugin(name).disable(bot);
-// }
+//#region 登出
+extension
+  .command('logout <uin>', 'private')
+  .description('下线已登录的 qq 账号')
+  .limit(5)
+  .sugar(/^(下线|登出)\s?(?<uin>[1-9][0-9]{4,11})$/)
+  .action(async function (uin: string) {
+    let message = '';
+    const qq = +uin;
+    const bot_list = getBotList();
 
-// /**
-//  * 禁用所有插件
-//  * 
-//  * @param {Bot} bot - bot 实例
-//  */
-// export async function disableAllPlugin(bot: Bot): Promise<void> {
-//   for (const [_, plugin] of all_plugin) {
-//     await plugin.disable(bot);
-//   }
-// }
+    switch (true) {
+      case !bot_list.has(qq):
+        message = 'Error: 账号输入错误，无法找到该 bot 实例';
+        break;
+      case qq === this.bot.uin:
+        message = 'Error: 该账号为当前 bot 实例，无法下线';
+        break;
+    }
 
-// /**
-//  * 检索所有可用插件
-//  */
-// export async function findAllPlugin() {
-//   const plugin_dirs: Dirent[] = [];
-//   const module_dirs: Dirent[] = [];
-//   const node_modules: string[] = [];
-//   const plugin_modules: string[] = [];
+    if (message) {
+      return this.event.reply(message);
+    }
+    const bot = await getBot(qq);
 
-//   try {
-//     plugin_dirs.push(...await readdir(plugins_path, { withFileTypes: true }));
-//   } catch (error) {
-//     await mkdir(plugins_path);
-//   }
+    bot.logout()
+      .then(() => {
+        this.event.reply('Success: 已将该账号下线');
+      })
+      .catch(error => {
+        this.event.reply(`Error: ${error.message}`);
+      })
+  });
+//#endregion
 
-//   for (const dir of plugin_dirs) {
-//     if (dir.isDirectory() || dir.isSymbolicLink()) {
-//       try {
-//         const plugin_path = join(plugins_path, dir.name);
+//#region 启用
+extension
+  .command('enable <...names>', 'private')
+  .description('启用插件')
+  .limit(5)
+  .sugar(/^(启用)\s?(?<names>([a-z]|\s)+)$/)
+  .action(async function (names: string[]) {
+    const uin = this.bot.uin;
+    const message: string[] = [];
+    const names_length = names.length;
 
-//         require.resolve(plugin_path);
-//         plugin_modules.push(dir.name);
-//       } catch { }
-//     }
-//   }
+    for (let i = 0; i < names_length; i++) {
+      const name = names[i];
 
-//   try {
-//     module_dirs.push(...await readdir(modules_path, { withFileTypes: true }));
-//   } catch (err) {
-//     await mkdir(modules_path);
-//   }
+      await enablePlugin(name, uin)
+        .then(() => {
+          writeSetting(uin);
+          message.push(`${name}: 启用插件成功`);
+        })
+        .catch(error => {
+          message.push(`${name}: 启用插件失败，${error.message}`);
+        })
+    }
+    this.event.reply(message.join('\n'));
 
-//   for (const dir of module_dirs) {
-//     if (dir.isDirectory() && dir.name.startsWith('kokkoro-plugin-')) {
-//       try {
-//         const module_path = join(modules_path, dir.name);
+    // TODO ⎛⎝≥⏝⏝≤⎛⎝ 插件事件
+    // emitter.emit('plugin.enable', names);
+  });
+//#endregion
 
-//         require.resolve(module_path);
-//         node_modules.push(dir.name);
-//       } catch { }
-//     }
-//   }
+//#region 禁用
+extension
+  .command('disable <...names>', 'private')
+  .description('禁用插件')
+  .limit(5)
+  .sugar(/^(禁用)\s?(?<names>([a-z]|\s)+)$/)
+  .action(async function (names: string[]) {
+    const uin = this.bot.uin;
+    const message: string[] = [];
+    const names_length = names.length;
 
-//   return {
-//     plugin_modules, node_modules, all_plugin,
-//   }
-// }
+    for (let i = 0; i < names_length; i++) {
+      const name = names[i];
 
-// /**
-//  * 机器人上线后恢复原先启用的插件
-//  *
-//  * @param {Bot} bot - 机器人实例
-//  * @returns {Promise} 插件数组集合
-//  */
-// export async function restorePlugin(bot: Bot): Promise<Map<string, Plugin>> {
-//   const setting = getSetting(bot.uin)!;
-//   const plugins = setting.plugins;
+      await disablePlugin(name, uin)
+        .then(() => {
+          writeSetting(uin);
+          message.push(`${name}: 禁用插件成功`);
+        })
+        .catch(error => {
+          message.push(`${name}: 禁用插件失败，${error.message}`);
+        })
+    }
+    this.event.reply(message.join('\n'));
 
-//   for (const name of plugins) {
-//     try {
-//       await (await importPlugin(name)).enable(bot);
-//     } catch (error) {
-//       const { message } = error as Error;
-//       logger.error(message)
-//     }
-//   }
+    // TODO ⎛⎝≥⏝⏝≤⎛⎝ 插件事件
+    // emitter.emit('plugin.disable', names);
+  });
+//#endregion
 
-//   return all_plugin;
-// }
+//#region 重载
+extension
+  .command('reload <name>', 'private')
+  .description('重载插件')
+  .limit(5)
+  .sugar(/^(重载)\s?(?<name>[a-z]+)$/)
+  .action(function (name: string) {
+    reloadPlugin(name)
+      .then(() => this.event.reply('重载插件成功'))
+      .catch(error => this.event.reply(error.message))
+  });
+//#endregion
+
+//#region 插件
+extension
+  .command('plugin', 'private')
+  .description('插件模块')
+  .limit(5)
+  .sugar(/^(插件)$/)
+  .action(function () {
+    findPlugin()
+      .then(plugin_dir => {
+        const { modules, plugins } = plugin_dir;
+        const modules_message = modules.length ? modules.join(', ') : '什么都没有哦';
+        const plugins_message = plugins.length ? plugins.join(', ') : '什么都没有哦';
+
+        this.event.reply(`node_module: \n  ${modules_message}\nplugin: \n  ${plugins_message}`);
+      })
+      .catch(error => {
+        this.event.reply(error.message);
+      })
+  });
+//#endregion
+
+//#region 开启
+extension
+  .command('open <...names>', 'group')
+  .description('开启插件群聊监听')
+  .limit(4)
+  .sugar(/^(开启|打开)\s?(?<names>([a-z]|\s)+)$/)
+  .action(function (names: string[]) {
+    const bot = this.bot;
+    const uin = this.bot.uin;
+    const message: string[] = [];
+    const names_length = names.length;
+    const group_id = this.event.group_id;
+
+    for (let i = 0; i < names_length; i++) {
+      const name = names[i];
+      const option = bot.getOption(group_id);
+
+      if (!option[name]) {
+        message.push(`${name}: 插件不存在`);
+        continue;
+      }
+      if (!option[name].apply) {
+        option[name].apply = true;
+        message.push(`${name}: 插件成功开启监听`);
+      } else {
+        message.push(`${name}: 插件正常监听中，不要重复开启监听`);
+      }
+    }
+    writeSetting(uin);
+    this.event.reply(message.join('\n'));
+  });
+//#endregion
+
+//#region 关闭
+extension
+  .command('close <...names>', 'group')
+  .description('关闭插件群聊监听')
+  .limit(4)
+  .sugar(/^(关闭)\s?(?<names>[a-z]+)$/)
+  .action(function (names: string[]) {
+    const bot = this.bot;
+    const uin = this.bot.uin;
+    const message: string[] = [];
+    const names_length = names.length;
+    const group_id = this.event.group_id;
+
+    for (let i = 0; i < names_length; i++) {
+      const name = names[i];
+      const option = bot.getOption(group_id);
+
+      if (!option[name]) {
+        message.push(`${name}: 插件不存在`);
+        continue;
+      }
+      if (option[name].apply) {
+        option[name].apply = false;
+        message.push(`${name}: 插件成功关闭监听`);
+      } else {
+        message.push(`${name}: 插件未开启群聊监听，不要重复关闭`);
+      }
+    }
+    writeSetting(uin);
+    this.event.reply(message.join('\n'));
+  });
+//#endregion
+
+//#region 群服务
+extension
+  .command('server', 'group')
+  .description('群服务列表')
+  .sugar(/^(服务|群服务|列表)$/)
+  .action(function () {
+    const bot = this.bot;
+    const message = ['plugin:'];
+    const setting = bot.getSetting();
+    const group_id = this.event.group_id;
+    const option = bot.getOption(group_id);
+    const plugins = setting.plugins;
+    const plugins_length = plugins.length;
+
+    for (let i = 0; i < plugins_length; i++) {
+      const name = plugins[i];
+      message.push(`  ${name}: ${option[name].apply}`)
+    }
+    this.event.reply(message.join('\n'));
+  });
+//#endregion
+
+/**
+ * 检索可用插件
+ *
+ * @returns
+ */
+async function findPlugin() {
+  const modules_dir: Dirent[] = [];
+  const plugins_dir: Dirent[] = [];
+  const modules: string[] = [];
+  const plugins: string[] = [];
+
+  try {
+    const dirs = await readdir(plugins_path, { withFileTypes: true });
+    plugins_dir.push(...dirs);
+  } catch (error) {
+    await mkdir(plugins_path);
+  }
+
+  for (const dir of plugins_dir) {
+    if (dir.isDirectory() || dir.isSymbolicLink()) {
+      try {
+        const plugin_path = join(plugins_path, dir.name);
+
+        require.resolve(plugin_path);
+        plugins.push(dir.name);
+      } catch { }
+    }
+  }
+
+  try {
+    const dirs = await readdir(modules_path, { withFileTypes: true });
+    modules_dir.push(...dirs);
+  } catch (err) {
+    await mkdir(modules_path);
+  }
+
+  for (const dir of modules_dir) {
+    if (dir.isDirectory() && dir.name.startsWith('kokkoro-plugin-')) {
+      try {
+        const module_path = join(modules_path, dir.name);
+
+        require.resolve(module_path);
+        modules.push(dir.name);
+      } catch { }
+    }
+  }
+
+  return {
+    modules, plugins,
+  }
+}
+
+/**
+ * 导入插件模块
+ *
+ * @param {string} name - 插件名
+ * @returns {Promise<Plugin>} 插件实例对象
+ */
+async function importPlugin(name: string): Promise<Plugin> {
+  // 移除文件名前缀
+  name = name.replace('kokkoro-plugin-', '');
+
+  if (plugin_list.has(name)) return await getPlugin(name);
+
+  let plugin_path = '';
+  try {
+    const { modules, plugins } = await findPlugin();
+
+    for (const raw_name of plugins) {
+      if (raw_name === name || raw_name === 'kokkoro-plugin-' + name) {
+        plugin_path = join(plugins_path, raw_name);
+        break;
+      }
+    }
+
+    // 匹配 npm 模块
+    if (!plugin_path) {
+      for (const raw_name of modules) {
+        if (raw_name === name || raw_name === 'kokkoro-plugin-' + name) {
+          plugin_path = join(modules_path, raw_name);
+          break;
+        }
+      }
+    }
+    if (!plugin_path) throw new Error('cannot find this plugin');
+
+    const { plugin } = require(plugin_path) as { plugin?: Plugin };
+
+    if (plugin instanceof Plugin) {
+      plugin_list.set(name, plugin);
+      return plugin;
+    }
+    throw new Error(`plugin not instantiated`);
+  } catch (error) {
+    const message = `"${name}" import module failed, ${(error as Error).message}`;
+    logger.error(message);
+    destroyPlugin(require.resolve(plugin_path));
+    throw new Error(message);
+  }
+}
+
+/**
+ * 销毁插件
+ *
+ * @param plugin_path - 插件路径
+ * @returns
+ */
+function destroyPlugin(plugin_path: string) {
+  const module = require.cache[plugin_path];
+  const index = module?.parent?.children.indexOf(module);
+
+  if (!module) {
+    return;
+  }
+  if (index && index >= 0) {
+    module.parent?.children.splice(index, 1);
+  }
+
+  for (const path in require.cache) {
+    if (require.cache[path]?.id.startsWith(module.path)) {
+      delete require.cache[path]
+    }
+  }
+
+  delete require.cache[plugin_path];
+}
+
+/**
+ * 获取插件实例
+ *
+ * @param {string} name - 插件名
+ * @returns {Plugin} 插件实例
+ */
+async function getPlugin(name: string): Promise<Plugin> {
+  if (!plugin_list.has(name)) {
+    throw new Error(`plugin "${name}" is undefined`);
+  }
+  return plugin_list.get(name)!;
+}
+
+export function getPluginList(): Map<string, Plugin> {
+  return plugin_list;
+}
+
+/**
+ * 启用插件
+ * 
+ * @param name - plugin name
+ * @param uin - bot uin
+ * @returns {Promise}
+ */
+async function enablePlugin(name: string, uin: number): Promise<void> {
+  await importPlugin(name)
+    .then(async () => {
+      // 如果插件已被导入，仅绑定当前 bot ，否则绑定全部
+      if (plugin_list.has(name)) {
+        await bindBot(name, uin);
+      } else {
+        await bindAllBot(name);
+      }
+    })
+    .catch(error => {
+      throw error;
+    })
+}
+
+/**
+ * 禁用插件
+ * 
+ * @param name - plugin name
+ * @param uin - bot uin
+ * @returns {Promise}
+ */
+async function disablePlugin(name: string, uin: number): Promise<void> {
+  await getPlugin(name)
+    .then(async () => {
+      await unbindBot(name, uin);
+    })
+    .catch(error => {
+      throw error;
+    })
+}
+
+/**
+ * 重载插件
+ *
+ * @param {string} name - plugin name
+ * @returns {Promise}
+ */
+async function reloadPlugin(name: string): Promise<void> {
+  await getPlugin(name)
+    .then(async plugin => {
+      const bots = [...plugin.getBotList()];
+
+      plugin.destroy();
+      const ext = await importPlugin(name);
+
+      for (const [_, bot] of bots) {
+        ext.bindBot(bot);
+      }
+    })
+    .catch(error => {
+      throw error;
+    })
+}
+
+/**
+ * 插件绑定 bot
+ *
+ * @param {string} name - plugin name
+ * @param {number} uin - bot uin
+ * @returns {Promise}
+ */
+export async function bindBot(name: string, uin: number): Promise<void> {
+  if (!plugin_list.has(name)) {
+    throw new Error(`plugin "${name}" is undefined`);
+  }
+  await Promise.all([getBot(uin), getSetting(uin), getPlugin(name)])
+    .then(values => {
+      const [bot, setting, plugin] = values;
+      const group_list = bot.getGroupList();
+      const plugins = setting.plugins;
+
+      if (plugin.hasBot(uin)) {
+        throw new Error(`bot is already bind with "${name}"`);
+      }
+      plugin.bindBot(bot);
+      // 更新 plugins
+      if (!plugins.includes(name)) {
+        plugins.push(name);
+      }
+
+      // 更新 option
+      for (const [group_id, group_info] of group_list) {
+        const { group_name } = group_info;
+
+        setting[group_id] ||= {
+          name: group_name, plugin: {},
+        };
+
+        if (setting[group_id].name !== group_name) {
+          setting[group_id].name = group_name;
+        }
+        const option = setting[group_id].plugin[name];
+
+        setting[group_id].plugin[name] = deepMerge(plugin.getOption(), option);
+      }
+    })
+    .catch(error => {
+      throw error;
+    })
+}
+
+/**
+ * 插件解绑 bot
+ *
+ * @param name - plugin name
+ * @param uin - bot uin
+ * @returns {Promise}
+ */
+async function unbindBot(name: string, uin: number): Promise<void> {
+  if (!plugin_list.has(name)) {
+    throw new Error(`plugin "${name}" is undefined`);
+  }
+
+  await Promise.all([getBot(uin), getSetting(uin), getPlugin(name)])
+    .then(values => {
+      const [bot, setting, plugin] = values;
+      const group_list = bot.getGroupList();
+      const plugins_set = new Set(setting.plugins);
+
+      if (!plugin.hasBot(uin)) {
+        throw new Error(`bot is not bind with "${name}"`);
+      }
+      plugin.unbindBot(bot);
+      // 更新 plugins
+      if (plugins_set.has(name)) {
+        plugins_set.delete(name);
+        setting.plugins = [...plugins_set];
+      }
+
+      // 更新 option
+      for (const [group_id, group_info] of group_list) {
+        const { group_name } = group_info;
+
+        if (setting[group_id].name !== group_name) {
+          setting[group_id].name = group_name;
+        }
+        delete setting[group_id].plugin[name];
+      }
+    })
+    .catch(error => {
+      throw error;
+    })
+}
+
+/**
+ * 插件绑定全部 bot
+ * 
+ * @param name - plugin name
+ * @returns {Promise}
+ */
+async function bindAllBot(name: string): Promise<void> {
+  const uins = getBotList().keys();
+
+  for (const uin of uins) {
+    await bindBot(name, uin).catch(error => {
+      throw error;
+    })
+  }
+}
+
+/**
+ * 导入所有插件模块
+ *
+ * @returns
+ */
+export async function importAllPlugin(): Promise<Map<string, Plugin>> {
+  const { modules, plugins } = await findPlugin();
+  const all_modules = [...modules, ...plugins];
+  const modules_length = all_modules.length;
+
+  if (modules_length) {
+    for (let i = 0; i < modules_length; i++) {
+      const name = all_modules[i];
+
+      try {
+        await importPlugin(name);
+      } catch { }
+    }
+  }
+  return plugin_list;
+}
