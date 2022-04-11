@@ -18,12 +18,12 @@
 
 原项目 [yumemi_bot](https://github.com/rumicchi/yumemi_bot) 最初为个人自用 bot，主要围绕 [公主连结☆Re:Dive](https://priconne-redive.jp/) 开发相关功能，因代码严重耦合不利于维护，使用 ts 重构
 
-- [x] 多群扩展管理，所有扩展针对不同群聊均支持参数自定义
+- [x] 多群插件管理，所有插件针对不同群聊均支持参数自定义
 - [x] 默认扫码登录，能有效避免因操作不当导致账号风控、掉线等问题
 - [x] 友好的脚手架，无需手动修改配置文件，全由命令自动构建，能防止因修改文件导致占用或缓存而产生的异常
 - [x] 支持同步登录，可添加多个账号自由管理（避免在项目启动瞬间登录 **过多账号** ，可能会出现被封号的风险）
 - [ ] json 数据库，快速实现本地信息存储 ~~咕咕咕~~
-- [ ] web api 支持，每个扩展均支持独立的 web 页面及路由服务 ~~咕咕咕~~
+- [ ] web api 支持，每个插件均支持独立的 web 页面及路由服务 ~~咕咕咕~~
 
 ## 构建
 
@@ -66,7 +66,7 @@ npx kokkoro init
 ``` text
 .
 ├─ data               资源目录
-├─ extensions         扩展目录
+├─ plugins            插件目录
 ├─ main.js            程序入口
 └─ kokkoro.yml        配置文件
 ```
@@ -96,15 +96,15 @@ kokkoro start
 | restart  | 重启程序 |
 | shutdown | 退出程序 |
 | login    | 添加新的登录账号 |
-| enable   | 启用扩展 |
-| disable  | 禁用扩展 |
-| reload   | 重载扩展 |
+| enable   | 启用插件 |
+| disable  | 禁用插件 |
+| reload   | 重载插件 |
 
-可以输入 `help` 查看自带的全部指令，安装扩展后能使用更多功能
+可以输入 `help` 查看自带的全部指令，安装插件后能使用更多功能
 
-扩展列表
+插件列表
 
-| extension | description                      |
+| plugin    | description                      |
 | --------- | -------------------------------- |
 | bilibili  | b 站动态订阅                     |
 | group     | 群管（申请头衔、新人欢迎）       |

@@ -1,5 +1,5 @@
 import { EventMap } from 'oicq';
-import { Extension } from './extension';
+import { Plugin } from './plugin';
 
 export class Listen<T extends keyof EventMap = any> {
   name: T;
@@ -7,7 +7,7 @@ export class Listen<T extends keyof EventMap = any> {
 
   constructor(
     public event_name: T,
-    public extension: Extension,
+    public plugin: Plugin,
   ) {
     this.name = event_name;
   }
