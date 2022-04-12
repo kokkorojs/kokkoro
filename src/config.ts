@@ -6,7 +6,7 @@ import { writeFile } from 'fs/promises';
 import { Config } from "./bot";
 
 // kokkoro 全局配置
-export interface KokkoroConfig {
+export interface GlobalConfig {
   // 服务端口
   port: number;
   // bot 信息
@@ -17,15 +17,15 @@ export interface KokkoroConfig {
 }
 
 const config_path: string = resolve(__workname, 'kokkoro.yml');
-const base_config: string = readFileSync(config_path, 'utf8');
-const kokkoro_config: KokkoroConfig = parse(base_config);
+const base_global_config: string = readFileSync(config_path, 'utf8');
+const global_config: GlobalConfig = parse(base_global_config);
 
 function writeConfig() {
-  return writeFile(config_path, stringify(kokkoro_config));
+  return writeFile(config_path, stringify(global_config));
 }
 
 export function setBotConfig(uin: number, config: Config) {
-  kokkoro_config.bots[uin] = config;
+  global_config.bots[uin] = config;
   return writeConfig();
 }
 
@@ -35,6 +35,6 @@ export function setBotConfig(uin: number, config: Config) {
 //   return writeConfig();
 // }
 
-export function getConfig() {
-  return kokkoro_config;
+export function getGlobalConfig() {
+  return global_config;
 }

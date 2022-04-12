@@ -3,7 +3,7 @@ import { createHash } from 'crypto';
 import { readFile, writeFile } from 'fs/promises';
 import { Client, Config as Protocol, GroupRole, MemberIncreaseEvent, MemberDecreaseEvent, PrivateMessageEvent } from 'oicq';
 
-import { getConfig, setBotConfig } from './config';
+import { getGlobalConfig, setBotConfig } from './config';
 import { emitter, AllMessageEvent } from './events';
 import { importAllPlugin, bindBot, extension } from './plugin';
 import { initSetting, Setting, writeSetting } from './setting';
@@ -31,11 +31,13 @@ emitter.once('kokkoro.logined', () => {
           const name = plugins[i];
 
           await bindBot(name, uin).catch(error => {
+            const { message } = error as Error;
+
             // 移除当前不存在的插件 name
-            if (plugins.length >= 1) {
+            if (message === `plugin "${name}" is undefined` && plugins.length >= 1) {
               plugins.splice(i, 1), i--;
             }
-            logger.error(`import module failed, ${(error as Error).message}`);
+            logger.error(`import module failed, ${message}`);
           })
         }
         await bot.setSetting(setting);
@@ -78,12 +80,12 @@ export class Bot extends Client {
         data_dir: './data/bot',
       },
     };
-    deepMerge(default_config, config);
+    config = deepMerge(default_config, config) as Config;
 
-    super(uin, default_config.protocol);
+    super(uin, config.protocol);
 
-    this.mode = default_config.mode!;
-    this.masters = new Set(default_config.masters);
+    this.mode = config.mode!;
+    this.masters = new Set(config.masters);
     this.password_path = join(this.dir, 'password');
 
     this.once('system.online', () => {
@@ -95,7 +97,7 @@ export class Bot extends Client {
   }
 
   linkStart(): Promise<void> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       switch (this.mode) {
         /**
          * 扫描登录
@@ -106,16 +108,22 @@ export class Bot extends Client {
         case 'qrcode':
           this
             .on('system.login.qrcode', (event: { image: Buffer; }) => {
+              // 扫码轮询
               const interval_id = setInterval(async () => {
                 const { retcode } = await this.queryQrcodeResult();
 
+                /**
+                 * 0   扫码完成
+                 * 48  扫码中（已扫未确认）
+                 * 53  扫码取消
+                 */
                 if (retcode === 0 || ![48, 53].includes(retcode)) {
                   this.login();
                   clearInterval(interval_id);
                 }
               }, 2000);
             })
-            .on('system.login.error', (event: { code: number; message: string; }) => {
+            .once('system.login.error', (event: { code: number; message: string; }) => {
               const { message } = event;
 
               this.terminate();
@@ -147,7 +155,7 @@ export class Bot extends Client {
                 this.login();
               });
             })
-            .on('system.login.error', (event) => {
+            .once('system.login.error', (event) => {
               const { message } = event;
 
               if (message.includes('密码错误')) {
@@ -159,12 +167,9 @@ export class Bot extends Client {
               }
             });
 
-          try {
-            const password = await readFile(this.password_path);
-            this.login(password);
-          } catch {
-            this.inputPassword();
-          }
+          readFile(this.password_path)
+            .then(password => this.login(password))
+            .catch(() => this.inputPassword())
           break;
         default:
           this.terminate();
@@ -191,7 +196,7 @@ export class Bot extends Client {
    */
   getUserLevel(event: AllMessageEvent): UserLevel {
     const { sender } = event;
-    const { user_id, level = 0, role = 'member' } = sender as { user_id: number, level?: number, role?: GroupRole };
+    const { user_id, level = 0, role = 'member' } = sender as any;
 
     let user_level: UserLevel;
 
@@ -224,6 +229,8 @@ export class Bot extends Client {
   async setSetting(setting: Setting) {
     await writeSetting(this.uin)
       .then(rewrite => {
+        this.setting = setting;
+
         if (rewrite) {
           this.logger.mark('已更新 setting.yml');
         }
@@ -231,17 +238,14 @@ export class Bot extends Client {
       .catch(error => {
         this.logger.error(`更新写入 setting.yml 失败，${error.message}`);
       })
-      .finally(() => {
-        this.setting = setting;
-      })
   }
 
   getSetting() {
     return this.setting;
   }
 
-  getOption(group_id: number) {
-    return this.setting[group_id].plugin;
+  getOption(group_id: number, name: string) {
+    return this.setting[group_id].plugin[name];
   }
 
   /**
@@ -257,7 +261,7 @@ export class Bot extends Client {
 
   private inputPassword(): void {
     process.stdin.setEncoding('utf8');
-    process.stdout.write('首次登录请输入密码：');
+    process.stdout.write('首次登录请输入密码: ');
     process.stdin.once('data', (password: string) => {
       password = password.trim();
 
@@ -266,9 +270,9 @@ export class Bot extends Client {
       const password_md5 = createHash('md5').update(password).digest();
 
       writeFile(this.password_path, password_md5, { mode: 0o600 })
-        .then(() => this.logger.mark('写入 password md5 成功'))
-        .catch(error => this.logger.error(`写入 password md5 失败，${error.message}`))
-        .finally(() => this.login(password_md5));
+        .then(() => { this.logger.mark('写入 password md5 成功'); })
+        .catch(error => { this.logger.error(`写入 password md5 失败，${error.message}`); })
+        .finally(() => { this.login(password_md5); });
     })
   }
 
@@ -276,7 +280,6 @@ export class Bot extends Client {
     this.removeAllListeners('system.login.slider');
     this.removeAllListeners('system.login.device');
     this.removeAllListeners('system.login.qrcode');
-    this.removeAllListeners('system.login.error');
 
     this.on('system.online', this.onOnline);
     this.on('system.offline', this.onOffline);
@@ -433,7 +436,7 @@ export async function startup() {
   process.title = 'kokkoro';
 
   let logined = false;
-  const bots = getConfig().bots;
+  const { bots } = getGlobalConfig();
 
   logger.mark(`----------`);
   logger.mark(`Package Version: kokkoro@${KOKKORO_VERSION} (Released on ${KOKKORO_UPDAY})`);
