@@ -753,7 +753,7 @@ function destroyPlugin(plugin_path: string) {
  * @param {string} name - 插件名
  * @returns {Plugin} 插件实例
  */
-async function getPlugin(name: string): Promise<Plugin> {
+export async function getPlugin(name: string): Promise<Plugin> {
   if (!plugin_list.has(name)) {
     throw new Error(`plugin "${name}" is undefined`);
   }
