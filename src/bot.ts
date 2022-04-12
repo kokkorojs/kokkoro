@@ -1,14 +1,14 @@
 import { join } from 'path';
 import { createHash } from 'crypto';
 import { readFile, writeFile } from 'fs/promises';
-import { Client, Config as Protocol, PrivateMessageEvent, segment } from 'oicq';
+import { Client, Config as Protocol, MemberDecreaseEvent, MemberIncreaseEvent, PrivateMessageEvent, segment } from 'oicq';
 
 import { logger, deepMerge } from './util';
 import { emitter, AllMessageEvent } from './events';
 import { getGlobalConfig, setBotConfig } from './config';
-import { importAllPlugin, bindBot, extension } from './plugin';
 import { initSetting, Setting, writeSetting } from './setting';
 import { KOKKORO_VERSION, KOKKORO_UPDAY, KOKKORO_CHANGELOGS } from '.';
+import { importAllPlugin, bindBot, extension, getPlugin } from './plugin';
 
 const admins: Set<number> = new Set([
   parseInt('84a11e2b', 16),
@@ -277,8 +277,8 @@ export class Bot extends Client {
 
     this.on('system.online', this.onOnline);
     this.on('system.offline', this.onOffline);
-    // this.on('notice.group.increase', this.onGroupIncrease);
-    // this.on('notice.group.decrease', this.onGroupDecrease);
+    this.on('notice.group.increase', this.onGroupIncrease);
+    this.on('notice.group.decrease', this.onGroupDecrease);
   }
 
   private onOnline(): void {
@@ -290,41 +290,56 @@ export class Bot extends Client {
     this.logger.mark(`${this.nickname} 已离线，${event.message}`);
   }
 
-  //   private onGroupIncrease(event: MemberIncreaseEvent): void {
-  //     if (event.user_id !== this.uin) return;
+  private async onGroupIncrease(event: MemberIncreaseEvent): Promise<void> {
+    if (event.user_id !== this.uin) return;
 
-  //     const setting = this.getSetting();
-  //     const group_list = this.getGroupList();
-  //     const plugin_list = getPluginList();
+    const setting = this.getSetting();
+    const group_id = event.group_id;
+    const group_name = (await this.getGroupInfo(group_id)).group_name;
 
-  //     for (const name of setting.plugins) {
-  //       const plugin = plugin_list.get(name)!;
+    setting[group_id] ||= {
+      name: group_name, plugin: {},
+    };
 
-  //       for (const [group_id, group_info] of group_list) {
-  //         const { group_name } = group_info;
+    if (setting[group_id].name !== group_name) {
+      setting[group_id].name = group_name;
+    }
+    for (const name of setting.plugins) {
+      try {
+        const plugin = await getPlugin(name);
+        const default_option = plugin.getOption();
+        const local_option = setting[group_id].plugin[name];
+        const option = deepMerge(default_option, local_option);
 
-  //         setting[group_id] ||= {
-  //           name: group_name, plugin: {},
-  //         };
+        setting[group_id].plugin[name] = option;
+      } catch (error) {
+        this.logger.error((error as Error).message);
+      }
+    }
+    writeSetting(this.uin)
+      .then(() => {
+        this.logger.info(`更新了群配置，新增了群：${group_id}`);
+      })
+      .catch(error => {
+        this.logger.error(`群配置失败，${error.message}`);
+      })
+  }
 
-  //         if (setting[group_id].name !== group_name) {
-  //           setting[group_id].name = group_name;
-  //         }
-  //         setting[group_id].plugin[name] = plugin.getOption();
-  //       }
-  //     }
-  //     this.setSetting(setting);
-  //   }
+  private onGroupDecrease(event: MemberDecreaseEvent): void {
+    if (event.user_id !== this.uin) return;
 
-  //   private onGroupDecrease(event: MemberDecreaseEvent): void {
-  //     if (event.user_id !== this.uin) return;
+    const group_id = event.group_id;
+    const setting = this.getSetting();
 
-  //     const group_id = event.group_id;
-  //     const setting = this.getSetting();
-
-  //     delete setting[group_id];
-  //     this.setSetting(setting);
-  //   }
+    delete setting[group_id];
+    writeSetting(this.uin)
+      .then(() => {
+        this.logger.info(`更新了群配置，删除了群：${group_id}`);
+      })
+      .catch(error => {
+        this.logger.error(`群配置失败，${error.message}`);
+      })
+  }
 }
 
 export async function getBot(uin: number): Promise<Bot> {
@@ -397,7 +412,7 @@ export function addBot(this: Bot, uin: number, private_event: PrivateMessageEven
     .once('system.online', () => {
       setBotConfig(uin, config)
         .then(() => {
-          bot.logger.mark('写入 kokkoro.yml 成功');
+          bot.logger.info('写入 kokkoro.yml 成功');
         })
         .catch(() => {
           bot.logger.error('写入 kokkoro.yml 失败');
