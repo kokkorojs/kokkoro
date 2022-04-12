@@ -1,5 +1,4 @@
 import { join } from 'path';
-import { stringify } from 'yaml';
 import { Dirent } from 'fs';
 import { readdir, mkdir } from 'fs/promises';
 import { spawn } from 'child_process';
@@ -9,11 +8,11 @@ import { Job, JobCallback, scheduleJob } from 'node-schedule';
 
 import { Listen } from './listen';
 import { KOKKORO_VERSION } from '.';
-import { AllMessageEvent, emitter } from './events';
+import { AllMessageEvent } from './events';
 import { getSetting, writeSetting } from './setting';
 import { Bot, getBotList, addBot, getBot } from './bot';
+import { deepClone, deepMerge, logger, section } from './util';
 import { Command, commandEvent, CommandMessageType } from './command';
-import { deepClone, deepMerge, getStack, logger, section } from './util';
 
 const modules_path = join(__workname, 'node_modules');
 const plugins_path = join(__workname, 'plugins');
@@ -31,7 +30,9 @@ export interface Option {
 
 export class Plugin extends EventEmitter {
   private ver: string;
-  private path: string;
+
+  private name!: string;
+  private path!: string;
 
   private args: (string | string[])[];
   private jobs: Job[];
@@ -41,14 +42,10 @@ export class Plugin extends EventEmitter {
   private listen_list: Map<string, Listen>
 
   constructor(
-    public name: string = '',
+    public prefix: string = '',
     private option: Option = { apply: true, lock: false },
   ) {
     super();
-    const stack = getStack();
-    const path = stack[2].getFileName()!;
-
-    this.path = path;
     this.ver = '0.0.0';
     this.args = [];
     this.jobs = [];
@@ -76,19 +73,25 @@ export class Plugin extends EventEmitter {
       .action(function () {
         const plugin = this.plugin;
 
-        if (plugin.name) {
-          this.event.reply(`${plugin.name} v${plugin.ver}`);
-        } else {
-          this.event.reply(`kokkoro v${KOKKORO_VERSION}`);
-        }
+        this.event.reply(`${plugin.name} v${plugin.ver}`);
       });
     //#endregion
 
     this.parse = this.parse.bind(this);
     this.trigger = this.trigger.bind(this);
     this.on('plugin.bind', this.bindEvents);
-    this.command_list.set(helpCommand.name, helpCommand);
-    this.command_list.set(versionCommand.name, versionCommand);
+
+    setTimeout(() => {
+      this.command_list.set(helpCommand.name, helpCommand);
+      this.command_list.set(versionCommand.name, versionCommand);
+    });
+  }
+
+  init(name: string, path: string) {
+    this.name = name;
+    this.path = path;
+
+    return this;
   }
 
   command<T extends keyof commandEvent>(raw_name: string, message_type: T | CommandMessageType = 'all'): Command<T> {
@@ -103,7 +106,7 @@ export class Plugin extends EventEmitter {
     const listener = new Listen(event_name, this);
 
     this.events.add(event_name);
-    this.listen_list.set(listener.name, listener);
+    this.listen_list.set(event_name, listener);
     return listener;
   }
 
@@ -111,6 +114,11 @@ export class Plugin extends EventEmitter {
     const job = scheduleJob(cron, func);
 
     this.jobs.push(job);
+    return this;
+  }
+
+  version(ver: string) {
+    this.ver = ver;
     return this;
   }
 
@@ -154,10 +162,9 @@ export class Plugin extends EventEmitter {
       }
     }
 
-    // TODO ⎛⎝≥⏝⏝≤⎛⎝ 待优化
     if (command.isLimit()) {
       command.event.reply('权限不足');
-    } else if (command.func && !command.plugin.name) {
+    } else if (command.func && this.prefix === '') {
       command.func(...this.args);
     } else if (command.message_type !== 'private' && command.stop && !command.isApply()) {
       command.stop();
@@ -186,12 +193,19 @@ export class Plugin extends EventEmitter {
     return deepClone(this.option);
   }
 
-  hasBot(uin: number) {
-    return this.bot_list.has(uin);
+  //   hasBot(uin: number) {
+  //     return this.bot_list.has(uin);
+  //   }
+
+  getName() {
+    return this.name;
   }
 
-  getBot(uin: number): Bot | undefined {
-    return this.bot_list.get(uin);
+  getBot(uin: number): Bot {
+    if (!this.bot_list.has(uin)) {
+      throw new Error(`bot "${uin}" is undefined`);
+    }
+    return this.bot_list.get(uin)!;
   }
 
   getBotList(): Map<number, Bot> {
@@ -202,7 +216,7 @@ export class Plugin extends EventEmitter {
     const { uin } = bot;
 
     if (this.bot_list.has(uin)) {
-      throw new Error('jesus, how the hell did you get in here?');
+      throw new Error(`bot is already bind with "${this.name}"`);
     }
     this.bot_list.set(uin, bot);
     this.emit('plugin.bind', bot);
@@ -213,7 +227,7 @@ export class Plugin extends EventEmitter {
     const { uin } = bot;
 
     if (!this.bot_list.has(uin)) {
-      throw new Error('jesus, how the hell did you get in here?');
+      throw new Error(`bot is not bind with "${this.name}"`);
     }
     this.clearSchedule();
     this.bot_list.delete(uin);
@@ -231,7 +245,7 @@ export class Plugin extends EventEmitter {
   }
 }
 
-export const extension = new Plugin();
+export const extension = new Plugin().init('kokkoro', __filename).version(KOKKORO_VERSION);
 
 //#region 测试
 extension
@@ -239,7 +253,7 @@ extension
   .description('测试')
   .sugar(/^(测试)$/)
   .action(function () {
-    // ...
+    console.log('test...')
   });
 //#endregion
 
@@ -410,6 +424,27 @@ extension
   });
 //#endregion
 
+//#region 插件
+extension
+  .command('plugin', 'private')
+  .description('插件模块')
+  .limit(5)
+  .sugar(/^(插件)$/)
+  .action(function () {
+    findPlugin()
+      .then(plugin_dir => {
+        const { modules, plugins } = plugin_dir;
+        const modules_message = modules.length ? modules.join(', ') : '什么都没有哦';
+        const plugins_message = plugins.length ? plugins.join(', ') : '什么都没有哦';
+
+        this.event.reply(`node_module: \n  ${modules_message}\nplugin: \n  ${plugins_message}`);
+      })
+      .catch(error => {
+        this.event.reply(error.message);
+      })
+  });
+//#endregion
+
 //#region 启用
 extension
   .command('enable <...names>', 'private')
@@ -427,10 +462,10 @@ extension
       await enablePlugin(name, uin)
         .then(() => {
           writeSetting(uin);
-          message.push(`${name}: 启用插件成功`);
+          message.push(`${name}:\n  启用插件成功`);
         })
         .catch(error => {
-          message.push(`${name}: 启用插件失败，${error.message}`);
+          message.push(`${name}:\n  启用插件失败，${error.message}`);
         })
     }
     this.event.reply(message.join('\n'));
@@ -457,10 +492,10 @@ extension
       await disablePlugin(name, uin)
         .then(() => {
           writeSetting(uin);
-          message.push(`${name}: 禁用插件成功`);
+          message.push(`${name}:\n  禁用插件成功`);
         })
         .catch(error => {
-          message.push(`${name}: 禁用插件失败，${error.message}`);
+          message.push(`${name}:\n  禁用插件失败，${error.message}`);
         })
     }
     this.event.reply(message.join('\n'));
@@ -472,100 +507,21 @@ extension
 
 //#region 重载
 extension
-  .command('reload <name>', 'private')
+  .command('reload <...names>', 'private')
   .description('重载插件')
   .limit(5)
-  .sugar(/^(重载)\s?(?<name>[a-z]+)$/)
-  .action(function (name: string) {
-    reloadPlugin(name)
-      .then(() => this.event.reply('重载插件成功'))
-      .catch(error => this.event.reply(error.message))
-  });
-//#endregion
-
-//#region 插件
-extension
-  .command('plugin', 'private')
-  .description('插件模块')
-  .limit(5)
-  .sugar(/^(插件)$/)
-  .action(function () {
-    findPlugin()
-      .then(plugin_dir => {
-        const { modules, plugins } = plugin_dir;
-        const modules_message = modules.length ? modules.join(', ') : '什么都没有哦';
-        const plugins_message = plugins.length ? plugins.join(', ') : '什么都没有哦';
-
-        this.event.reply(`node_module: \n  ${modules_message}\nplugin: \n  ${plugins_message}`);
-      })
-      .catch(error => {
-        this.event.reply(error.message);
-      })
-  });
-//#endregion
-
-//#region 开启
-extension
-  .command('open <...names>', 'group')
-  .description('开启插件群聊监听')
-  .limit(4)
-  .sugar(/^(开启|打开)\s?(?<names>([a-z]|\s)+)$/)
-  .action(function (names: string[]) {
-    const bot = this.bot;
-    const uin = this.bot.uin;
+  .sugar(/^(重载)\s?(?<names>[a-z]+)$/)
+  .action(async function (names: string[]) {
     const message: string[] = [];
     const names_length = names.length;
-    const group_id = this.event.group_id;
 
     for (let i = 0; i < names_length; i++) {
       const name = names[i];
-      const option = bot.getOption(group_id);
 
-      if (!option[name]) {
-        message.push(`${name}: 插件不存在`);
-        continue;
-      }
-      if (!option[name].apply) {
-        option[name].apply = true;
-        message.push(`${name}: 插件成功开启监听`);
-      } else {
-        message.push(`${name}: 插件正常监听中，不要重复开启监听`);
-      }
+      await reloadPlugin(name)
+        .then(() => message.push(`${name}:\n  重载插件成功`))
+        .catch(error => message.push(error.message))
     }
-    writeSetting(uin);
-    this.event.reply(message.join('\n'));
-  });
-//#endregion
-
-//#region 关闭
-extension
-  .command('close <...names>', 'group')
-  .description('关闭插件群聊监听')
-  .limit(4)
-  .sugar(/^(关闭)\s?(?<names>[a-z]+)$/)
-  .action(function (names: string[]) {
-    const bot = this.bot;
-    const uin = this.bot.uin;
-    const message: string[] = [];
-    const names_length = names.length;
-    const group_id = this.event.group_id;
-
-    for (let i = 0; i < names_length; i++) {
-      const name = names[i];
-      const option = bot.getOption(group_id);
-
-      if (!option[name]) {
-        message.push(`${name}: 插件不存在`);
-        continue;
-      }
-      if (option[name].apply) {
-        option[name].apply = false;
-        message.push(`${name}: 插件成功关闭监听`);
-      } else {
-        message.push(`${name}: 插件未开启群聊监听，不要重复关闭`);
-      }
-    }
-    writeSetting(uin);
     this.event.reply(message.join('\n'));
   });
 //#endregion
@@ -580,14 +536,84 @@ extension
     const message = ['plugin:'];
     const setting = bot.getSetting();
     const group_id = this.event.group_id;
-    const option = bot.getOption(group_id);
+
     const plugins = setting.plugins;
     const plugins_length = plugins.length;
 
     for (let i = 0; i < plugins_length; i++) {
       const name = plugins[i];
-      message.push(`  ${name}: ${option[name].apply}`)
+      const option = setting[group_id].plugin[name];
+
+      message.push(`  ${name}: ${option.apply}`)
     }
+    this.event.reply(message.join('\n'));
+  });
+//#endregion
+
+//#region 开启
+extension
+  .command('open <...names>', 'group')
+  .description('开启插件群聊监听')
+  .limit(4)
+  .sugar(/^(开启|打开)\s?(?<names>([a-z]|\s)+)$/)
+  .action(function (names: string[]) {
+    const uin = this.bot.uin;
+    const message: string[] = [];
+    const names_length = names.length;
+    const group_id = this.event.group_id;
+    const plugins = this.bot.getSetting().plugins;
+
+    for (let i = 0; i < names_length; i++) {
+      const name = names[i];
+
+      if (!plugins.includes(name)) {
+        message.push(`${name}:\n  插件不存在`);
+        continue;
+      }
+      const option = this.bot.getOption(group_id, name);
+
+      if (!option.apply) {
+        option.apply = true;
+        message.push(`${name}:\n  插件成功开启监听`);
+      } else {
+        message.push(`${name}:\n  插件正常监听中，不要重复开启监听`);
+      }
+    }
+    writeSetting(uin);
+    this.event.reply(message.join('\n'));
+  });
+//#endregion
+
+//#region 关闭
+extension
+  .command('close <...names>', 'group')
+  .description('关闭插件群聊监听')
+  .limit(4)
+  .sugar(/^(关闭)\s?(?<names>[a-z]+)$/)
+  .action(function (names: string[]) {
+    const uin = this.bot.uin;
+    const message: string[] = [];
+    const names_length = names.length;
+    const group_id = this.event.group_id;
+    const plugins = this.bot.getSetting().plugins;
+
+    for (let i = 0; i < names_length; i++) {
+      const name = names[i];
+
+      if (!plugins.includes(name)) {
+        message.push(`${name}:\n  插件不存在`);
+        continue;
+      }
+      const option = this.bot.getOption(group_id, name);
+
+      if (option.apply) {
+        option.apply = false;
+        message.push(`${name}:\n  插件成功关闭监听`);
+      } else {
+        message.push(`${name}:\n  插件未开启群聊监听，不要重复关闭`);
+      }
+    }
+    writeSetting(uin);
     this.event.reply(message.join('\n'));
   });
 //#endregion
@@ -595,7 +621,7 @@ extension
 /**
  * 检索可用插件
  *
- * @returns
+ * @returns Promise
  */
 async function findPlugin() {
   const modules_dir: Dirent[] = [];
@@ -612,9 +638,9 @@ async function findPlugin() {
 
   for (const dir of plugins_dir) {
     if (dir.isDirectory() || dir.isSymbolicLink()) {
-      try {
-        const plugin_path = join(plugins_path, dir.name);
+      const plugin_path = join(plugins_path, dir.name);
 
+      try {
         require.resolve(plugin_path);
         plugins.push(dir.name);
       } catch { }
@@ -630,9 +656,9 @@ async function findPlugin() {
 
   for (const dir of modules_dir) {
     if (dir.isDirectory() && dir.name.startsWith('kokkoro-plugin-')) {
-      try {
-        const module_path = join(modules_path, dir.name);
+      const module_path = join(modules_path, dir.name);
 
+      try {
         require.resolve(module_path);
         modules.push(dir.name);
       } catch { }
@@ -647,14 +673,14 @@ async function findPlugin() {
 /**
  * 导入插件模块
  *
- * @param {string} name - 插件名
+ * @param {string} name - 模块名
  * @returns {Promise<Plugin>} 插件实例对象
  */
 async function importPlugin(name: string): Promise<Plugin> {
   // 移除文件名前缀
-  name = name.replace('kokkoro-plugin-', '');
+  const plugin_name = name.replace('kokkoro-plugin-', '');
 
-  if (plugin_list.has(name)) return await getPlugin(name);
+  if (plugin_list.has(plugin_name)) return await getPlugin(plugin_name);
 
   let plugin_path = '';
   try {
@@ -681,14 +707,17 @@ async function importPlugin(name: string): Promise<Plugin> {
     const { plugin } = require(plugin_path) as { plugin?: Plugin };
 
     if (plugin instanceof Plugin) {
-      plugin_list.set(name, plugin);
+      const require_path = require.resolve(plugin_path);
+
+      plugin.init(plugin_name, require_path);
+      plugin_list.set(plugin_name, plugin);
       return plugin;
     }
     throw new Error(`plugin not instantiated`);
   } catch (error) {
     const message = `"${name}" import module failed, ${(error as Error).message}`;
     logger.error(message);
-    destroyPlugin(require.resolve(plugin_path));
+    // destroyPlugin(require.resolve(plugin_path));
     throw new Error(message);
   }
 }
@@ -697,7 +726,6 @@ async function importPlugin(name: string): Promise<Plugin> {
  * 销毁插件
  *
  * @param plugin_path - 插件路径
- * @returns
  */
 function destroyPlugin(plugin_path: string) {
   const module = require.cache[plugin_path];
@@ -815,9 +843,6 @@ export async function bindBot(name: string, uin: number): Promise<void> {
       const group_list = bot.getGroupList();
       const plugins = setting.plugins;
 
-      if (plugin.hasBot(uin)) {
-        throw new Error(`bot is already bind with "${name}"`);
-      }
       plugin.bindBot(bot);
       // 更新 plugins
       if (!plugins.includes(name)) {
@@ -835,9 +860,11 @@ export async function bindBot(name: string, uin: number): Promise<void> {
         if (setting[group_id].name !== group_name) {
           setting[group_id].name = group_name;
         }
-        const option = setting[group_id].plugin[name];
+        const default_option = plugin.getOption();
+        const local_option = setting[group_id].plugin[name];
+        const option = deepMerge(default_option, local_option);
 
-        setting[group_id].plugin[name] = deepMerge(plugin.getOption(), option);
+        setting[group_id].plugin[name] = option;
       }
     })
     .catch(error => {
@@ -856,16 +883,12 @@ async function unbindBot(name: string, uin: number): Promise<void> {
   if (!plugin_list.has(name)) {
     throw new Error(`plugin "${name}" is undefined`);
   }
-
   await Promise.all([getBot(uin), getSetting(uin), getPlugin(name)])
     .then(values => {
       const [bot, setting, plugin] = values;
       const group_list = bot.getGroupList();
       const plugins_set = new Set(setting.plugins);
 
-      if (!plugin.hasBot(uin)) {
-        throw new Error(`bot is not bind with "${name}"`);
-      }
       plugin.unbindBot(bot);
       // 更新 plugins
       if (plugins_set.has(name)) {

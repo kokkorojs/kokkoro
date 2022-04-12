@@ -1,7 +1,7 @@
 import { GroupMessageEvent, PrivateMessageEvent } from 'oicq';
 
 import { Bot, UserLevel } from './bot';
-import { Plugin } from './plugin';
+import { Option, Plugin } from './plugin';
 import { AllMessageEvent } from './events';
 
 export type CommandMessageType = 'all' | 'group' | 'private';
@@ -74,6 +74,7 @@ export class Command<T extends keyof commandEvent = CommandMessageType> {
   private max_level: UserLevel;
 
   public bot!: Bot;
+  public option?: Option;
   public event!: commandEvent[T];
   public name: string;
   public desc: string;
@@ -128,10 +129,7 @@ export class Command<T extends keyof commandEvent = CommandMessageType> {
   }
 
   isApply(): boolean {
-    const group_id = (this.event as GroupMessageEvent).group_id;
-    const option = this.bot.getOption(group_id);
-
-    return option[this.plugin.name].apply;
+    return this.option!.apply;
   }
 
   isLimit(): boolean {
@@ -146,24 +144,28 @@ export class Command<T extends keyof commandEvent = CommandMessageType> {
     if (this.message_type !== 'all' && this.message_type !== message_type) {
       return false;
     }
+    const bot = this.plugin.getBot(self_id)!;
+    const group_id = (event as GroupMessageEvent).group_id;
+    const plugin_name = this.plugin.getName();
 
     this.event = event;
-    this.bot = this.plugin.getBot(self_id)!;
+    this.bot = bot;
+    this.option = group_id ? bot.getOption(group_id, plugin_name) : undefined;
+
+    const raw_name = raw_message.trim().split(' ');
 
     // 空字段指令匹配
-    const raw_name = raw_message.split(' ');
-
-    if (this.plugin.name === '') {
+    if (this.plugin.prefix === '') {
       raw_name.unshift('');
     }
-    let [plugin_name, command_name] = raw_name;
+    let [prefix, command_name] = raw_name;
 
     // 语法糖解析
     if (this.regex && this.regex.test(raw_message)) {
       command_name = this.name;
-      plugin_name = this.plugin.name;
+      prefix = this.plugin.prefix;
     }
-    return this.plugin.name === plugin_name && this.name === command_name;
+    return this.plugin.prefix === prefix && this.name === command_name;
   }
 
   parseArgs(raw_message: string): (string | string[])[] {
@@ -179,7 +181,7 @@ export class Command<T extends keyof commandEvent = CommandMessageType> {
     } else {
       raw_args.push(
         ...raw_message
-          .replace(new RegExp(this.plugin.name), '')
+          .replace(new RegExp(this.plugin.prefix), '')
           .replace(new RegExp(this.name), '')
           .split(' ')
           .filter(i => i !== '')
