@@ -1,13 +1,13 @@
 import { join } from 'path';
 import { createHash } from 'crypto';
 import { readFile, writeFile } from 'fs/promises';
-import { Client, Config as Protocol, GroupRole, MemberIncreaseEvent, MemberDecreaseEvent, PrivateMessageEvent } from 'oicq';
+import { Client, Config as Protocol, PrivateMessageEvent, segment } from 'oicq';
 
-import { getGlobalConfig, setBotConfig } from './config';
+import { logger, deepMerge } from './util';
 import { emitter, AllMessageEvent } from './events';
+import { getGlobalConfig, setBotConfig } from './config';
 import { importAllPlugin, bindBot, extension } from './plugin';
 import { initSetting, Setting, writeSetting } from './setting';
-import { logger, deepMerge, section, deepClone } from './util';
 import { KOKKORO_VERSION, KOKKORO_UPDAY, KOKKORO_CHANGELOGS } from '.';
 
 const admins: Set<number> = new Set([
@@ -31,13 +31,7 @@ emitter.once('kokkoro.logined', () => {
           const name = plugins[i];
 
           await bindBot(name, uin).catch(error => {
-            const { message } = error as Error;
-
-            // 移除当前不存在的插件 name
-            if (message === `plugin "${name}" is undefined` && plugins.length >= 1) {
-              plugins.splice(i, 1), i--;
-            }
-            logger.error(`import module failed, ${message}`);
+            logger.error(`import module failed, ${error.message}`);
           })
         }
         await bot.setSetting(setting);
@@ -372,7 +366,7 @@ export function addBot(this: Bot, uin: number, private_event: PrivateMessageEven
   bot
     .on('system.login.qrcode', (event) => {
       private_event.reply([
-        section.image(event.image),
+        segment.image(event.image),
         '\n使用手机 QQ 扫码登录，输入 “cancel” 取消登录',
       ]);
 
