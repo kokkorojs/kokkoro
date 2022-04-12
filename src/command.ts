@@ -131,11 +131,11 @@ export class Command<T extends keyof commandEvent = CommandMessageType> {
    * @param key - 参数键
    * @param value - 参数值
    */
-  async update(key: string, value: string): Promise<unknown> {
+  async update(key: string, value: string): Promise<string> {
     const plugin_name = this.plugin.getName();
 
     if (this.event.message_type !== 'group' || plugin_name === 'kokkoro') {
-      return;
+      throw new Error('嘿，你不该来这里的 o(*≧д≦)o!!');
     }
     const group_id = this.event.group_id;
     const option = this.bot.getOption(group_id, plugin_name);
@@ -174,7 +174,7 @@ export class Command<T extends keyof commandEvent = CommandMessageType> {
     }
 
     if (message) {
-      return this.event.reply(message);
+      throw new Error(message);
     }
 
     if (Array.isArray(old_value)) {
@@ -184,9 +184,9 @@ export class Command<T extends keyof commandEvent = CommandMessageType> {
 
     try {
       await writeSetting(this.bot.uin);
-      return this.event.reply(`${plugin_name}:\n  ${key}: ${old_value} -> ${new_value}`);
+      return `${plugin_name}:\n  ${key}: ${old_value} -> ${new_value}`;
     } catch (error) {
-      return this.event.reply((error as Error).message);
+      throw error;
     }
   }
 

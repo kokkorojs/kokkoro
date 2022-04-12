@@ -58,7 +58,9 @@ export class Plugin extends EventEmitter {
     const updateCommand = new Command('group', 'update <key> <value>', this)
       .description('群服务列表')
       .action(function (key: string, value: string) {
-        this.update(key, value);
+        this.update(key, value)
+          .then(message => this.event.reply(message))
+          .catch(error => this.event.reply(error.message))
       });
     //#endregion
     //#region 帮助指令
