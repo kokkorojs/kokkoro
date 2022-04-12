@@ -3,15 +3,15 @@ import { Dirent } from 'fs';
 import { readdir, mkdir } from 'fs/promises';
 import { spawn } from 'child_process';
 import { EventEmitter } from 'events';
-import { EventMap, PrivateMessageEvent } from 'oicq';
+import { EventMap, PrivateMessageEvent, segment } from 'oicq';
 import { Job, JobCallback, scheduleJob } from 'node-schedule';
 
 import { Listen } from './listen';
 import { KOKKORO_VERSION } from '.';
 import { AllMessageEvent } from './events';
 import { getSetting, writeSetting } from './setting';
+import { deepClone, deepMerge, logger } from './util';
 import { Bot, getBotList, addBot, getBot } from './bot';
-import { deepClone, deepMerge, logger, section } from './util';
 import { Command, commandEvent, CommandMessageType } from './command';
 
 const modules_path = join(__workname, 'node_modules');
@@ -352,7 +352,7 @@ extension
         bot
           .on('system.login.qrcode', (event) => {
             this.event.reply([
-              section.image(event.image),
+              segment.image(event.image),
               '\n使用手机 QQ 扫码登录，输入 “cancel” 取消登录',
             ]);
 
