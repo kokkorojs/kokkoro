@@ -1,15 +1,9 @@
 import { resolve } from 'path';
 import { stringify, parse } from 'yaml';
 import { writeFile, readFile } from 'fs/promises';
-// import { GroupMessageEvent, MemberDecreaseEvent, MemberIncreaseEvent } from 'oicq';
 
-// import { getConfig, KokkoroConfig } from "./config";
-
-import { Bot } from './bot';
-// // import { parseCommand } from './command';
-import { deepClone, deepMerge, logger } from './util';
+import { deepMerge, logger } from './util';
 import { getPluginList, Option } from './plugin';
-// // import { getPlugin } from './plugin';
 
 // 群聊
 export interface Group {
@@ -48,7 +42,7 @@ export function initSetting(uin: number): Promise<Setting> {
 
         deepMerge(setting, local_setting);
       })
-      .catch((error: Error) => {
+      .catch(async (error: Error) => {
         const rewrite = !error.message.includes('ENOENT: no such file or directory');
 
         if (rewrite) {
@@ -60,7 +54,7 @@ export function initSetting(uin: number): Promise<Setting> {
         // 不存在 setting.yml 就将本地全部模块写入列表
         setting.plugins = [...plugin_keys];
 
-        writeFile(setting_path, stringify(setting))
+        await writeFile(setting_path, stringify(setting))
           .then(() => {
             logger.mark(`创建了新的设置文件: data/bot/${uin}/setting.yml`);
           })
@@ -97,26 +91,6 @@ export async function getSetting(uin: number): Promise<Setting> {
   return setting_list.get(uin)!;
 }
 
-// /**
-//  * 写入群聊插件设置
-//  * 
-//  * @param uin - bot uin
-//  * @param local_setting - local setting data
-//  * @returns {Promise}
-//  */
-// // export async function setSetting(uin: number, local_setting: Setting): Promise<void> {
-// //   if (!setting_list.has(uin)) {
-// //     throw new Error(`setting "${uin}" is undefined`);
-// //   }
-// //   getSetting(uin)
-// //     .then(setting => {
-// //       setting = local_setting;
-// //     })
-// //     .catch(error => {
-// //       throw error;
-// //     })
-// // }
-
 export function writeSetting(uin: number): Promise<boolean> {
   const setting_path = resolve(__workname, `data/bot/${uin}/setting.yml`);
 
@@ -141,183 +115,83 @@ export function writeSetting(uin: number): Promise<boolean> {
 }
 
 // /**
-//  * 更新 bot setting.yml (一般在进入或退出群聊时调用)
+//  * 获取当前插件的群聊选项
 //  *
-//  * @param bot - bot 对象
-//  * @returns Promise
+//  * @param param
+//  * @param event
+//  * @returns
 //  */
-// // function updateSetting(bot: Bot): Promise<void> {
-// //   return new Promise((resolve, reject) => {
-// //     const group_list = bot.getGroupList();
-// //     const setting = bot.getSetting();
+// export async function setOption(param: ReturnType<typeof parseCommand>['param'], event: GroupMessageEvent) {
+//   let message = '';
+//   let new_value: string | number | boolean | Array<string | number>;
 
-// //     // 校验 option
-// //     for (const [group_id, group_info] of group_list) {
-// //       const { group_name } = group_info;
+//   const { group_id, self_id } = event as any;
+//   const [plugin_name, option_name, value] = param;
+//   const setting = getSetting(self_id);
 
-// //       setting[group_id] ||= {
-// //         name: group_name, plugin: {},
-// //       };
+//   if (!setting[group_id] || !setting[group_id].plugin[plugin_name]) {
+//     return `Error: ${plugin_name} is not defined, please enable plugin`;
+//   }
 
-// //       if (setting[group_id].name !== group_name) {
-// //         setting[group_id].name = group_name;
-// //       }
-// //       const option = setting[group_id].plugin[name];
+//   const plugin = setting[group_id].plugin;
 
-// //       setting[group_id].plugin[name] = deepMerge(plugin.getOption(), option);
-// //     }
-// //   });
-// // }
+//   switch (true) {
+//     case !option_name:
+//       const option = {
+//         setu: plugin[plugin_name]
+//       }
+//       message = stringify(option);
+//       break;
+//     case !value:
+//       message = '参数不能为空';
+//       break;
+//   }
 
-// // export function updatePluginsSetting(uin: number, plugins: string[]): Promise<void> {
-// //   if (!setting_list.has(uin)) {
-// //     throw new Error(`data/bot/${uin}/setting.yml 不存在`);
-// //   }
-// //   const setting = getSetting(uin)!;
+//   if (message) {
+//     return message;
+//   }
 
-// //   setting.plugins = [...plugins];
-// //   return writeSetting(uin, setting);
-// // }
+//   const old_value = plugin[plugin_name][option_name];
 
-// // function updateGroupSetting(uin: number, group_id: number, group: Group) {
+//   switch (true) {
+//     case ['true', 'false'].includes(value):
+//       new_value = value === 'true';
+//       break;
+//     case /^(-?[1-9]\d*|0)$/.test(value):
+//       new_value = +value;
+//       break;
+//     default:
+//       new_value = value;
+//       break;
+//   }
 
-// // }
+//   // 校验参数是否合法
+//   switch (true) {
+//     case !Array.isArray(old_value) && typeof old_value !== typeof new_value:
+//       if (old_value) {
+//         message = `Error: ${plugin_name}.${option_name} 应为 ${typeof old_value} 类型`;
+//       } else {
+//         message = `Error: ${option_name} is not defined`;
+//       }
+//       break;
+//     case Array.isArray(old_value) && !old_value.includes(new_value as string | number):
+//       message = `Error: 属性 ${option_name} 的合法值为 [${(old_value as (string | number)[]).join(', ')}]`;
+//       break;
+//   }
 
-// // // /**
-// // //  * 获取群聊插件列表
-// // //  *
-// // //  * @param {Bot} this - 机器人实例
-// // //  * @param {number} group_id - 群号
-// // //  * @returns {string}
-// // //  */
-// // // export function getList(uin: number, group_id: number): string {
-// // //   const plugin = getSetting(uin)[group_id].plugin;
-// // //   const message = { list: {} as { [k: string]: boolean } };
+//   if (message) {
+//     return message;
+//   }
 
-// // //   for (const key in plugin) message.list[key] = plugin[key].apply as boolean;
-// // //   return stringify(message);
-// // // }
+//   if (Array.isArray(old_value)) {
+//     new_value = old_value.sort(i => i === new_value ? -1 : 0)
+//   }
+//   setting[group_id].plugin[plugin_name][option_name] = new_value;
 
-// // // // 获取当前插件的群聊选项
-// // // export function getOption(event: GroupMessageEvent | MemberIncreaseEvent | MemberDecreaseEvent) {
-// // //   const self_id = event.self_id;
-// // //   const group_id = event.group_id;
-// // //   const stack = getStack();
-// // //   const regex = /\w+(?=(\\|\/)index\.js)/g;
-// // //   const setting = getSetting(self_id);
-// // //   const fileName = stack[2].getFileName()!.replace(/(\/lib\/|\\lib\\)/g, '/');
-// // //   const [plugin_name] = fileName.match(regex) as string[];
-
-// // //   return setting[group_id].plugin[plugin_name] ?? {};
-// // // }
-
-// // // /**
-// // //  * 获取当前插件的群聊选项
-// // //  *
-// // //  * @param param
-// // //  * @param event
-// // //  * @returns
-// // //  */
-// // // export async function setOption(param: ReturnType<typeof parseCommand>['param'], event: GroupMessageEvent) {
-// // //   let message = '';
-// // //   let new_value: string | number | boolean | Array<string | number>;
-
-// // //   const { group_id, self_id } = event as any;
-// // //   const [plugin_name, option_name, value] = param;
-// // //   const setting = getSetting(self_id);
-
-// // //   if (!setting[group_id] || !setting[group_id].plugin[plugin_name]) {
-// // //     return `Error: ${plugin_name} is not defined, please enable plugin`;
-// // //   }
-
-// // //   const plugin = setting[group_id].plugin;
-
-// // //   switch (true) {
-// // //     case !option_name:
-// // //       const option = {
-// // //         setu: plugin[plugin_name]
-// // //       }
-// // //       message = stringify(option);
-// // //       break;
-// // //     case !value:
-// // //       message = '参数不能为空';
-// // //       break;
-// // //   }
-
-// // //   if (message) {
-// // //     return message;
-// // //   }
-
-// // //   const old_value = plugin[plugin_name][option_name];
-
-// // //   switch (true) {
-// // //     case ['true', 'false'].includes(value):
-// // //       new_value = value === 'true';
-// // //       break;
-// // //     case /^(-?[1-9]\d*|0)$/.test(value):
-// // //       new_value = +value;
-// // //       break;
-// // //     default:
-// // //       new_value = value;
-// // //       break;
-// // //   }
-
-// // //   // 校验参数是否合法
-// // //   switch (true) {
-// // //     case !Array.isArray(old_value) && typeof old_value !== typeof new_value:
-// // //       if (old_value) {
-// // //         message = `Error: ${plugin_name}.${option_name} 应为 ${typeof old_value} 类型`;
-// // //       } else {
-// // //         message = `Error: ${option_name} is not defined`;
-// // //       }
-// // //       break;
-// // //     case Array.isArray(old_value) && !old_value.includes(new_value as string | number):
-// // //       message = `Error: 属性 ${option_name} 的合法值为 [${(old_value as (string | number)[]).join(', ')}]`;
-// // //       break;
-// // //   }
-
-// // //   if (message) {
-// // //     return message;
-// // //   }
-
-// // //   if (Array.isArray(old_value)) {
-// // //     new_value = old_value.sort(i => i === new_value ? -1 : 0)
-// // //   }
-// // //   setting[group_id].plugin[plugin_name][option_name] = new_value;
-
-// // //   try {
-// // //     await setSetting(self_id, setting);
-// // //     return '修改成功';
-// // //   } catch (error) {
-// // //     return (error as Error).message;
-// // //   }
-// // // }
-
-// // // export async function reloadSetting(bot: Bot) {
-// // //   const uin = bot.uin;
-// // //   const setting = getSetting(uin);
-// // //   const plugins = setting.plugins;
-// // //   const group_list = bot.getGroupList();
-
-// // //   for (const [group_id, group] of group_list) {
-// // //     const group_name = group.group_name;
-// // //     const group_setting = setting[group_id] ||= { name: group_name, plugin: {} };
-// // //     const group_plugin = group_setting.plugin;
-
-// // //     for (const plugin_name of plugins) {
-// // //       if (group_plugin[plugin_name]) continue;
-
-// // //       try {
-// // //         const plugin = getPlugin(plugin_name);
-// // //         group_plugin[plugin_name] = plugin.getOption();
-
-// // //         await setSetting(uin, setting);
-// // //       } catch {
-// // //         const set = new Set(plugins);
-
-// // //         set.delete(plugin_name);
-// // //         await updatePlugins(uin, [...set]);
-// // //       }
-// // //     }
-// // //   }
-// // // }
+//   try {
+//     await setSetting(self_id, setting);
+//     return '修改成功';
+//   } catch (error) {
+//     return (error as Error).message;
+//   }
+// }
