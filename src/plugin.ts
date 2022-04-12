@@ -54,6 +54,13 @@ export class Plugin extends EventEmitter {
     this.command_list = new Map();
     this.listen_list = new Map();
 
+    //#region 更新指令
+    const updateCommand = new Command('group', 'update <key> <value>', this)
+      .description('群服务列表')
+      .action(function (key: string, value: string) {
+        this.update(key, value);
+      });
+    //#endregion
     //#region 帮助指令
     const helpCommand = new Command('all', 'help', this)
       .description('帮助信息')
@@ -83,6 +90,7 @@ export class Plugin extends EventEmitter {
 
     setTimeout(() => {
       this.command_list.set(helpCommand.name, helpCommand);
+      this.command_list.set(updateCommand.name, updateCommand);
       this.command_list.set(versionCommand.name, versionCommand);
     });
   }
@@ -510,7 +518,7 @@ extension
   .command('reload <...names>', 'private')
   .description('重载插件')
   .limit(5)
-  .sugar(/^(重载)\s?(?<names>[a-z]+)$/)
+  .sugar(/^(重载)\s?(?<names>([a-z]|\s)+)$/)
   .action(async function (names: string[]) {
     const message: string[] = [];
     const names_length = names.length;
@@ -532,10 +540,9 @@ extension
   .description('群服务列表')
   .sugar(/^(服务|群服务|列表)$/)
   .action(function () {
-    const bot = this.bot;
     const message = ['plugin:'];
-    const setting = bot.getSetting();
     const group_id = this.event.group_id;
+    const setting = this.bot.getSetting();
 
     const plugins = setting.plugins;
     const plugins_length = plugins.length;
@@ -589,7 +596,7 @@ extension
   .command('close <...names>', 'group')
   .description('关闭插件群聊监听')
   .limit(4)
-  .sugar(/^(关闭)\s?(?<names>[a-z]+)$/)
+  .sugar(/^(关闭)\s?(?<names>([a-z]|\s)+)$/)
   .action(function (names: string[]) {
     const uin = this.bot.uin;
     const message: string[] = [];
