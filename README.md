@@ -1,7 +1,6 @@
 <div align="center">
     <img src="https://kokkoro.js.org/images/74237509.jpg" width="200" alt="id: 74237509" />
     <h3>kokkoro</h3>
-    <br />
     <small> &gt; とある咕咕の QQ 机器人框架 &lt; </small>
 </div>
 
@@ -16,7 +15,7 @@
 
 ## 介绍
 
-原项目 [yumemi_bot](https://github.com/rumicchi/yumemi_bot) 最初为个人自用 bot，主要围绕 [公主连结☆Re:Dive](https://priconne-redive.jp/) 开发相关功能，因代码严重耦合不利于维护，使用 ts 重构
+原项目 [yumemi_bot](https://github.com/rumicchi/yumemi_bot) 最初为个人自用 bot，主要围绕 [公主连结☆Re:Dive](https://priconne-redive.jp/) 开发相关功能，因代码严重耦合不利于维护，使用 ts 分离重构为插件一对多形式的框架
 
 - [x] 多群插件管理，所有插件针对不同群聊均支持参数自定义
 - [x] 默认扫码登录，能有效避免因操作不当导致账号风控、掉线等问题
@@ -90,30 +89,49 @@ kokkoro start
 
 常用指令
 
-| command  | description          |
-| -------- | -------------------- |
-| print    | 测试打印 |
-| restart  | 重启程序 |
-| shutdown | 退出程序 |
-| login    | 添加新的登录账号 |
-| enable   | 启用插件 |
-| disable  | 禁用插件 |
-| reload   | 重载插件 |
+| command  | type    | level | description          |
+| -------- | ------- | ----- | -------------------- |
+| print    | all     | 0     | 打印输出文本 |
+| restart  | all     | 5     | 重启程序进程 |
+| shutdown | all     | 5     | 退出程序进程 |
+| state    | private | 5     | 查询机器人状态 |
+| login    | private | 5     | 添加新的登录 qq 账号 |
+| logout   | private | 5     | 下线已登录的 qq 账号 |
+| plugin   | private | 5     | 列出本地插件模块列表 |
+| enable   | private | 5     | 为当前机器人启用插件 |
+| disable  | private | 5     | 为当前机器人禁用插件 |
+| reload   | private | 5     | 重载当前插件模块(热更新) |
+| server   | group   | 0     | 列出当前群聊可用服务列表 |
+| open     | group   | 3     | 开启当前群聊插件消息监听 |
+| close    | group   | 3     | 关闭当前群聊插件消息监听 |
 
-可以输入 `help` 查看自带的全部指令，安装插件后能使用更多功能
+所有指令都有 `type` 属性，对应群聊与私聊的消息处理  
+可以输入 `help` 查看自带的全部指令与参数，安装插件后能使用更多功能
 
 插件列表
 
-| plugin    | description                      |
-| --------- | -------------------------------- |
-| bilibili  | b 站动态订阅                     |
-| group     | 群管（申请头衔、新人欢迎）       |
-| guild     | 会战相关                         |
-| hitokoto  | 每日一言                         |
-| setu      | hso，我都不看这些的              |
+| plugin    | description              |
+| --------- | ------------------------ |
+| bilibili  | b 站动态订阅 |
+| group     | 群管(申请头衔、新人欢迎) |
+| guild     | 会战相关 |
+| hitokoto  | 每日一言 |
+| setu      | hso，我都不看这些的 |
 | sandbox   | 将收到的消息当做代码在沙盒中执行 |
 
 使用说明可访问对应仓库地址，开发文档可访问: https://kokkoro.js.org/
+
+## 权限
+
+在 kokkoro 看来，任何发送消息都是成员都是有等级的
+
+- level 0 群成员（随活跃度提升）
+- level 1 群成员（随活跃度提升）
+- level 2 群成员（随活跃度提升）
+- level 3 管　理
+- level 4 群　主
+- level 5 主　人
+- level 6 维护组
 
 ## 参数
 
@@ -165,8 +183,8 @@ bots:
 ## 补充
 
 首次登录推荐使用扫码，密码登录需要过滑块验证，非真机环境下抓取 ticket 会失效  
-但是扫码登录可能会出现掉线后需要重新扫码的情况，登录一段时间后，不会再弹出滑动验证  
-此时建议将 `mode` 改为 `password` 来切换密码登录，更加稳定 φ(≧ω≦*)♪
+但是扫码登录后如果进行敏感操作，例如频繁下线上线等，可能会出现掉线需要重新扫码的情况  
+登录一段时间后，就不会再弹出滑动验证，此时建议将 `mode` 改为 `password` 来切换密码登录，更加稳定 φ(≧ω≦*)♪
 
 ## 鸣谢
 
