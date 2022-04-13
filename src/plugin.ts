@@ -85,7 +85,6 @@ export class Plugin extends EventEmitter {
     //#endregion
 
     this.parse = this.parse.bind(this);
-    this.trigger = this.trigger.bind(this);
     this.on('plugin.bind', this.bindEvents);
 
     setTimeout(() => {
@@ -111,11 +110,11 @@ export class Plugin extends EventEmitter {
   }
 
   listen<T extends keyof EventMap>(event_name: T) {
-    const listener = new Listen(event_name, this);
+    const listen = new Listen(event_name, this);
 
     this.events.add(event_name);
-    this.listen_list.set(event_name, listener);
-    return listener;
+    this.listen_list.set(event_name, listen);
+    return listen;
   }
 
   schedule(cron: string, func: JobCallback) {
@@ -145,13 +144,6 @@ export class Plugin extends EventEmitter {
         // TODO ⎛⎝≥⏝⏝≤⎛⎝ 插件事件
         // this.emit(`plugin.${this.name}`, event);
       }
-    }
-  }
-
-  // 事件触发器
-  private trigger(event: any) {
-    for (const [_, listen] of this.listen_list) {
-      listen.func && listen.func(event);
     }
   }
 
@@ -190,8 +182,10 @@ export class Plugin extends EventEmitter {
         bot.on(event_name, this.parse);
         this.once('plugin.unbind', () => bot.off(event_name, this.parse));
       } else {
-        bot.on(event_name, this.trigger);
-        this.once('plugin.unbind', () => bot.off(event_name, this.trigger));
+        const listen = this.listen_list.get(event_name)!;
+
+        bot.on(event_name, listen.func);
+        this.once('plugin.unbind', () => bot.off(event_name, listen.func));
       }
     }
   }

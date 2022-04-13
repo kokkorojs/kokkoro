@@ -13,7 +13,7 @@ export class Listen<T extends keyof EventMap = any> {
 
   }
 
-  action(func: EventMap<Bot>[T]) {
+  trigger(func: EventMap<Bot>[T]) {
     this.func = func;
     return this;
   }
