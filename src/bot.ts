@@ -242,6 +242,14 @@ export class Bot extends Client {
     return this.setting[group_id].plugin[name];
   }
 
+  isMaster(user_id: number): boolean {
+    return this.masters.has(user_id);
+  }
+
+  isAdmin(user_id: number): boolean {
+    return admins.has(user_id);
+  }
+
   /**
    * 给 bot 主人发送信息
    * 
