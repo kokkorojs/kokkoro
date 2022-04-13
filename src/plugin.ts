@@ -257,13 +257,13 @@ export class Plugin extends EventEmitter {
 
 export const extension = new Plugin().init('kokkoro', __filename).version(KOKKORO_VERSION);
 
-//#region 测试
+//#region 打印
 extension
-  .command('test')
-  .description('测试')
-  .sugar(/^(测试)$/)
-  .action(function () {
-    console.log('test...')
+  .command('print <message>')
+  .description('打印输出信息，一般用作测试')
+  .sugar(/^(打印|输出)\s?(?<message>.+)$/)
+  .action(function (message: string) {
+    this.event.reply(message);
   });
 //#endregion
 
@@ -300,16 +300,6 @@ extension
   .action(function () {
     setTimeout(() => process.exit(0), 1000);
     this.event.reply('お休み♪');
-  });
-//#endregion
-
-//#region 打印
-extension
-  .command('print <message>')
-  .description('打印输出信息，一般用作测试')
-  .sugar(/^(打印|输出)\s?(?<message>.+)$/)
-  .action(function (message: string) {
-    this.event.reply(message);
   });
 //#endregion
 
@@ -437,7 +427,7 @@ extension
 //#region 插件
 extension
   .command('plugin', 'private')
-  .description('插件模块')
+  .description('插件模块列表')
   .limit(5)
   .sugar(/^(插件)$/)
   .action(function () {
