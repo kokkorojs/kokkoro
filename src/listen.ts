@@ -1,4 +1,6 @@
 import { EventMap } from 'oicq';
+
+import { Bot } from '.';
 import { Plugin } from './plugin';
 
 export class Listen<T extends keyof EventMap = any> {
@@ -11,7 +13,7 @@ export class Listen<T extends keyof EventMap = any> {
 
   }
 
-  action(func: EventMap[T]) {
+  action(func: EventMap<Bot>[T]) {
     this.func = func;
     return this;
   }
