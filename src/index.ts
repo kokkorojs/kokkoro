@@ -17,6 +17,6 @@ export const KOKKORO_UPDAY = upday;
 export const KOKKORO_VERSION = version;
 export const KOKKORO_CHANGELOGS = changelogs;
 
-export { Bot, startup } from './bot';
 export { Option, Plugin } from './plugin';
+export { Bot, startup, getBotList } from './bot';
 export { logger, deepMerge, deepClone } from './util';
