@@ -4,7 +4,7 @@ import { segment, PrivateMessageEvent } from 'oicq';
 import { KOKKORO_VERSION } from '.';
 import { writeSetting } from './setting';
 import { getBotList, addBot, getBot } from './bot';
-import { disablePlugin, enablePlugin, findPlugin, Plugin, reloadPlugin } from './plugin';
+import { Plugin, disablePlugin, enablePlugin, findPlugin, reloadPlugin } from './plugin';
 
 export const extension = new Plugin().init('kokkoro', __filename).version(KOKKORO_VERSION);
 

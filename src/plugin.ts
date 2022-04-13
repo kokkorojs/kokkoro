@@ -178,7 +178,7 @@ export class Plugin extends EventEmitter {
       command.stop();
     } else if (command.message_type !== 'private' && command.func && command.isApply()) {
       command.func(...this.args);
-    } else if (command.message_type === 'private' && command.func) {
+    } else if (command.event.message_type === 'private' && command.func) {
       command.func(...this.args);
     }
   }
@@ -200,10 +200,6 @@ export class Plugin extends EventEmitter {
     // 深拷贝防止 default option 被修改
     return deepClone(this.option);
   }
-
-  //   hasBot(uin: number) {
-  //     return this.bot_list.has(uin);
-  //   }
 
   getName() {
     return this.name;
@@ -583,3 +579,5 @@ export async function importAllPlugin(): Promise<Map<string, Plugin>> {
   }
   return plugin_list;
 }
+
+export { extension } from './extension';

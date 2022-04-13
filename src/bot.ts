@@ -3,13 +3,12 @@ import { createHash } from 'crypto';
 import { readFile, writeFile } from 'fs/promises';
 import { Client, Config as Protocol, MemberDecreaseEvent, MemberIncreaseEvent, PrivateMessageEvent, segment } from 'oicq';
 
-import { extension } from './extension';
 import { logger, deepMerge } from './util';
 import { emitter, AllMessageEvent } from './events';
 import { getGlobalConfig, setBotConfig } from './config';
 import { initSetting, Setting, writeSetting } from './setting';
-import { importAllPlugin, bindBot, getPlugin } from './plugin';
 import { KOKKORO_VERSION, KOKKORO_UPDAY, KOKKORO_CHANGELOGS } from '.';
+import { importAllPlugin, bindBot, getPlugin, extension } from './plugin';
 
 const admins: Set<number> = new Set([
   parseInt('84a11e2b', 16),
