@@ -37,7 +37,9 @@ export class Plugin extends EventEmitter {
   private bot_list: Map<number, Bot>;
   private events: Set<string>;
   private command_list: Map<string, Command>;
-  private listen_list: Map<string, Listen>
+  private listen_list: Map<string, Listen>;
+  private init_func?: () => any;
+  private bind_func?: (bot: Bot) => any;
 
   constructor(
     public prefix: string = '',
@@ -126,6 +128,19 @@ export class Plugin extends EventEmitter {
 
   version(ver: string) {
     this.ver = ver;
+    return this;
+  }
+
+  onInit(callback: () => any) {
+    this.init_func = callback;
+    return this;
+  }
+
+  onBind(callback: (bot: Bot) => any) {
+    this.bind_func = callback;
+    this.on('plugin.bind', this.bind_func);
+    this.once('plugin.unbind', this.bind_func);
+
     return this;
   }
 
