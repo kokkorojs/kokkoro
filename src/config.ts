@@ -3,38 +3,38 @@ import { readFileSync } from 'fs';
 import { parse, stringify } from 'yaml';
 import { writeFile } from 'fs/promises';
 
-import { BotConfig } from './bot';
+import { Config } from "./bot";
 
 // kokkoro 全局配置
-export interface KokkoroConfig {
+export interface GlobalConfig {
   // 服务端口
   port: number;
   // bot 信息
   bots: {
     // uin 账号
-    [uin: number]: BotConfig;
+    [uin: number]: Config;
   }
 }
 
 const config_path: string = resolve(__workname, 'kokkoro.yml');
-const config_data: string = readFileSync(config_path, 'utf8');
-const kokkoro_config: KokkoroConfig = parse(config_data);
+const base_global_config: string = readFileSync(config_path, 'utf8');
+const global_config: GlobalConfig = parse(base_global_config);
 
-export function setBotConfig(uin: number, bot_config: BotConfig) {
-  kokkoro_config.bots[uin] = bot_config;
-  return setConfig();
+function writeConfig() {
+  return writeFile(config_path, stringify(global_config));
 }
 
-export async function cutBotConfig(uin: number) {
-  const { bots } = kokkoro_config;
-  delete bots[uin];
-  return setConfig();
+export function setBotConfig(uin: number, config: Config) {
+  global_config.bots[uin] = config;
+  return writeConfig();
 }
 
-export function setConfig() {
-  return writeFile(config_path, stringify(kokkoro_config));
-}
+// export function cutBotConfig(uin: number) {
+//   const { bots } = kokkoro_config;
+//   delete bots[uin];
+//   return writeConfig();
+// }
 
-export function getConfig() {
-  return kokkoro_config;
+export function getGlobalConfig() {
+  return global_config;
 }
