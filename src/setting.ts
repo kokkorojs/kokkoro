@@ -1,7 +1,8 @@
-import { resolve } from 'path';
-import { stringify, parse } from 'yaml';
+import YAML from 'yaml';
+import { join } from 'path';
 import { writeFile, readFile } from 'fs/promises';
 
+import { bot_dir } from '.';
 import { deepMerge, logger } from './util';
 import { getPluginList, Option } from './plugin';
 
@@ -30,43 +31,37 @@ const setting_list: Map<number, Setting> = new Map();
  *
  * @param {number} uin 机器人账号
  */
-export function initSetting(uin: number): Promise<Setting> {
+export async function initSetting(uin: number): Promise<Setting> {
   const setting: Setting = { plugins: [] };
-  const setting_path = resolve(__workname, `data/bot/${uin}/setting.yml`);
+  const setting_path = getSettingPath(uin);
 
   setting_list.set(uin, setting);
-  return new Promise((resolve, reject) => {
-    readFile(setting_path, 'utf8')
-      .then(base_setting => {
-        const local_setting = parse(base_setting);
+  try {
+    const base_setting = await readFile(setting_path, 'utf8');
+    const local_setting = YAML.parse(base_setting);
+    deepMerge(setting, local_setting);
+  } catch (error) {
+    const rewrite = !(<Error>error).message.includes('ENOENT: no such file or directory');
 
-        deepMerge(setting, local_setting);
+    if (rewrite) {
+      throw error;
+    }
+    const plugin_list = getPluginList();
+    const plugin_keys = plugin_list.keys();
+
+    // 不存在 setting.yml 就将本地全部模块写入列表
+    setting.plugins = [...plugin_keys];
+
+    await writeFile(setting_path, YAML.stringify(setting))
+      .then(() => {
+        logger.mark(`创建了新的设置文件: data/bot/${uin}/setting.yml`);
       })
-      .catch(async (error: Error) => {
-        const rewrite = !error.message.includes('ENOENT: no such file or directory');
-
-        if (rewrite) {
-          reject(error);
-        }
-        const plugin_list = getPluginList();
-        const plugin_keys = plugin_list.keys();
-
-        // 不存在 setting.yml 就将本地全部模块写入列表
-        setting.plugins = [...plugin_keys];
-
-        await writeFile(setting_path, stringify(setting))
-          .then(() => {
-            logger.mark(`创建了新的设置文件: data/bot/${uin}/setting.yml`);
-          })
-          .catch((error: Error) => {
-            logger.error(`Error: ${error.message}`);
-            reject(error);
-          })
+      .catch((error: Error) => {
+        logger.error(`Error: ${error.message}`);
+        throw error;
       })
-      .finally(() => {
-        resolve(setting);
-      })
-  })
+  }
+  return setting;
 }
 
 /**
@@ -84,32 +79,44 @@ export function getSettingList(): Map<number, Setting> {
  * @param {number} uin - bot 账号
  * @returns {Setting} setting 对象
  */
-export async function getSetting(uin: number): Promise<Setting> {
+export function getSetting(uin: number): Setting {
   if (!setting_list.has(uin)) {
     throw new Error(`setting "${uin}" is undefined`);
   }
   return setting_list.get(uin)!;
 }
 
-export function writeSetting(uin: number): Promise<boolean> {
-  const setting_path = resolve(__workname, `data/bot/${uin}/setting.yml`);
+/**
+ * 写入 setting 数据
+ * 
+ * @param {number} uin - bot 账号
+ * @returns {Promise}
+ */
+export async function writeSetting(uin: number): Promise<boolean> {
+  const setting_path = getSettingPath(uin);
 
-  return new Promise((resolve, reject) => {
-    Promise.all([getSetting(uin), readFile(setting_path, 'utf8')])
-      .then(async values => {
-        const [setting, base_setting] = values;
-        const local_setting: Setting = parse(base_setting);
+  try {
+    const setting = getSetting(uin);
+    const base_setting = await readFile(setting_path, 'utf8');
+    const local_setting: Setting = YAML.parse(base_setting);
 
-        // 与本地 setting 作对比
-        if (JSON.stringify(local_setting) !== JSON.stringify(setting)) {
-          await writeFile(setting_path, stringify(setting));
-          resolve(true);
-        } else {
-          resolve(false);
-        }
-      })
-      .catch(error => {
-        reject(error);
-      })
-  })
+    // 与本地 setting 作对比
+    if (JSON.stringify(local_setting) === JSON.stringify(setting)) {
+      return false;
+    }
+    await writeFile(setting_path, YAML.stringify(setting));
+    return true;
+  } catch (error) {
+    throw error;
+  }
+}
+
+/**
+ * 获取 setting 路径
+ * 
+ * @param {number} uin - bot 账号
+ * @returns {string} setting 文件路径
+ */
+function getSettingPath(uin: number): string {
+  return join(bot_dir, `${uin}/setting.yml`);
 }
