@@ -3,12 +3,12 @@ import { createHash } from 'crypto';
 import { readFile, writeFile } from 'fs/promises';
 import { Client, Config as Protocol, MemberDecreaseEvent, MemberIncreaseEvent, PrivateMessageEvent, segment } from 'oicq';
 
-import { logger, deepMerge } from './util';
-import { emitter, AllMessageEvent } from './events';
+import { AllMessageEvent } from './events';
 import { getGlobalConfig, setBotConfig } from './config';
+import { logger, deepMerge, checkUin, emitter } from './util';
 import { initSetting, Setting, writeSetting } from './setting';
-import { KOKKORO_VERSION, KOKKORO_UPDAY, KOKKORO_CHANGELOGS } from '.';
 import { importAllPlugin, bindBot, getPlugin, extension } from './plugin';
+import { KOKKORO_VERSION, KOKKORO_UPDAY, KOKKORO_CHANGELOGS, bot_dir } from '.';
 
 const admins: Set<number> = new Set([
   parseInt('84a11e2b', 16),
@@ -71,10 +71,10 @@ export class Bot extends Client {
       masters: [],
       mode: 'qrcode',
       protocol: {
-        data_dir: './data/bot',
+        data_dir: bot_dir,
       },
     };
-    config = deepMerge(default_config, config) as Config;
+    config = deepMerge(default_config, config);
 
     super(uin, config.protocol);
 
@@ -90,88 +90,79 @@ export class Bot extends Client {
     });
   }
 
-  linkStart(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      switch (this.mode) {
-        /**
-         * 扫描登录
-         * 
-         * 优点是不需要过滑块和设备锁
-         * 缺点是万一 token 失效，无法自动登录，需要重新扫码
-         */
-        case 'qrcode':
-          this
-            .on('system.login.qrcode', (event: { image: Buffer; }) => {
-              // 扫码轮询
-              const interval_id = setInterval(async () => {
-                const { retcode } = await this.queryQrcodeResult();
+  async linkStart(): Promise<void> {
+    switch (this.mode) {
+      /**
+       * 扫描登录
+       * 
+       * 优点是不需要过滑块和设备锁
+       * 缺点是万一 token 失效，无法自动登录，需要重新扫码
+       */
+      case 'qrcode':
+        this
+          .on('system.login.qrcode', (event) => {
+            // 扫码轮询
+            const interval_id = setInterval(async () => {
+              const { retcode } = await this.queryQrcodeResult();
 
-                /**
-                 * 0   扫码完成
-                 * 48  扫码中（已扫未确认）
-                 * 53  扫码取消
-                 */
-                if (retcode === 0 || ![48, 53].includes(retcode)) {
-                  this.login();
-                  clearInterval(interval_id);
-                }
-              }, 2000);
-            })
-            .once('system.login.error', (event: { code: number; message: string; }) => {
-              const { message } = event;
+              // 0:扫码完成 48:未确认 53:取消扫码
+              if (retcode === 0 || ![48, 53].includes(retcode)) {
+                this.login();
+                clearInterval(interval_id);
+              }
+            }, 2000);
+          })
+          .once('system.login.error', (event) => {
+            const { message } = event;
 
+            this.terminate();
+            this.logger.error(`当前账号无法登录，${message}`);
+            throw new Error(message);
+          })
+          .login();
+        break;
+      /**
+       * 密码登录
+       * 
+       * 优点是一劳永逸
+       * 缺点是需要过滑块，可能会报环境异常
+       */
+      case 'password':
+        this
+          .on('system.login.slider', (event) => this.inputTicket())
+          .on('system.login.device', () => {
+            // TODO ⎛⎝≥⏝⏝≤⎛⎝ 设备锁轮询，oicq 暂无相关 func
+            this.logger.mark('验证完成后按回车键继续...');
+
+            process.stdin.once('data', () => {
+              this.login();
+            });
+          })
+          .once('system.login.error', (event) => {
+            const { message } = event;
+
+            if (message.includes('密码错误')) {
+              this.inputPassword();
+            } else {
               this.terminate();
               this.logger.error(`当前账号无法登录，${message}`);
-              reject(new Error(message));
-            })
-            .login();
-          break;
-        /**
-         * 密码登录
-         * 
-         * 优点是一劳永逸
-         * 缺点是需要过滑块，可能会报环境异常
-         */
-        case 'password':
-          this
-            .on('system.login.slider', (event: { url: string; }) => {
-              this.logger.mark('取 ticket 教程: https://github.com/takayama-lily/oicq/wiki/01.滑动验证码和设备锁');
+              throw new Error(message);
+            }
+          });
 
-              process.stdout.write('请输入 ticket : ');
-              process.stdin.once('data', (event: string) => {
-                this.submitSlider(event);
-              });
-            })
-            .on('system.login.device', () => {
-              this.logger.mark('验证完成后按回车键继续...');
-
-              process.stdin.once('data', () => {
-                this.login();
-              });
-            })
-            .once('system.login.error', (event) => {
-              const { message } = event;
-
-              if (message.includes('密码错误')) {
-                this.inputPassword();
-              } else {
-                this.terminate();
-                this.logger.error(`当前账号无法登录，${message}`);
-                reject(new Error(message));
-              }
-            });
-
-          readFile(this.password_path)
-            .then(password => this.login(password))
-            .catch(() => this.inputPassword())
-          break;
-        default:
-          this.terminate();
-          this.logger.error(`你他喵的 "login_mode" 改错了 (ㅍ_ㅍ)`);
-          reject(new Error('invalid mode'));
-      }
-      this.once('system.online', () => resolve());
-    })
+        try {
+          const password = await readFile(this.password_path);
+          this.login(password);
+        } catch (error) {
+          this.inputPassword();
+        }
+        break;
+      default:
+        this.terminate();
+        this.logger.error(`你他喵的 "login_mode" 改错了 (ㅍ_ㅍ)`);
+        throw new Error('invalid mode');
+    }
+    await new Promise(resolve => this.once('system.online', resolve));
   }
 
   /**
@@ -242,10 +233,22 @@ export class Bot extends Client {
     return this.setting[group_id].plugin[name];
   }
 
+  /**
+   * 查询用户是否为 master
+   * 
+   * @param {number} user_id - 用户 id
+   * @returns {boolean}
+   */
   isMaster(user_id: number): boolean {
     return this.masters.has(user_id);
   }
 
+  /**
+   * 查询用户是否为 admin
+   * 
+   * @param {number} user_id - 用户 id
+   * @returns {boolean}
+   */
   isAdmin(user_id: number): boolean {
     return admins.has(user_id);
   }
@@ -261,20 +264,29 @@ export class Bot extends Client {
     }
   }
 
+  private inputTicket(): void {
+    this.logger.mark('取 ticket 教程: https://github.com/takayama-lily/oicq/wiki/01.滑动验证码和设备锁');
+
+    process.stdout.write('请输入 ticket : ');
+    process.stdin.once('data', (event: string) => {
+      this.submitSlider(event);
+    });
+  }
+
   private inputPassword(): void {
-    process.stdin.setEncoding('utf8');
     process.stdout.write('首次登录请输入密码: ');
     process.stdin.once('data', (password: string) => {
       password = password.trim();
 
-      if (!password.length) return this.inputPassword();
-
+      if (!password.length) {
+        return this.inputPassword();
+      }
       const password_md5 = createHash('md5').update(password).digest();
 
       writeFile(this.password_path, password_md5, { mode: 0o600 })
-        .then(() => { this.logger.mark('写入 password md5 成功'); })
-        .catch(error => { this.logger.error(`写入 password md5 失败，${error.message}`); })
-        .finally(() => { this.login(password_md5); });
+        .then(() => this.logger.mark('写入 password md5 成功'))
+        .catch(error => this.logger.error(`写入 password md5 失败，${error.message}`))
+        .finally(() => this.login(password_md5));
     })
   }
 
@@ -479,4 +491,18 @@ export async function startup() {
   } else {
     logger.info('当前无可登录的账号，请检查 kokkoro.yml 相关配置');
   }
+}
+
+/**
+ * 创建 bot 对象
+ * 
+ * @param {number} uin - bot uin
+ * @param {Config} config - bot config
+ * @returns {Bot} bot 实例对象
+ */
+export function createBot(uin: number, config?: Config): Bot {
+  if (!checkUin(uin)) {
+    throw new Error(`${uin} is not an qq account`);
+  }
+  return new Bot(uin, config);
 }

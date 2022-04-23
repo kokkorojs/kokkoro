@@ -1,3 +1,5 @@
+import { join } from 'path';
+
 declare global {
   // 当前进程目录
   var __workname: string;
@@ -16,6 +18,11 @@ const { upday, version, changelogs } = require('../package.json');
 export const KOKKORO_UPDAY = upday;
 export const KOKKORO_VERSION = version;
 export const KOKKORO_CHANGELOGS = changelogs;
+
+export const data_dir = join(__workname, 'data');
+export const bot_dir = join(data_dir, 'bot');
+export const plugins_dir = join(__workname, 'plugins');
+export const modules_dir = join(__workname, 'node_modules');
 
 export { Option, Plugin } from './plugin';
 export { Bot, startup, getBotList } from './bot';
