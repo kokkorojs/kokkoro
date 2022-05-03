@@ -1,5 +1,5 @@
 <div align="center">
-    <img src="https://kokkoro.js.org/images/74237509.jpg" width="200" alt="id: 74237509" />
+    <img src="https://kokkoro.js.org/assets/images/pixiv/74237509.jpg" width="200" alt="id: 74237509" />
     <h3>kokkoro</h3>
     <small> &gt; とある咕咕の QQ 机器人框架 &lt; </small>
 </div>

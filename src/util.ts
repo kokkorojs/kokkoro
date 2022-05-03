@@ -1,9 +1,17 @@
+import axios from 'axios';
+import { segment as message } from 'oicq';
 import { EventEmitter } from 'events';
 import { getLogger, Logger } from 'log4js';
 
 export const emitter = new EventEmitter();
 export const logger: Logger = getLogger('[kokkoro]');
 logger.level = 'all';
+
+export const segment = { ...message, };
+
+function image() {
+
+}
 
 /**
  * 校验 uin 合法性

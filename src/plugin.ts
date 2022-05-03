@@ -11,6 +11,7 @@ import { AllMessageEvent } from './events';
 import { Bot, getBotList, getBot } from './bot';
 import { deepClone, deepMerge, logger } from './util';
 import { Command, commandEvent, CommandMessageType } from './command';
+import { Action } from './action';
 
 const modules_path = join(__workname, 'node_modules');
 const plugins_path = join(__workname, 'plugins');
@@ -54,14 +55,14 @@ export class Plugin extends EventEmitter {
     this.command_list = new Map();
     this.listen_list = new Map();
 
-    //#region 更新指令
-    const updateCommand = new Command('group', 'update <key> <value>', this)
-      .description('群服务列表')
-      .action(function (key: string, value: string) {
-        this.update(key, value)
-          .then(message => this.event.reply(message))
-          .catch(error => this.event.reply(error.message))
-      });
+    // #region 更新指令
+    // const updateCommand = new Command('group', 'update <key> <value>', this)
+    //   .description('群服务列表')
+    //   .action(function (key: string, value: string) {
+    //     this.update(key, value)
+    //       .then(message => this.event.reply(message))
+    //       .catch(error => this.event.reply(error.message))
+    //   });
     //#endregion
     //#region 帮助指令
     const helpCommand = new Command('all', 'help', this)
@@ -91,7 +92,7 @@ export class Plugin extends EventEmitter {
 
     setTimeout(() => {
       this.command_list.set(helpCommand.name, helpCommand);
-      this.command_list.set(updateCommand.name, updateCommand);
+      // this.command_list.set(updateCommand.name, updateCommand);
       this.command_list.set(versionCommand.name, versionCommand);
     });
   }
@@ -154,16 +155,21 @@ export class Plugin extends EventEmitter {
   private parse(event: AllMessageEvent) {
     for (const [_, command] of this.command_list) {
       if (command.isMatched(event)) {
+        const self_id = event.self_id;
+        const bot = this.getBot(self_id)!;
+        const action = new Action(this, command, bot, event);
+
         this.args = command.parseArgs(event.raw_message);
-        this.runCommand(command);
+        this.run(command, action);
         // TODO ⎛⎝≥⏝⏝≤⎛⎝ 插件事件
         // this.emit(`plugin.${this.name}`, event);
       }
     }
   }
 
-  // 执行指令
-  private runCommand(command: Command) {
+  // 润
+  private run(command: Command, action: Action) {
+    const event = action.event;
     const args_length = this.args.length;
 
     for (let i = 0; i < args_length; i++) {
@@ -171,22 +177,22 @@ export class Plugin extends EventEmitter {
       const argv = this.args[i];
 
       if (required && !argv) {
-        return command.event.reply(`Error: <${value}> cannot be empty`);
+        return event.reply(`Error: <${value}> cannot be empty`);
       } else if (required && !argv.length) {
-        return command.event.reply(`Error: <...${value}> cannot be empty`);
+        return event.reply(`Error: <...${value}> cannot be empty`);
       }
     }
 
-    if (command.isLimit()) {
-      command.event.reply('权限不足');
+    if (command.isLimit(action.getLevel())) {
+      event.reply('权限不足');
     } else if (command.func && this.prefix === '') {
-      command.func(...this.args);
-    } else if (command.message_type !== 'private' && command.stop && !command.isApply()) {
+      command.func.bind(action)(...this.args);
+    } else if (command.message_type !== 'private' && command.stop && !action.isApply()) {
       command.stop();
-    } else if (command.message_type !== 'private' && command.func && command.isApply()) {
-      command.func(...this.args);
-    } else if (command.event.message_type === 'private' && command.func) {
-      command.func(...this.args);
+    } else if (command.message_type !== 'private' && command.func && action.isApply()) {
+      command.func.bind(action)(...this.args);
+    } else if (event.message_type === 'private' && command.func) {
+      command.func.bind(action)(...this.args);
     }
   }
 
