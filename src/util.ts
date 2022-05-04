@@ -1,6 +1,6 @@
 import axios from 'axios';
-import { segment as message } from 'oicq';
 import { EventEmitter } from 'events';
+import { segment as message } from 'oicq';
 import { getLogger, Logger } from 'log4js';
 
 export const emitter = new EventEmitter();

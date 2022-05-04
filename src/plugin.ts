@@ -5,13 +5,13 @@ import { EventMap } from 'oicq';
 import { EventEmitter } from 'events';
 import { Job, JobCallback, scheduleJob } from 'node-schedule';
 
+import { Action } from './action';
 import { Listen } from './listen';
 import { getSetting } from './setting';
 import { AllMessageEvent } from './events';
 import { Bot, getBotList, getBot } from './bot';
 import { deepClone, deepMerge, logger } from './util';
 import { Command, commandEvent, CommandMessageType } from './command';
-import { Action } from './action';
 
 const modules_path = join(__workname, 'node_modules');
 const plugins_path = join(__workname, 'plugins');
@@ -56,13 +56,13 @@ export class Plugin extends EventEmitter {
     this.listen_list = new Map();
 
     // #region 更新指令
-    // const updateCommand = new Command('group', 'update <key> <value>', this)
-    //   .description('群服务列表')
-    //   .action(function (key: string, value: string) {
-    //     this.update(key, value)
-    //       .then(message => this.event.reply(message))
-    //       .catch(error => this.event.reply(error.message))
-    //   });
+    const updateCommand = new Command('group', 'update <key> <value>', this)
+      .description('群服务列表')
+      .action(function (key: string, value: string) {
+        this.update(key, value)
+          .then(message => this.event.reply(message))
+          .catch(error => this.event.reply(error.message))
+      });
     //#endregion
     //#region 帮助指令
     const helpCommand = new Command('all', 'help', this)
