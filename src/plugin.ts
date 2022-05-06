@@ -5,13 +5,12 @@ import { EventMap } from 'oicq';
 import { EventEmitter } from 'events';
 import { Job, JobCallback, scheduleJob } from 'node-schedule';
 
-import { Action } from './action';
-import { Listen } from './listen';
+import { Listen, Trigger } from './listen';
 import { getSetting } from './setting';
 import { AllMessageEvent } from './events';
 import { Bot, getBotList, getBot } from './bot';
 import { deepClone, deepMerge, logger } from './util';
-import { Command, commandEvent, CommandMessageType } from './command';
+import { Action, Command, commandEvent, CommandMessageType } from './command';
 
 const modules_path = join(__workname, 'node_modules');
 const plugins_path = join(__workname, 'plugins');
@@ -87,7 +86,8 @@ export class Plugin extends EventEmitter {
       });
     //#endregion
 
-    this.parse = this.parse.bind(this);
+    this.parseAction = this.parseAction.bind(this);
+    this.parseTrigger = this.parseTrigger.bind(this);
     this.on('plugin.bind', this.bindEvents);
 
     setTimeout(() => {
@@ -152,7 +152,7 @@ export class Plugin extends EventEmitter {
   }
 
   // 指令解析器
-  private parse(event: AllMessageEvent) {
+  private parseAction(event: AllMessageEvent) {
     for (const [_, command] of this.command_list) {
       if (command.isMatched(event)) {
         const self_id = event.self_id;
@@ -160,15 +160,20 @@ export class Plugin extends EventEmitter {
         const action = new Action(this, command, bot, event);
 
         this.args = command.parseArgs(event.raw_message);
-        this.run(command, action);
+        this.runAction(command, action);
         // TODO ⎛⎝≥⏝⏝≤⎛⎝ 插件事件
         // this.emit(`plugin.${this.name}`, event);
       }
     }
   }
 
+  // 事件解析器
+  private parseTrigger() {
+
+  }
+
   // 润
-  private run(command: Command, action: Action) {
+  private runAction(command: Command, action: Action) {
     const event = action.event;
     const args_length = this.args.length;
 
@@ -188,7 +193,7 @@ export class Plugin extends EventEmitter {
     } else if (command.func && this.prefix === '') {
       command.func.bind(action)(...this.args);
     } else if (command.message_type !== 'private' && command.stop && !action.isApply()) {
-      command.stop();
+      command.stop.bind(action)();
     } else if (command.message_type !== 'private' && command.func && action.isApply()) {
       command.func.bind(action)(...this.args);
     } else if (event.message_type === 'private' && command.func) {
@@ -196,12 +201,16 @@ export class Plugin extends EventEmitter {
     }
   }
 
+  private runTrigger(listen: Listen, trigger: Trigger) {
+    // TODO ⎛⎝≥⏝⏝≤⎛⎝
+  }
+
   // 绑定 bot 事件
   bindEvents(bot: Bot): void {
     for (const event_name of this.events) {
       if (event_name === 'message') {
-        bot.on(event_name, this.parse);
-        this.once('plugin.unbind', () => bot.off(event_name, this.parse));
+        bot.on(event_name, this.parseAction);
+        this.once('plugin.unbind', () => bot.off(event_name, this.parseAction));
       } else {
         const listen = this.listen_list.get(event_name)!;
 
