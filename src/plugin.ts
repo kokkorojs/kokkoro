@@ -56,7 +56,7 @@ export class Plugin extends EventEmitter {
 
     // #region 更新指令
     const updateCommand = new Command('group', 'update <key> <value>', this)
-      .description('群服务列表')
+      .description('更新群服务配置')
       .action(function (key: string, value: string) {
         this.update(key, value)
           .then(message => this.event.reply(message))
@@ -92,7 +92,7 @@ export class Plugin extends EventEmitter {
 
     setTimeout(() => {
       this.command_list.set(helpCommand.name, helpCommand);
-      // this.command_list.set(updateCommand.name, updateCommand);
+      this.command_list.set(updateCommand.name, updateCommand);
       this.command_list.set(versionCommand.name, versionCommand);
     });
   }
