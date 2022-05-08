@@ -7,6 +7,9 @@ import { Config } from "./bot";
 
 // kokkoro 全局配置
 export interface GlobalConfig {
+  api_key: {
+    [api: string]: string;
+  },
   // 服务端口
   port: number;
   // bot 信息
@@ -37,4 +40,8 @@ export function setBotConfig(uin: number, config: Config) {
 
 export function getGlobalConfig() {
   return global_config;
+}
+
+export function getApiKey(api: string) {
+  return global_config.api_key[api];
 }

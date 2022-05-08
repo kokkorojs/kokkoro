@@ -1,9 +1,11 @@
-import { GroupMessageEvent, PrivateMessageEvent } from 'oicq';
+import axios, { AxiosRequestConfig } from 'axios';
+import { GroupMessageEvent, MessageRet, PrivateMessageEvent, Sendable } from 'oicq';
 
+import { Scanner, segment } from './util';
 import { Bot, UserLevel } from './bot';
+import { writeSetting } from './setting';
 import { Option, Plugin } from './plugin';
 import { AllMessageEvent } from './events';
-import { writeSetting } from './setting';
 
 export type CommandMessageType = 'all' | 'group' | 'private';
 
@@ -195,6 +197,7 @@ export class Command<T extends keyof commandEvent = CommandMessageType> {
 
 export class Action<T extends keyof commandEvent = CommandMessageType> {
   public option?: Option;
+  public reply: (content: Sendable, quote?: boolean | undefined) => Promise<MessageRet>;
 
   constructor(
     public plugin: Plugin,
@@ -205,6 +208,7 @@ export class Action<T extends keyof commandEvent = CommandMessageType> {
     const group_id = (event as GroupMessageEvent).group_id;
     const plugin_name = this.plugin.getName();
 
+    this.reply = this.event.reply.bind(this.event);
     this.option = group_id ? this.bot.getOption(group_id, plugin_name) : undefined;
   }
 
@@ -270,6 +274,33 @@ export class Action<T extends keyof commandEvent = CommandMessageType> {
     } catch (error) {
       throw error;
     }
+  }
+
+  async replyImage(file: string | Buffer, flash: boolean = false): Promise<MessageRet | string> {
+    if (!(file instanceof Buffer) && /^https?/g.test(file)) {
+      const config: AxiosRequestConfig<any> = { responseType: 'arraybuffer', timeout: 5000 };
+
+      try {
+        file = (await axios.get(file, config)).data;
+      } catch (error) {
+        const message = `Error: ${(error as Error).message}\n${file}`;
+        throw new Error(message);
+      }
+    }
+    const image = segment.image(file, flash);
+    return this.reply(image);
+  }
+
+  rewrite(message: string) {
+    this.event.message = [
+      { type: 'text', text: message }
+    ];
+    this.event.raw_message = message;
+    this.bot.emit('message', this.event);
+  }
+
+  createScanner() {
+    return new Scanner(this.bot);
   }
 
   isApply(): boolean {
