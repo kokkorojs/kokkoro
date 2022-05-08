@@ -405,6 +405,22 @@ export function addBot(this: Bot, uin: number, private_event: PrivateMessageEven
         '\n使用手机 QQ 扫码登录，输入 “cancel” 取消登录',
       ]);
 
+      // TODO ⎛⎝≥⏝⏝≤⎛⎝ scanner 重构
+      // const listenLogin = () => {
+      //   const scanner = new Scanner(this);
+
+      //   scanner.nextText(private_event.sender.user_id, (element) => {
+      //     const text = element.text;
+
+      //     if (text === 'cancel') {
+      //       bot.terminate();
+      //       clearInterval(interval_id);
+      //       private_event.reply('登录已取消');
+      //     }
+      //     listenLogin();
+      //   })
+      // }
+
       const listenLogin = (event: PrivateMessageEvent) => {
         if (event.sender.user_id === private_event.sender.user_id && event.raw_message === 'cancel') {
           bot.terminate();

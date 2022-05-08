@@ -24,6 +24,7 @@ export const bot_dir = join(data_dir, 'bot');
 export const plugins_dir = join(__workname, 'plugins');
 export const modules_dir = join(__workname, 'node_modules');
 
+export { getApiKey } from './config';
 export { Option, Plugin } from './plugin';
 export { Bot, startup, getBotList } from './bot';
-export { logger, deepMerge, deepClone } from './util';
+export { logger, deepMerge, deepClone, Scanner } from './util';
