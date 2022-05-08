@@ -111,6 +111,7 @@ kokkoro start
 | group    | 群管(申请头衔、新人欢迎)         |
 | guild    | 会战相关                         |
 | hitokoto | 每日一言                         |
+| saucenao | saucenao 搜图                    |
 | setu     | hso，我都不看这些的              |
 | sandbox  | 将收到的消息当做代码在沙盒中执行 |
 
@@ -136,6 +137,9 @@ YAML 是一种专攻配置的语言，可读性高（JSON 有时确实让人眼�
 kokkoro 所有的配置文件均使用 YAML 编写，你也可以 [查看 YAML 入门教程](https://www.runoob.com/w3cnote/yaml-intro.html) 获取相关信息
 
 ``` yaml
+# api key
+api_key: 
+  "saucenao": xxx
 # web 服务端口号，为 0 则不启用
 port: 0
 # bot 信息，可添加多个
