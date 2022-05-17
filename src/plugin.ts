@@ -1,14 +1,13 @@
 import { join } from 'path';
 import { Dirent } from 'fs';
 import { readdir, mkdir } from 'fs/promises';
-import { EventMap } from 'oicq';
 import { EventEmitter } from 'events';
 import { Job, JobCallback, scheduleJob } from 'node-schedule';
 
-import { Listen, Trigger } from './listen';
 import { getSetting } from './setting';
-import { AllMessageEvent } from './events';
+import { Listen, Trigger } from './listen';
 import { Bot, getBotList, getBot } from './bot';
+import { AllMessageEvent, EventMap } from './events';
 import { deepClone, deepMerge, logger } from './util';
 import { Action, Command, commandEvent, CommandMessageType } from './command';
 
@@ -87,7 +86,6 @@ export class Plugin extends EventEmitter {
     //#endregion
 
     this.parseAction = this.parseAction.bind(this);
-    this.parseTrigger = this.parseTrigger.bind(this);
     this.on('plugin.bind', this.bindEvents);
 
     setTimeout(() => {
@@ -168,8 +166,13 @@ export class Plugin extends EventEmitter {
   }
 
   // 事件解析器
-  private parseTrigger() {
+  private parseTrigger<T extends keyof EventMap = any>(event_name: string, event: EventMap[T]) {
+    const listen = this.listen_list.get(event_name)!;
+    const self_id = event.self_id;
+    const bot = this.getBot(self_id)!;
+    const trigger = new Trigger(this, listen, bot, event);
 
+    this.runTrigger(listen, trigger);
   }
 
   // 润
@@ -202,20 +205,25 @@ export class Plugin extends EventEmitter {
   }
 
   private runTrigger(listen: Listen, trigger: Trigger) {
-    // TODO ⎛⎝≥⏝⏝≤⎛⎝
+    if (listen.func && trigger.isApply()) {
+      listen.func();
+    } else if (listen.stop && !trigger.isApply()) {
+      listen.stop();
+    }
   }
 
   // 绑定 bot 事件
-  bindEvents(bot: Bot): void {
+  bindEvents<T extends keyof EventMap = any>(bot: Bot): void {
     for (const event_name of this.events) {
       if (event_name === 'message') {
         bot.on(event_name, this.parseAction);
         this.once('plugin.unbind', () => bot.off(event_name, this.parseAction));
       } else {
-        const listen = this.listen_list.get(event_name)!;
-
-        bot.on(event_name, listen.func);
-        this.once('plugin.unbind', () => bot.off(event_name, listen.func));
+        const parseTrigger = (event: EventMap[T]) => {
+          this.parseTrigger(event_name, event);
+        }
+        bot.on(event_name, parseTrigger);
+        this.once('plugin.unbind', () => bot.off(event_name, parseTrigger));
       }
     }
   }
