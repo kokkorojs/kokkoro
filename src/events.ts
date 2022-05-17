@@ -4,13 +4,13 @@ import { GuildMessageEvent } from 'oicq/lib/internal/guild';
 // self_id 属性可能在未来会被移除，少用
 declare module 'oicq' {
   export interface FriendRequestEvent {
-    // self_id: number;
+    self_id: number;
   }
   export interface GroupRequestEvent {
-    // self_id: number;
+    self_id: number;
   }
   export interface GroupInviteEvent {
-    // self_id: number;
+    self_id: number;
   }
 
   //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -28,46 +28,46 @@ declare module 'oicq' {
   //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
   export interface FriendIncreaseEvent {
-    // self_id: number;
+    self_id: number;
   }
   export interface FriendDecreaseEvent {
-    // self_id: number;
+    self_id: number;
   }
   export interface FriendRecallEvent {
-    // self_id: number;
+    self_id: number;
   }
   export interface FriendPokeEvent {
-    // self_id: number;
+    self_id: number;
   }
 
   //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
   export interface MemberIncreaseEvent {
-    // self_id: number;
+    self_id: number;
   }
   export interface MemberDecreaseEvent {
-    // self_id: number;
+    self_id: number;
   }
   export interface GroupRecallEvent {
-    // self_id: number;
+    self_id: number;
   }
   export interface GroupAdminEvent {
-    // self_id: number;
+    self_id: number;
   }
   export interface GroupMuteEvent {
-    // self_id: number;
+    self_id: number;
   }
   export interface GroupTransferEvent {
-    // self_id: number;
+    self_id: number;
   }
   export interface GroupPokeEvent {
-    // self_id: number;
+    self_id: number;
   }
 }
 
 declare module 'oicq/lib/internal/guild' {
   export interface GuildMessageEvent {
-    // self_id: number;
+    self_id: number;
   }
 }
 
