@@ -26,7 +26,7 @@
 本项目不用安装任何第三方软件，非常简单轻便  
 仅需三行命令即可构建，你可以选择下列任意一种方式来初始化你的项目
 
-``` shell
+```shell
 # 全局安装 cli
 npm i -g @kokkoro/cli
 
@@ -39,7 +39,7 @@ kokkoro init
 
 or
 
-``` shell
+```shell
 # 创建并进入文件夹
 mkdir bot && cd bot
 
@@ -58,7 +58,7 @@ npx kokkoro init
 ## 结构
 当你输入 `kokkoro init` 后， kokkoro 将会为你在当前所在目录自动安装并生成相关文件
 
-``` text
+```text
 .
 ├─ data               资源目录
 ├─ plugins            插件目录
@@ -71,7 +71,7 @@ npx kokkoro init
 ## 启动
 一切准备就绪，开始启动你的项目吧
 
-``` shell
+```shell
 kokkoro start
 ```
 
@@ -136,30 +136,31 @@ kokkoro start
 YAML 是一种专攻配置的语言，可读性高（JSON 有时确实让人眼花缭乱不是么？）  
 kokkoro 所有的配置文件均使用 YAML 编写，你也可以 [查看 YAML 入门教程](https://www.runoob.com/w3cnote/yaml-intro.html) 获取相关信息
 
-``` yaml
-# api key
+```yaml
+# 第三方服务 api key
 api_key: 
-  "saucenao": xxx
+  # 例如 saucenao 搜图
+  "saucenao": 3d14159265358979323846264338327950288419
 # web 服务端口号，为 0 则不启用
 port: 0
 # bot 信息，可添加多个
 bots:
   # bot 账号
-  "123456789":
+  "1145141919":
     # 项目启动时自动登录，默认 true
     auto_login: true
     # 登录模式，默认扫码登录
     mode: qrcode
     # bot 主人，可添加多个
     masters:
-      - 123456789
+      - 2225151531
     # 协议配置，不要随意修改，除非你知道自己在做什么
     protocol:
       # 日志等级，默认 info
       # 打印日志会降低性能，若消息量巨大建议修改此参数
       log_level: info
       # 1:安卓手机(默认) 2:aPad 3:安卓手表 4:MacOS 5:iPad
-      platform: 5
+      platform: 1
       # 忽略自己的消息，默认 true
       ignore_self: true
       # 被风控时是否尝试用分片发送，默认 true
