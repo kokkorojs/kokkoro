@@ -206,9 +206,9 @@ export class Plugin extends EventEmitter {
 
   private runTrigger(listen: Listen, trigger: Trigger) {
     if (listen.func && trigger.isApply()) {
-      listen.func();
+      listen.func.bind(trigger)();
     } else if (listen.stop && !trigger.isApply()) {
-      listen.stop();
+      listen.stop.bind(trigger)();
     }
   }
 
