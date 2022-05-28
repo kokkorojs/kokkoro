@@ -21,9 +21,6 @@ export const segment = {
  * @returns {ImageElem|FlashElem} 
  */
 function image(file: string | Buffer, flash: boolean = false): ImageElem | FlashElem {
-  if (!(file instanceof Buffer) && !/^https?/g.test(file)) {
-    file = `file:///${file}`;
-  }
   return !flash ? messageSegment.image(file) : messageSegment.flash(file);
 }
 

@@ -151,10 +151,16 @@ export class Plugin extends EventEmitter {
 
   // 指令解析器
   private parseAction(event: AllMessageEvent) {
+    const { self_id, sender } = event;
+    const bot = this.getBot(self_id)!;
+    const is_friend = bot.getFriendList().has(sender.user_id);
+
+    // 屏蔽临时会话
+    if (event.message_type === 'private' && !is_friend) {
+      return;
+    }
     for (const [_, command] of this.command_list) {
       if (command.isMatched(event)) {
-        const self_id = event.self_id;
-        const bot = this.getBot(self_id)!;
         const action = new Action(this, command, bot, event);
 
         this.args = command.parseArgs(event.raw_message);
