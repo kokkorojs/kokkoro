@@ -16,6 +16,7 @@
 ## 介绍
 原项目 [yumemi_bot](https://github.com/rumicchi/yumemi_bot) 最初为个人自用 bot，主要围绕 [公主连结☆Re:Dive](https://priconne-redive.jp/) 开发相关功能，因代码严重耦合不利于维护，使用 ts 分离重构为插件一对多形式的框架
 
+- [x] 基于 Observable 设计模式，让事件处理更加强大
 - [x] 多群插件管理，所有插件针对不同群聊均支持参数自定义
 - [x] 默认扫码登录，能有效避免因操作不当导致账号风控、掉线等问题
 - [x] 友好的脚手架，无需手动修改配置文件，全由命令自动构建，能防止因修改文件导致占用或缓存而产生的异常
@@ -76,57 +77,6 @@ kokkoro start
 ```
 
 如果你是使用的本地安装，就要使用 `npx kokkoro start` 启动项目
-
-## 指令
-登录成功后，你将会收到一条私信（你填写的 masters）  
-输入 `print` 指令可以测试消息打印，现在开启一段属于你的物语吧 q(≧▽≦q)
-
-常用指令
-
-| command  | type    | level | description              |
-| -------- | ------- | ----- | ------------------------ |
-| print    | all     | 0     | 打印输出文本             |
-| restart  | all     | 5     | 重启程序进程             |
-| shutdown | all     | 5     | 退出程序进程             |
-| state    | private | 5     | 查询机器人状态           |
-| login    | private | 5     | 添加新的登录 qq 账号     |
-| logout   | private | 5     | 下线已登录的 qq 账号     |
-| plugin   | private | 5     | 列出本地插件模块列表     |
-| enable   | private | 5     | 为当前机器人启用插件     |
-| disable  | private | 5     | 为当前机器人禁用插件     |
-| reload   | private | 5     | 重载当前插件模块(热更新) |
-| server   | group   | 0     | 列出当前群聊可用服务列表 |
-| open     | group   | 3     | 开启当前群聊插件消息监听 |
-| close    | group   | 3     | 关闭当前群聊插件消息监听 |
-
-所有指令都有 `type` 属性，对应群聊与私聊的消息处理  
-可以输入 `help` 查看自带的全部指令与参数，安装插件后能使用更多功能
-
-插件列表
-
-| plugin   | description                      |
-| -------- | -------------------------------- |
-| bilibili | b 站动态订阅                     |
-| rsshub   | rsshub 订阅                     |
-| group    | 群管(申请头衔、新人欢迎)         |
-| guild    | 会战相关                         |
-| hitokoto | 每日一言                         |
-| saucenao | saucenao 搜图                    |
-| setu     | hso，我都不看这些的              |
-| sandbox  | 将收到的消息当做代码在沙盒中执行 |
-
-使用说明可访问对应仓库地址，开发文档可访问: https://kokkoro.js.org/
-
-## 权限
-在 kokkoro 看来，任何发送消息都是成员都是有等级的
-
-- level 0 群成员（随活跃度提升）
-- level 1 群成员（随活跃度提升）
-- level 2 群成员（随活跃度提升）
-- level 3 管　理
-- level 4 群　主
-- level 5 主　人
-- level 6 维护组
 
 ## 参数
 在初始化项目后，会在根目录下生成 `kokkoro.yml` 文件，你可以在此修改相关配置
