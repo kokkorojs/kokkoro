@@ -3,7 +3,6 @@ import { getLogger, Logger } from 'log4js';
 import { FlashElem, ImageElem, MessageElem, segment as messageSegment, TextElem } from 'oicq';
 
 import { Bot } from './bot';
-import { AllMessageEvent } from './events';
 
 export const emitter = new EventEmitter();
 export const logger: Logger = getLogger('[kokkoro]');
