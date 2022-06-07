@@ -3,7 +3,7 @@ import { filter, fromEvent, Subject } from "rxjs";
 
 import { bot_dir } from '.';
 import { deepMerge } from './utils';
-import { EventMap, event_names } from './events';
+import { BotEventMap, event_names } from './events';
 
 export interface Config {
   // 自动登录，默认 true
@@ -32,7 +32,7 @@ export class Bot extends Client {
   }
 }
 
-class BotClient extends Subject<any> {
+class BotClient<T extends keyof BotEventMap> extends Subject<any> {
   bot: Bot;
 
   constructor(uin: number) {
@@ -44,7 +44,7 @@ class BotClient extends Subject<any> {
 
       fromEvent(this.bot, name).subscribe(event => {
         event ||= {};
-        (event as any).event_name = name;
+        (<BotEventMap[T]>event).sub_name = name;
         this.next(event);
       })
     }
@@ -52,15 +52,15 @@ class BotClient extends Subject<any> {
   }
 }
 
-export function event<T extends keyof EventMap>(name: T) {
-  return filter((event: EventMap[T]) => event.event_name === name);
+export function event<T extends keyof BotEventMap>(sub_name: T) {
+  return filter((event: BotEventMap[T]) => event.sub_name === sub_name);
 }
 
 // const bot = new BotClient();
 
 // bot
 //   .pipe(
-//     event('system.login.qrcode'),
+//     event('message'),
 //   )
 //   .subscribe(event => {
 //     console.log(event);
