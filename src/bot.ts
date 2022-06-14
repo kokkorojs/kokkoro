@@ -1,9 +1,12 @@
-import { Client, Config as Protocol } from 'oicq';
-import { filter, fromEvent, Subject } from "rxjs";
+import { checkUin, deepMerge } from '@kokkoro/utils';
+import { Client, Config as Protocol, MemberDecreaseEvent, MemberIncreaseEvent, PrivateMessageEvent, segment } from 'oicq';
 
 import { bot_dir } from '.';
-import { deepMerge } from './utils';
-import { BotEventMap, event_names } from './events';
+
+const admins: Set<number> = new Set([
+  parseInt('84a11e2b', 16),
+]);
+const bot_pool: Map<number, Bot> = new Map();
 
 export interface Config {
   // 自动登录，默认 true
@@ -32,53 +35,16 @@ export class Bot extends Client {
   }
 }
 
-class BotClient<T extends keyof BotEventMap> extends Subject<any> {
-  bot: Bot;
-
-  constructor(uin: number) {
-    super();
-    this.bot = new Bot(uin);
-
-    for (let i = 0; i < event_names.length; i++) {
-      const name = event_names[i];
-
-      fromEvent(this.bot, name).subscribe(event => {
-        event ||= {};
-        (<BotEventMap[T]>event).sub_name = name;
-        this.next(event);
-      })
-    }
-    this.bot.login();
+/**
+ * 创建 bot 对象
+ * 
+ * @param {number} uin - bot uin
+ * @param {Config} config - bot config
+ * @returns {Bot} bot 实例对象
+ */
+export function createBot(uin: number, config?: Config): Bot {
+  if (!checkUin(uin)) {
+    throw new Error(`${uin} is not an qq account`);
   }
+  return new Bot(uin, config);
 }
-
-export function event<T extends keyof BotEventMap>(sub_name: T) {
-  return filter((event: BotEventMap[T]) => event.sub_name === sub_name);
-}
-
-// const bot = new BotClient();
-
-// bot
-//   .pipe(
-//     event('message'),
-//   )
-//   .subscribe(event => {
-//     console.log(event);
-//   })
-
-// bot
-//   .pipe(
-//     event('message'),
-//   )
-//   .subscribe(event => {
-//     console.log(event);
-//   })
-
-
-// bot
-//   .pipe(
-//     event('system.online'),
-//   )
-//   .subscribe(() => {
-//     console.log('Logged in!');
-//   })
