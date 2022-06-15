@@ -1,5 +1,6 @@
 import { join } from 'path';
-import { createWebServer } from './web';
+import { runBotServer } from './bot';
+import { runWebServer } from './web';
 
 const { upday, version, changelogs } = require('../package.json');
 
@@ -20,7 +21,8 @@ export function startup() {
   `;
 
   console.log(`\u001b[32m${logo}\u001b[0m`);
-  createWebServer();
+  runBotServer();
+  // runWebServer();
 }
 
-export { web } from './web';
+// export { web } from './web';
