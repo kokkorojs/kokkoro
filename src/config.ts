@@ -20,8 +20,8 @@ export interface GlobalConfig {
 const config_path = resolve(__workname, 'kokkoro.yml');
 const global_config = YAML.readSync(config_path) as GlobalConfig;
 
-export function getGlobalConfig<T extends keyof GlobalConfig>(key?: T) {
-  return key ? global_config[key] : global_config;
+export function getGlobalConfig<T extends keyof GlobalConfig>(key: T): GlobalConfig[T] {
+  return global_config[key];
 }
 
 export function getApiKey(api: string) {
