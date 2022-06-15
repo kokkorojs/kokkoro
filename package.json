@@ -36,7 +36,6 @@
     "oicq": "^2.2.3"
   },
   "devDependencies": {
-    "@types/koa": "^2.13.4",
     "@types/node": "^17.0.38"
   },
   "files": [

@@ -1,6 +1,8 @@
 import { join } from 'path';
-import { runBotServer } from './bot';
+import { logger } from '@kokkoro/utils';
 import { runWebServer } from './web';
+import { runBotServer } from './bot';
+import { runPluginServer } from './plugin';
 
 const { upday, version, changelogs } = require('../package.json');
 
@@ -19,10 +21,17 @@ export function startup() {
     |< (_) |< |< (_) | (_)   | | | (_| | |    |_ (/_ | | | |  > | | |   |
                                        ╯                                o
   `;
-
   console.log(`\u001b[32m${logo}\u001b[0m`);
-  runBotServer();
+
+  logger.mark(`----------`);
+  logger.mark(`Package Version: kokkoro@${KOKKORO_VERSION} (Released on ${KOKKORO_UPDAY})`);
+  logger.mark(`View Changelogs: ${KOKKORO_CHANGELOGS}`);
+  logger.mark(`----------`);
+
   // runWebServer();
+  runBotServer();
+  runPluginServer();
 }
 
 // export { web } from './web';
+export { Plugin } from './plugin';
