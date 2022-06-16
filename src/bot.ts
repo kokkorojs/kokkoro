@@ -14,7 +14,11 @@ const admins: Set<number> = new Set([
 ]);
 const bot_pool: Map<number, Worker> = new Map();
 
-export interface Config {
+type BotInfo = {
+  uin: number;
+  nickname: string;
+}
+export type Config = {
   // 自动登录，默认 true
   auto_login?: boolean;
   // 登录模式，默认 qrcode
@@ -177,25 +181,30 @@ export function createBot(uin: number, config?: Config): Bot {
  */
 export function createBotThread(uin: number, config?: Config): void {
   const worker = new Worker(__filename, {
-    workerData: JSON.stringify({
+    workerData: {
       uin, config,
-    }),
+    },
   });
+
+  // setInterval(() => {
+  //   worker.postMessage('bot worker send');
+  // }, 2000);
 
   worker
     .on('online', () => {
-      console.log(`创建 bot ${uin} 线程`);
+      logger.info(`创建 bot ${uin} 线程`);
+      // bot_pool.set(uin)
     })
     .on('message', (message) => {
-      console.log(`主线程收到消息`, message);
-      // worker.postMessage(message);
+      logger.info(`主线程收到消息`, message);
+      // bot_pool.set(uin, bot_info);
     })
     .on('error', error => {
-      console.log(`线程 ${uin}炸了，`, error.message);
+      logger.error(`线程 ${uin}炸了，`, error.message);
     })
     .on('exit', code => {
-      console.log(`${uin} 线程已退出，代码: ${code}`);
-      console.log('正在重启...');
+      logger.warn(`${uin} 线程已退出，代码: ${code}`);
+      logger.info('正在重启...');
 
       setTimeout(() => {
         createBotThread(uin, config);
@@ -209,10 +218,10 @@ export function runBotServer() {
   const bot = getGlobalConfig('bots');
   const bot_keys = Object.keys(bot);
 
-  if (bot_keys.length > 1) {
-    logger.warn('v0.4 不支持多账号在控制台登录，未来 web 完善后将会移除现有登录逻辑');
-    process.exit();
-  }
+  // if (bot_keys.length > 1) {
+  //   logger.warn('v0.4 不支持多账号在控制台登录，未来 web 完善后将会移除现有登录逻辑');
+  //   process.exit();
+  // }
 
   bot_keys.forEach(uin => {
     const config = bot[+uin];
@@ -221,16 +230,20 @@ export function runBotServer() {
 }
 
 if (!isMainThread && workerData) {
-  const { uin, config } = JSON.parse(workerData);
+  const { uin, config } = workerData;
   const bot = createBot(uin, config);
+  // bot.linkStart();
+  // bot.on('message', event => {
+  //   if (event.raw_message === 'exit') {
+  //     process.exit();
+  //   }
+  // })
+  // const bot_info = {
+  //   uin,
+  // };
 
-  bot.linkStart();
-  bot.on('message', event => {
-    if (event.raw_message === 'exit') {
-      process.exit();
-    }
-  })
+  // parentPort!.postMessage(bot_info);
   parentPort!.on('message', (message) => {
-    console.log(`bot 工作线程收到消息`, message);
+    logger.info(`bot 工作线程收到消息`, message);
   })
 }

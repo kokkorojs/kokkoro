@@ -16,6 +16,7 @@ export const plugins_dir = join(__workname, 'plugins');
 export const modules_dir = join(__workname, 'node_modules');
 
 export function startup() {
+  process.title = 'kokkoro';
   const logo = `
     |   _  |  |   _  ._ _    ._ _   _. o o   _|_  _  ._  ._   _ |_  o   |
     |< (_) |< |< (_) | (_)   | | | (_| | |    |_ (/_ | | | |  > | | |   |
@@ -30,7 +31,7 @@ export function startup() {
 
   // runWebServer();
   runBotServer();
-  runPluginServer();
+  // runPluginServer();
 }
 
 // export { web } from './web';
