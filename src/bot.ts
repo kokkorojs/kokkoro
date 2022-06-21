@@ -1,18 +1,15 @@
-import { checkUin, deepMerge, logger } from '@kokkoro/utils';
-import { EventEmitter } from 'events';
+import { join } from 'path';
 import { createHash } from 'crypto';
-import { Client, Config as Protocol, MemberDecreaseEvent, MemberIncreaseEvent, PrivateMessageEvent, segment } from 'oicq';
-import { isMainThread, Worker, workerData, parentPort } from 'worker_threads';
+import { deepMerge } from '@kokkoro/utils';
+import { readFile, writeFile } from 'fs/promises';
+import { Client, Config as Protocol } from 'oicq';
+import { isMainThread, parentPort, workerData, MessagePort } from 'worker_threads';
 
 import { bot_dir } from '.';
-import { getGlobalConfig } from './config';
-import { readFile, writeFile } from 'fs/promises';
-import { join } from 'path';
 
-const admins: Set<number> = new Set([
+const admin: Set<number> = new Set([
   parseInt('84a11e2b', 16),
 ]);
-const bot_pool: Map<number, Worker> = new Map();
 
 export interface Config {
   // 自动登录，默认 true
@@ -27,6 +24,7 @@ export interface Config {
 
 export class Bot extends Client {
   private mode: 'qrcode' | 'password';
+  private pluginPort!: MessagePort;
   private readonly password_path: string;
 
   constructor(uin: number, config?: Config) {
@@ -44,12 +42,35 @@ export class Bot extends Client {
 
     this.mode = config.mode!;
     this.password_path = join(this.dir, 'password');
-    this.on('system.online', () => {
-      parentPort!.postMessage(`${this.uin} 登录成功`);
-    })
-    this.on('system.offline', () => {
-      parentPort!.postMessage(`${this.uin} 登出成功`);
-    })
+
+    // 绑定通信端口
+    parentPort?.once('bind.port', (event) => {
+      this.pluginPort = event.port;
+
+      // 绑定通信事件
+      this.pluginPort.on('message', (message) => {
+        const { name, event } = message;
+
+        if (name === 'bind.event') {
+          const { listeners } = event;
+
+          for (let i = 0; i < listeners.length; i++) {
+            const name = listeners[i];
+
+            this.on(name, (event: any) => {
+              console.log('plugin listen message: ', event.raw_message);
+            });
+          }
+        }
+      });
+    });
+
+    // this.on('system.online', () => {
+    //   parentPort!.postMessage(`${this.uin} 登录成功`);
+    // })
+    // this.on('system.offline', () => {
+    //   parentPort!.postMessage(`${this.uin} 登出成功`);
+    // })
   }
 
   async linkStart(): Promise<void> {
@@ -154,83 +175,16 @@ export class Bot extends Client {
   }
 }
 
-/**
- * 创建 bot 对象
- * 
- * @param {number} uin - bot uin
- * @param {Config} config - bot config
- * @returns {Bot} bot 实例对象
- */
-export function createBot(uin: number, config?: Config): Bot {
-  if (!checkUin(uin)) {
-    throw new Error(`${uin} is not an qq account`);
-  }
-  return new Bot(uin, config);
-}
+if (isMainThread) {
+  throw new Error('你在主线程跑这个干吗？');
+} else {
+  const { uin, config } = workerData;
+  const bot = new Bot(uin, config);
 
-/**
- * 创建 bot 线程
- * 
- * @param {number} uin - bot uin
- * @param {Config} config - bot config
- * @returns {Bot} bot 实例对象
- */
-export function createBotThread(uin: number, config?: Config): void {
-  const worker = new Worker(__filename, {
-    workerData: JSON.stringify({
-      uin, config,
-    }),
-  });
-
-  worker
-    .on('online', () => {
-      console.log(`创建 bot ${uin} 线程`);
-    })
-    .on('message', (message) => {
-      console.log(`主线程收到消息`, message);
-      // worker.postMessage(message);
-    })
-    .on('error', error => {
-      console.log(`线程 ${uin}炸了，`, error.message);
-    })
-    .on('exit', code => {
-      console.log(`${uin} 线程已退出，代码: ${code}`);
-      console.log('正在重启...');
-
-      setTimeout(() => {
-        createBotThread(uin, config);
-      }, 1000);
-    })
-
-  bot_pool.set(uin, worker);
-}
-
-export function runBotServer() {
-  const bot = getGlobalConfig('bots');
-  const bot_keys = Object.keys(bot);
-
-  if (bot_keys.length > 1) {
-    logger.warn('v0.4 不支持多账号在控制台登录，未来 web 完善后将会移除现有登录逻辑');
-    process.exit();
-  }
-
-  bot_keys.forEach(uin => {
-    const config = bot[+uin];
-    createBotThread(+uin, config);
+  bot.login();
+  parentPort!.on('message', message => {
+    parentPort!.emit(message.name, message.event);
   });
 }
 
-if (!isMainThread && workerData) {
-  const { uin, config } = JSON.parse(workerData);
-  const bot = createBot(uin, config);
-
-  bot.linkStart();
-  bot.on('message', event => {
-    if (event.raw_message === 'exit') {
-      process.exit();
-    }
-  })
-  parentPort!.on('message', (message) => {
-    console.log(`bot 工作线程收到消息`, message);
-  })
-}
+console.log('bot.js 被初始化');

@@ -1,8 +1,6 @@
 import { join } from 'path';
 import { logger } from '@kokkoro/utils';
-import { runWebServer } from './web';
-import { runBotServer } from './bot';
-import { runPluginServer } from './plugin';
+import { runWorkerThreads } from './worker';
 
 const { upday, version, changelogs } = require('../package.json');
 
@@ -21,6 +19,7 @@ export function startup() {
     |< (_) |< |< (_) | (_)   | | | (_| | |    |_ (/_ | | | |  > | | |   |
                                        ╯                                o
   `;
+  process.title = 'kokkoro';
   console.log(`\u001b[32m${logo}\u001b[0m`);
 
   logger.mark(`----------`);
@@ -28,10 +27,7 @@ export function startup() {
   logger.mark(`View Changelogs: ${KOKKORO_CHANGELOGS}`);
   logger.mark(`----------`);
 
-  // runWebServer();
-  runBotServer();
-  runPluginServer();
+  runWorkerThreads();
 }
 
-// export { web } from './web';
 export { Plugin } from './plugin';

@@ -23,7 +23,3 @@ const global_config = YAML.readSync(config_path) as GlobalConfig;
 export function getGlobalConfig<T extends keyof GlobalConfig>(key: T): GlobalConfig[T] {
   return global_config[key];
 }
-
-export function getApiKey(api: string) {
-  return global_config.api_key[api];
-}
