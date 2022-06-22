@@ -2,9 +2,9 @@ import { join } from 'path';
 import { Dirent } from 'fs';
 import { mkdir, readdir } from 'fs/promises';
 import { isMainThread, parentPort, MessagePort } from 'worker_threads';
-// import { isMainThread, Worker, workerData, parentPort } from 'worker_threads';
-// // import { Bot, getBotPool } from "./bot";
-// // import { createChildThread } from "./worker";
+
+import { Listen } from './listen';
+import { proxyParentPort } from '../worker';
 
 const modules_path = join(__workname, 'node_modules');
 const plugins_path = join(__workname, 'plugins');
@@ -13,9 +13,11 @@ export interface PluginInfo {
   name: string;
   path: string;
 }
+
 export class Plugin {
-  botPort!: MessagePort;
-  listeners: string[];
+  private events: Set<string>;
+  private listeners: Map<string, Listen>;
+  private botPort: Map<number, MessagePort>;
 
   constructor(
     public name: string = '',
@@ -23,32 +25,40 @@ export class Plugin {
     if (isMainThread) {
       throw new Error('你在主线程跑这个干吗？');
     } else {
-      this.listeners = [];
+      proxyParentPort();
 
-      parentPort!.on('message', value => {
-        const { name, event } = value;
+      this.events = new Set();
+      this.listeners = new Map();
+      this.botPort = new Map();
 
-        parentPort!.emit(name, event);
-        console.log(`plugin 收到主线程消息: ${value}`);
-      });
+      // 绑定插件线程通信
+      parentPort?.on('bind.port', (event) => {
+        const { uin, port } = event;
 
-      parentPort?.once('bind.port', (event) => {
-        this.botPort = event.port;
+        this.botPort.set(uin, port);
+        this.events.forEach((name, uin) => {
+          const pluginBindEvent = {
+            name: 'bind.event',
+            event: { name },
+          };
 
-        this.botPort.postMessage({
-          name: 'bind.event',
-          event: {
-            listeners: this.listeners,
-          }
+          port.postMessage(pluginBindEvent);
+          port.on(name, (event: any) => {
+            this.listeners.get(name)!.run(port, event);
+          });
         });
       });
     }
   }
 
   listen(name: string) {
-    this.listeners.push(name);
+    const listen = new Listen();
+
+    // 单个插件事件不允许重复监听
+    this.events.add(name);
+    this.listeners.set(name, listen);
+    return listen;
   }
-  //     // this.bot_list = new Map();
 }
 
 //   //   bindBot(bot: Bot): Plugin {
