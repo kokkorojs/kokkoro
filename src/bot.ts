@@ -6,6 +6,7 @@ import { Client, Config as Protocol } from 'oicq';
 import { isMainThread, parentPort, workerData, MessagePort } from 'worker_threads';
 
 import { bot_dir } from '.';
+import { proxyParentPort } from './worker';
 
 const admin: Set<number> = new Set([
   parseInt('84a11e2b', 16),
@@ -22,9 +23,50 @@ export interface Config {
   protocol?: Protocol;
 }
 
+// class Bot extends EventEmitter {
+//   pluginPort: Map<string, MessagePort>;
+
+//   constructor(public uin: number) {
+//     super();
+//     proxyParentPort();
+
+//     this.pluginPort = new Map();
+
+//     // 绑定插件线程通信
+//     parentPort?.on('bind.port', (event) => {
+//       const { name, port } = event;
+
+//       port.on('message', (message: any) => {
+//         if (message.name) {
+//           port.emit(message.name, message.event);
+//         }
+//         console.log('bot 收到了消息:', message);
+//       });
+
+//       port.on('bind.event', (event: any) => {
+//         logger.debug(`插件 ${name} 绑定 bot(${uin}) ${event.name} 事件`);
+
+//         this.on(event.name, (event) => {
+//           port.postMessage(event);
+//         });
+//       });
+//       this.pluginPort.set(name, port);
+//     });
+//   }
+
+//   linkStart() {
+//     logger.info('登录成功');
+
+//     // 模拟收到消息
+//     setInterval(() => {
+//       this.emit('message', 'hello world');
+//     }, 2000);
+//   }
+// }
+
 export class Bot extends Client {
   private mode: 'qrcode' | 'password';
-  private pluginPort!: MessagePort;
+  private pluginPort: Map<string, MessagePort>;
   private readonly password_path: string;
 
   constructor(uin: number, config?: Config) {
@@ -39,31 +81,37 @@ export class Bot extends Client {
     config = deepMerge(default_config, config);
 
     super(uin, config.protocol);
+    proxyParentPort();
 
     this.mode = config.mode!;
     this.password_path = join(this.dir, 'password');
+    this.pluginPort = new Map();
 
-    // 绑定通信端口
-    parentPort?.once('bind.port', (event) => {
-      this.pluginPort = event.port;
+    // 绑定插件线程通信
+    parentPort?.on('bind.port', (event) => {
+      const { name, port } = event;
 
-      // 绑定通信事件
-      this.pluginPort.on('message', (message) => {
-        const { name, event } = message;
-
-        if (name === 'bind.event') {
-          const { listeners } = event;
-
-          for (let i = 0; i < listeners.length; i++) {
-            const name = listeners[i];
-
-            this.on(name, (event: any) => {
-              console.log('plugin listen message: ', event.raw_message);
-            });
-          }
+      port.on('message', (message: any) => {
+        if (message.name) {
+          port.emit(message.name, message.event);
         }
+        console.log('bot 收到了消息:', message);
       });
+
+      port.on('bind.event', (event: any) => {
+        this.on(event.name, (event: any) => {
+          for (const key in event) {
+            if (typeof event[key] === 'function') {
+              delete event[key];
+            }
+          }
+          port.postMessage(event);
+        });
+        this.logger.info(`插件 ${name} 绑定 ${event.name} 事件`);
+      });
+      this.pluginPort.set(name, port);
     });
+
 
     // this.on('system.online', () => {
     //   parentPort!.postMessage(`${this.uin} 登录成功`);
@@ -181,10 +229,5 @@ if (isMainThread) {
   const { uin, config } = workerData;
   const bot = new Bot(uin, config);
 
-  bot.login();
-  parentPort!.on('message', message => {
-    parentPort!.emit(message.name, message.event);
-  });
+  bot.linkStart();
 }
-
-console.log('bot.js 被初始化');
