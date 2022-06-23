@@ -109,6 +109,17 @@ export class Bot extends Client {
         });
         this.logger.info(`插件 ${name} 绑定 ${event.name} 事件`);
       });
+
+      // 发送消息
+      port.on('message.send', (event: any) => {
+        this.sendMessage(event);
+      });
+
+      // 撤回消息
+      port.on('message.recall', (event: any) => {
+        this.recallMessage(event);
+      });
+
       this.pluginPort.set(name, port);
     });
 
@@ -220,6 +231,23 @@ export class Bot extends Client {
         .catch(error => this.logger.error(`写入 password md5 失败，${error.message}`))
         .finally(() => this.login(password_md5));
     })
+  }
+
+  // 发送消息
+  sendMessage(event: any) {
+    switch (event.type) {
+      case 'private':
+        this.sendPrivateMsg(event.user_id, event.message);
+        break;
+      case 'group':
+        this.sendGroupMsg(event.group_id, event.message);
+        break;
+    }
+  }
+
+  // 消息撤回
+  recallMessage(event: any) {
+
   }
 }
 
