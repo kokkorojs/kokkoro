@@ -44,15 +44,20 @@ export class Plugin {
 
           port.postMessage(pluginBindEvent);
           port.on(name, (event: any) => {
-            this.listeners.get(name)!.run(port, event);
+            this.listeners.get(name)!.run(event);
           });
         });
       });
     }
   }
 
+  sendMessage(event: any) {
+    const { self_id } = event;
+    this.botPort.get(self_id)?.postMessage(event);
+  }
+
   listen(name: string) {
-    const listen = new Listen();
+    const listen = new Listen(this);
 
     // 单个插件单项事件不应该重复监听
     this.events.add(name);
