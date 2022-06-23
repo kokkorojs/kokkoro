@@ -36,7 +36,7 @@ export class Plugin {
         const { uin, port } = event;
 
         this.botPort.set(uin, port);
-        this.events.forEach((name, uin) => {
+        this.events.forEach((name) => {
           const pluginBindEvent = {
             name: 'bind.event',
             event: { name },
@@ -54,7 +54,7 @@ export class Plugin {
   listen(name: string) {
     const listen = new Listen();
 
-    // 单个插件事件不允许重复监听
+    // 单个插件单项事件不应该重复监听
     this.events.add(name);
     this.listeners.set(name, listen);
     return listen;
