@@ -35,7 +35,7 @@ class BotWorker extends Worker {
         console.log(`主线程收到 bot 消息`, event);
       })
       .on('exit', (code) => {
-        logger.debug(`bot(${uin}) 线程已退出，代码:`, code)
+        logger.debug(`bot(${uin}) 线程已退出，代码:`, code);
 
         if (code) {
           logger.info('正在重启...');
@@ -44,7 +44,7 @@ class BotWorker extends Worker {
             createBotWorker(uin, config);
           }, 3000);
         }
-      })
+      });
   }
 }
 
@@ -75,15 +75,15 @@ class PluginWorker extends Worker {
             createPluginWorker(info);
           }, 3000);
         }
-      })
+      });
   }
 }
 
 /**
  * 创建机器人线程实例
- * 
- * @param uin 
- * @returns 
+ *
+ * @param uin
+ * @param config
  */
 function createBotWorker(uin: number, config: Config) {
   return new BotWorker(uin, config);
@@ -91,9 +91,9 @@ function createBotWorker(uin: number, config: Config) {
 
 /**
  * 创建插件线程实例
- * 
- * @param info 
- * @returns 
+ *
+ * @param info
+ * @returns
  */
 function createPluginWorker(info: PluginInfo) {
   return new PluginWorker(info);
@@ -124,7 +124,7 @@ async function createPluginThreads() {
 
   [...modules, ...plugins].forEach((info) => {
     createPluginWorker(info);
-  })
+  });
 }
 
 /**
@@ -138,26 +138,32 @@ export async function runWorkerThreads() {
     logger.error((error as Error).message);
     return;
   }
+  const bot_keys = [...bot_workers.keys()];
 
-  // 建立线程通信
-  bot_workers.forEach((bot_worker) => {
-    const plugin_list = ['demo'];
+  bot_keys.forEach((uin) => {
+    linkMessageChannel(uin);
+  });
+}
 
-    plugin_list.forEach((name) => {
-      const { port1: botPort, port2: pluginPort } = new MessageChannel();
-      const botPortEvent = {
-        name: 'bind.port',
-        event: { name, port: pluginPort },
-      };
-      bot_worker.postMessage(botPortEvent, [pluginPort]);
+// 建立双向通信通道
+function linkMessageChannel(uin: number) {
+  const bot_worker = bot_workers.get(uin)!;
+  const plugin_list = ['demo'];
 
-      const plugin_worker = plugin_workers.get(name)!;
-      const pluginPortEvent = {
-        name: 'bind.port',
-        event: { port: botPort },
-      };
-      plugin_worker.postMessage(pluginPortEvent, [botPort]);
-    });
+  plugin_list.forEach((name) => {
+    const { port1: botPort, port2: pluginPort } = new MessageChannel();
+    const botPortEvent = {
+      name: 'bind.port',
+      event: { name, port: pluginPort },
+    };
+    bot_worker.postMessage(botPortEvent, [pluginPort]);
+
+    const plugin_worker = plugin_workers.get(name)!;
+    const pluginPortEvent = {
+      name: 'bind.port',
+      event: { port: botPort },
+    };
+    plugin_worker.postMessage(pluginPortEvent, [botPort]);
   });
 }
 

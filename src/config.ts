@@ -1,7 +1,7 @@
 import { resolve } from 'path';
 import { YAML } from '@kokkoro/utils';
 
-import { Config } from "./bot";
+import { Config } from './bot';
 
 // kokkoro 全局配置
 export interface GlobalConfig {

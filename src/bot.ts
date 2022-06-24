@@ -23,50 +23,9 @@ export interface Config {
   protocol?: Protocol;
 }
 
-// class Bot extends EventEmitter {
-//   pluginPort: Map<string, MessagePort>;
-
-//   constructor(public uin: number) {
-//     super();
-//     proxyParentPort();
-
-//     this.pluginPort = new Map();
-
-//     // 绑定插件线程通信
-//     parentPort?.on('bind.port', (event) => {
-//       const { name, port } = event;
-
-//       port.on('message', (message: any) => {
-//         if (message.name) {
-//           port.emit(message.name, message.event);
-//         }
-//         console.log('bot 收到了消息:', message);
-//       });
-
-//       port.on('bind.event', (event: any) => {
-//         logger.debug(`插件 ${name} 绑定 bot(${uin}) ${event.name} 事件`);
-
-//         this.on(event.name, (event) => {
-//           port.postMessage(event);
-//         });
-//       });
-//       this.pluginPort.set(name, port);
-//     });
-//   }
-
-//   linkStart() {
-//     logger.info('登录成功');
-
-//     // 模拟收到消息
-//     setInterval(() => {
-//       this.emit('message', 'hello world');
-//     }, 2000);
-//   }
-// }
-
 export class Bot extends Client {
-  private mode: 'qrcode' | 'password';
   private pluginPort: Map<string, MessagePort>;
+  private readonly mode: 'qrcode' | 'password';
   private readonly password_path: string;
 
   constructor(uin: number, config?: Config) {
@@ -88,9 +47,10 @@ export class Bot extends Client {
     this.pluginPort = new Map();
 
     // 绑定插件线程通信
-    parentPort?.on('bind.port', (event) => {
+    parentPort?.on('bind.port', (event: { name: string, port: MessagePort }) => {
       const { name, port } = event;
 
+      // 线程事件代理
       port.on('message', (message: any) => {
         if (message.name) {
           port.emit(message.name, message.event);
@@ -98,45 +58,16 @@ export class Bot extends Client {
         console.log('bot 收到了消息:', message);
       });
 
-      port.on('bind.event', (event: any) => {
-        this.on(event.name, (event: any) => {
-          for (const key in event) {
-            if (typeof event[key] === 'function') {
-              delete event[key];
-            }
-          }
-          port.postMessage(event);
-        });
-        this.logger.info(`插件 ${name} 绑定 ${event.name} 事件`);
-      });
-
-      // 发送消息
-      port.on('message.send', (event: any) => {
-        this.sendMessage(event);
-      });
-
-      // 撤回消息
-      port.on('message.recall', (event: any) => {
-        this.recallMessage(event);
-      });
-
+      this.listenPortEvent(port);
       this.pluginPort.set(name, port);
     });
-
-
-    // this.on('system.online', () => {
-    //   parentPort!.postMessage(`${this.uin} 登录成功`);
-    // })
-    // this.on('system.offline', () => {
-    //   parentPort!.postMessage(`${this.uin} 登出成功`);
-    // })
   }
 
   async linkStart(): Promise<void> {
     switch (this.mode) {
       /**
        * 扫描登录
-       * 
+       *
        * 优点是不需要过滑块和设备锁
        * 缺点是万一 token 失效，无法自动登录，需要重新扫码
        */
@@ -165,7 +96,7 @@ export class Bot extends Client {
         break;
       /**
        * 密码登录
-       * 
+       *
        * 优点是一劳永逸
        * 缺点是需要过滑块，可能会报环境异常
        */
@@ -230,7 +161,32 @@ export class Bot extends Client {
         .then(() => this.logger.mark('写入 password md5 成功'))
         .catch(error => this.logger.error(`写入 password md5 失败，${error.message}`))
         .finally(() => this.login(password_md5));
-    })
+    });
+  }
+
+  private listenPortEvent(port: MessagePort) {
+    // 事件监听
+    port.on('bind.event', (event: any) => {
+      this.on(event.name, (event: any) => {
+        for (const key in event) {
+          if (typeof event[key] === 'function') {
+            delete event[key];
+          }
+        }
+        port.postMessage(event);
+      });
+      this.logger.debug(`插件 ${event.prefix} 绑定 ${event.name} 事件`);
+    });
+
+    // 发送消息
+    port.on('message.send', (event: any) => {
+      this.sendMessage(event);
+    });
+
+    // 撤回消息
+    port.on('message.recall', (event: any) => {
+      this.recallMessage(event);
+    });
   }
 
   // 发送消息
