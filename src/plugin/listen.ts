@@ -1,18 +1,26 @@
-import { Plugin } from ".";
-import { MessagePort } from 'worker_threads';
-import { logger } from "@kokkoro/utils";
+import { Plugin } from '.';
 
 export class Listen {
   public func?: (event: any) => any;
 
   constructor(
+    private event_name: string,
     public plugin: Plugin,
   ) {
-    logger.debug('new plugin');
   }
 
   run(event: any) {
-    event.reply = this.reply.bind(this);
+    event.reply = (message: any) => {
+      const { message_type, user_id, group_id } = event;
+
+      this.reply({
+        name: 'message.send',
+        event: {
+          type: message_type,
+          message, user_id, group_id,
+        },
+      });
+    };
 
     if (this.func) {
       this.func(event);
