@@ -42,6 +42,12 @@ class BotWorker extends Worker {
 
           setTimeout(() => {
             createBotWorker(uin, config);
+            // TODO ⎛⎝≥⏝⏝≤⎛⎝ 动态获取插件列表
+            const plugin_list = ['demo'];
+
+            plugin_list.forEach((name) => {
+              linkMessageChannel(uin, name);
+            });
           }, 3000);
         }
       });
@@ -73,6 +79,11 @@ class PluginWorker extends Worker {
 
           setTimeout(() => {
             createPluginWorker(info);
+            const bot_keys = [...bot_workers.keys()];
+
+            bot_keys.forEach((uin) => {
+              linkMessageChannel(uin, name);
+            });
           }, 3000);
         }
       });
@@ -106,7 +117,6 @@ function createBotThreads() {
   const bots = getGlobalConfig('bots');
   const map = new Map(Object.entries(bots));
 
-  // 未来将不在支持终端账号登录，统一在 web 端管理
   if (map.size > 1) {
     throw new Error('v0.4 暂不支持多账号登录，如有使用需求可回滚 v0.3');
   }
@@ -136,35 +146,43 @@ export async function runWorkerThreads() {
     await createPluginThreads();
   } catch (error) {
     logger.error((error as Error).message);
+    logger.warn('未来将不再支持终端账号登录，统一在 web 端管理');
     return;
   }
   const bot_keys = [...bot_workers.keys()];
 
   bot_keys.forEach((uin) => {
-    linkMessageChannel(uin);
+    // TODO ⎛⎝≥⏝⏝≤⎛⎝ 动态获取插件列表
+    const plugin_list = ['demo'];
+
+    plugin_list.forEach((name) => {
+      linkMessageChannel(uin, name);
+    });
   });
 }
 
-// 建立双向通信通道
-function linkMessageChannel(uin: number) {
+/**
+ * 建立双向通信通道
+ * 
+ * @param uin bot 账号
+ * @param name 插件名称
+ */
+function linkMessageChannel(uin: number, name: string): void {
   const bot_worker = bot_workers.get(uin)!;
-  const plugin_list = ['demo'];
+  const plugin_worker = plugin_workers.get(name)!;
 
-  plugin_list.forEach((name) => {
-    const { port1: botPort, port2: pluginPort } = new MessageChannel();
-    const botPortEvent = {
-      name: 'bind.port',
-      event: { name, port: pluginPort },
-    };
-    bot_worker.postMessage(botPortEvent, [pluginPort]);
+  const { port1: botPort, port2: pluginPort } = new MessageChannel();
+  const botPortEvent = {
+    name: 'bind.port',
+    event: { name, port: pluginPort },
+  };
+  const pluginPortEvent = {
+    name: 'bind.port',
+    event: { port: botPort },
+  };
 
-    const plugin_worker = plugin_workers.get(name)!;
-    const pluginPortEvent = {
-      name: 'bind.port',
-      event: { port: botPort },
-    };
-    plugin_worker.postMessage(pluginPortEvent, [botPort]);
-  });
+  bot_worker.postMessage(botPortEvent, [pluginPort]);
+  plugin_worker.postMessage(pluginPortEvent, [botPort]);
 }
 
 // 代理主线程通信
@@ -184,5 +202,4 @@ export function emitParentPort(name: string, event: object) {
   if (isMainThread) {
     throw new Error('当前已在主线程');
   }
-  parentPort!.emit(name, event);
 }
