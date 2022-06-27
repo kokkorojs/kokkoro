@@ -32,9 +32,11 @@
   "changelogs": "https://github.com/kokkorojs/kokkoro/releases",
   "dependencies": {
     "@kokkoro/utils": "^0.0.2",
+    "cron": "^2.0.0",
     "oicq": "^2.3.0"
   },
   "devDependencies": {
+    "@types/cron": "^2.0.0",
     "@types/node": "^18.0.0"
   },
   "files": [
