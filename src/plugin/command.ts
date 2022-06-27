@@ -146,5 +146,4 @@ export class Command {
     }
     return this.plugin.prefix === prefix && this.name === command_name;
   }
-
 }

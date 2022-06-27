@@ -55,7 +55,7 @@ export class Bot extends Client {
         if (message.name) {
           port.emit(message.name, message.event);
         }
-        console.log('bot 收到了消息:', message);
+        this.logger.debug('bot 收到了消息:', message);
       });
 
       this.listenPortEvent(port);

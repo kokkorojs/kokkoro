@@ -4,9 +4,9 @@ import { mkdir, readdir } from 'fs/promises';
 import { isMainThread, parentPort, MessagePort } from 'worker_threads';
 
 import { Listen } from './listen';
-import { proxyParentPort } from '../worker';
-import { BotEventMap } from '../events';
 import { Command } from './command';
+import { BotEventMap } from '../events';
+import { proxyParentPort } from '../worker';
 
 const modules_path = join(__workname, 'node_modules');
 const plugins_path = join(__workname, 'plugins');
