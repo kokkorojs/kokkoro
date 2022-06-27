@@ -1,6 +1,7 @@
 import { join } from 'path';
 import { Dirent } from 'fs';
 import { mkdir, readdir } from 'fs/promises';
+import { CronCommand, CronJob } from 'cron';
 import { isMainThread, parentPort, MessagePort } from 'worker_threads';
 
 import { Listen } from './listen';
@@ -17,6 +18,7 @@ export interface PluginInfo {
 }
 
 export class Plugin {
+  private jobs: CronJob[];
   private events: Set<string>;
   private botPort: Map<number, MessagePort>;
   private listeners: Map<string, Listen>;
@@ -30,6 +32,7 @@ export class Plugin {
     } else {
       proxyParentPort();
 
+      this.jobs = [];
       this.events = new Set();
       this.botPort = new Map();
       this.listeners = new Map();
@@ -57,6 +60,13 @@ export class Plugin {
         });
       });
     }
+  }
+
+  schedule(cron: string, command: CronCommand) {
+    const job = new CronJob(cron, command, null, true);
+
+    this.jobs.push(job);
+    return this;
   }
 
   sendMessage(event: any) {

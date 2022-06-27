@@ -168,10 +168,12 @@ export async function runWorkerThreads() {
  * @param name 插件名称
  */
 function linkMessageChannel(uin: number, name: string): void {
+  if (!bot_workers.has(uin) || !plugin_workers.has(name)) {
+    throw new Error('thread is not defined');
+  }
+  const { port1: botPort, port2: pluginPort } = new MessageChannel();
   const bot_worker = bot_workers.get(uin)!;
   const plugin_worker = plugin_workers.get(name)!;
-
-  const { port1: botPort, port2: pluginPort } = new MessageChannel();
   const botPortEvent = {
     name: 'bind.port',
     event: { name, port: pluginPort },
@@ -202,4 +204,5 @@ export function emitParentPort(name: string, event: object) {
   if (isMainThread) {
     throw new Error('当前已在主线程');
   }
+  parentPort!.emit(name, event);
 }
