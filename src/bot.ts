@@ -189,7 +189,7 @@ export class Bot extends Client {
     });
   }
 
-  // 发送消息
+  // 消息发送
   sendMessage(event: any) {
     switch (event.type) {
       case 'private':
@@ -201,9 +201,18 @@ export class Bot extends Client {
     }
   }
 
-  // 消息撤回
+  // 撤回消息
   recallMessage(event: any) {
+    const group = this.pickGroup(event.group_id);
 
+    switch (event.type) {
+      case 'private':
+        group.recallMsg(event.seq, event.rand);
+        break;
+      case 'group':
+        group.recallMsg(event.seq, event.rand);
+        break;
+    }
   }
 }
 
