@@ -26,7 +26,7 @@ class BotWorker extends Worker {
 
     this
       .once('online', () => {
-        logger.debug(`bot(${uin}) 线程已创建`);
+        logger.debug(`bot(${ uin }) 线程已创建`);
       })
       .on('error', (error) => {
         logger.error(error.message);
@@ -35,7 +35,7 @@ class BotWorker extends Worker {
         console.log(`主线程收到 bot 消息`, event);
       })
       .on('exit', (code) => {
-        logger.debug(`bot(${uin}) 线程已退出，代码:`, code);
+        logger.debug(`bot(${ uin }) 线程已退出，代码:`, code);
 
         if (code) {
           logger.info('正在重启...');
@@ -63,7 +63,7 @@ class PluginWorker extends Worker {
 
     this
       .once('online', () => {
-        logger.debug(`插件 "${name}" 线程已创建`);
+        logger.debug(`插件 "${ name }" 线程已创建`);
       })
       .on('error', (error) => {
         logger.error(error.message);
@@ -72,7 +72,7 @@ class PluginWorker extends Worker {
         console.log(`主线程收到 plugin 消息`, event);
       })
       .on('exit', (code) => {
-        logger.debug(`插件 "${name}" 线程已退出，代码:`, code);
+        logger.debug(`插件 "${ name }" 线程已退出，代码:`, code);
 
         if (code) {
           logger.info('正在重启...');
@@ -163,7 +163,7 @@ export async function runWorkerThreads() {
 
 /**
  * 建立双向通信通道
- * 
+ *
  * @param uin bot 账号
  * @param name 插件名称
  */

@@ -74,6 +74,11 @@ export class Plugin {
     this.botPort.get(self_id)?.postMessage(event);
   }
 
+  recallMessage(event: any) {
+    const { self_id } = event;
+    this.botPort.get(self_id)?.postMessage(event);
+  }
+
   // 指令监听
   command(raw_name: string, message_type: 'all' | 'private' | 'group' = 'all') {
     const command = new Command(raw_name, message_type, this);

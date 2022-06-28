@@ -3,9 +3,9 @@ import { Plugin } from '.';
 export type CommandMessageType = 'all' | 'group' | 'private';
 
 interface CommandArg {
-  required: boolean
-  value: string
-  variadic: boolean
+  required: boolean;
+  value: string;
+  variadic: boolean;
 }
 
 // export interface commandEvent {
@@ -20,32 +20,32 @@ function removeBrackets(name: string): string {
 
 function findAllBrackets(name: string) {
   const res = [];
-  const ANGLED_BRACKET_RE_GLOBAL = /<([^>]+)>/g
-  const SQUARE_BRACKET_RE_GLOBAL = /\[([^\]]+)\]/g
+  const ANGLED_BRACKET_RE_GLOBAL = /<([^>]+)>/g;
+  const SQUARE_BRACKET_RE_GLOBAL = /\[([^\]]+)\]/g;
 
   const parse = (match: string[]) => {
     let variadic = false;
     let value = match[1];
 
     if (value.startsWith('...')) {
-      value = value.slice(3)
-      variadic = true
+      value = value.slice(3);
+      variadic = true;
     }
     return {
       required: match[0].startsWith('<'),
       value,
       variadic,
-    }
-  }
+    };
+  };
 
-  let angledMatch
+  let angledMatch;
   while ((angledMatch = ANGLED_BRACKET_RE_GLOBAL.exec(name))) {
-    res.push(parse(angledMatch))
+    res.push(parse(angledMatch));
   }
 
-  let squareMatch
+  let squareMatch;
   while ((squareMatch = SQUARE_BRACKET_RE_GLOBAL.exec(name))) {
-    res.push(parse(squareMatch))
+    res.push(parse(squareMatch));
   }
 
   return res;
