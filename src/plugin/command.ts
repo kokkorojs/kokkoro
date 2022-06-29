@@ -1,18 +1,19 @@
+import { GroupMessageEvent, MessageElem, PrivateMessageEvent } from 'oicq';
+
 import { Plugin } from '.';
+import { PortEventMap } from '../events';
 
-export type CommandMessageType = 'all' | 'group' | 'private';
-
-interface CommandArg {
+type CommandArg = {
   required: boolean;
   value: string;
   variadic: boolean;
-}
+};
 
-// export interface commandEvent {
-//   'all': AllMessageEvent;
-//   'group': GroupMessageEvent;
-//   'private': PrivateMessageEvent;
-// }
+export type CommandEventMap = {
+  'all': GroupMessageEvent | PrivateMessageEvent;
+  'group': GroupMessageEvent;
+  'private': PrivateMessageEvent;
+};
 
 function removeBrackets(name: string): string {
   return name.replace(/[<[].+/, '').trim();
@@ -64,7 +65,7 @@ function parseGroups(groups: { [key: string]: string; } = {}): string[] {
   return raw_args;
 }
 
-export class Command {
+export class Command<T extends keyof CommandEventMap = any> {
   private regex?: RegExp;
   // private min_level: UserLevel;
   // private max_level: UserLevel;
@@ -72,7 +73,7 @@ export class Command {
   public name: string;
   public desc: string;
   public args: CommandArg[];
-  public func?: (...args: any[]) => any;
+  public func?: (event: CommandEventMap[T]) => any;
   public stop?: (...args: any[]) => any;
 
   constructor(
@@ -88,15 +89,12 @@ export class Command {
   }
 
   run(event: any) {
-    event.reply = (message: any) => {
-      const { message_type, user_id, group_id } = event;
+    event.reply = (message: string | MessageElem[]) => {
+      const { message_type, user_id, group_id, self_id } = event;
 
       this.reply({
-        name: 'message.send',
-        event: {
-          type: message_type,
-          message, user_id, group_id,
-        },
+        type: message_type,
+        message, self_id, user_id, group_id,
       });
     };
 
@@ -105,22 +103,22 @@ export class Command {
     }
   }
 
-  description(desc: string) {
+  description(desc: string): Command {
     this.desc = desc;
     return this;
   }
 
-  sugar(regex: RegExp) {
+  sugar(regex: RegExp): Command {
     this.regex = regex;
     return this;
   }
 
-  action(callback: (...args: any[]) => any) {
+  action(callback: (event: CommandEventMap[T]) => any): Command {
     this.func = callback;
     return this;
   }
 
-  reply(event: any) {
+  reply(event: PortEventMap['message.send']): void {
     this.plugin.sendMessage(event);
   }
 

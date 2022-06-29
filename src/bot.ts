@@ -6,6 +6,7 @@ import { Client, Config as Protocol } from 'oicq';
 import { isMainThread, parentPort, workerData, MessagePort } from 'worker_threads';
 
 import { bot_dir } from '.';
+import { PortEventMap } from './events';
 import { proxyParentPort } from './worker';
 
 const admin: Set<number> = new Set([
@@ -166,20 +167,18 @@ export class Bot extends Client {
 
   private listenPortEvent(port: MessagePort) {
     // 事件监听
-    port.on('bind.event', (event: any) => {
-      this.on(event.name, (event: any) => {
-        for (const key in event) {
-          if (typeof event[key] === 'function') {
-            delete event[key];
-          }
+    port.on('bind.event', (event: PortEventMap['bind.event']) => {
+      this.on(event.name, (e: any) => {
+        for (const key in e) {
+          if (typeof e[key] === 'function') delete e[key];
         }
-        port.postMessage(event);
+        port.postMessage(e);
       });
       this.logger.debug(`插件 ${event.prefix} 绑定 ${event.name} 事件`);
     });
 
     // 发送消息
-    port.on('message.send', (event: any) => {
+    port.on('message.send', (event: PortEventMap['message.send']) => {
       this.sendMessage(event);
     });
 
@@ -190,7 +189,7 @@ export class Bot extends Client {
   }
 
   // 消息发送
-  sendMessage(event: any) {
+  sendMessage(event: PortEventMap['message.send']) {
     switch (event.type) {
       case 'private':
         this.sendPrivateMsg(event.user_id, event.message);
