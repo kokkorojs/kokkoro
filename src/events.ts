@@ -1,5 +1,4 @@
-import { EventMap } from 'oicq';
-import { MessagePort } from 'worker_threads';
+import { EventMap, MessageElem } from 'oicq';
 
 // 获取事件类型
 type EventType<T> = T extends (arg: infer P) => void ? P : any;
@@ -8,6 +7,18 @@ export type BotEventMap = {
   [K in keyof EventMap]: EventType<EventMap[K]>;
 };
 
-export type portEventMap = {
-  'bind.event': (event: { name: string, port: MessagePort }) => void
+export type PortEventMap = {
+  'bind.event': {
+    name: string;
+    prefix: string;
+  };
+  'message.send': MessageSendEvent;
+};
+
+export type MessageSendEvent = {
+  type: 'private' | 'group';
+  message: string | MessageElem[];
+  self_id: number;
+  user_id: number;
+  group_id: number;
 };
