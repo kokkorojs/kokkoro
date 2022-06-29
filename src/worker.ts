@@ -43,7 +43,7 @@ class BotWorker extends Worker {
           setTimeout(() => {
             createBotWorker(uin, config);
             // TODO ⎛⎝≥⏝⏝≤⎛⎝ 动态获取插件列表
-            const plugin_list = ['demo'];
+            const plugin_list = ['', 'demo'];
 
             plugin_list.forEach((name) => {
               linkMessageChannel(uin, name);
@@ -131,8 +131,11 @@ function createBotThreads() {
  */
 async function createPluginThreads() {
   const { modules, plugins } = await retrievalPlugin();
-
-  [...modules, ...plugins].forEach((info) => {
+  const extension = {
+    name: '',
+    path: join(__dirname, 'plugin/extension'),
+  };
+  [extension, ...modules, ...plugins].forEach((info) => {
     createPluginWorker(info);
   });
 }
@@ -153,7 +156,7 @@ export async function runWorkerThreads() {
 
   bot_keys.forEach((uin) => {
     // TODO ⎛⎝≥⏝⏝≤⎛⎝ 动态获取插件列表
-    const plugin_list = ['demo', 'hitokoto'];
+    const plugin_list = ['', 'demo'];
 
     plugin_list.forEach((name) => {
       linkMessageChannel(uin, name);

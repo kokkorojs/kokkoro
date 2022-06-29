@@ -1,7 +1,8 @@
-import { GroupMessageEvent, MessageElem, PrivateMessageEvent } from 'oicq';
+import { deepClone } from '@kokkoro/utils';
+import { MessageElem } from 'oicq';
 
 import { Plugin } from '.';
-import { PortEventMap } from '../events';
+import { BotEventMap, PortEventMap } from '../events';
 
 type CommandArg = {
   required: boolean;
@@ -10,9 +11,9 @@ type CommandArg = {
 };
 
 export type CommandEventMap = {
-  'all': GroupMessageEvent | PrivateMessageEvent;
-  'group': GroupMessageEvent;
-  'private': PrivateMessageEvent;
+  'all': BotEventMap['message'];
+  'group': BotEventMap['message.group'];
+  'private': BotEventMap['message.private'];
 };
 
 function removeBrackets(name: string): string {
@@ -52,19 +53,6 @@ function findAllBrackets(name: string) {
   return res;
 }
 
-function parseGroups(groups: { [key: string]: string; } = {}): string[] {
-  const raw_args = [];
-  const keys = Object.keys(groups);
-
-  for (let i = 0; i < keys.length; i++) {
-    const key = keys[i];
-    const args = groups[key].split(' ');
-
-    raw_args.push(...args);
-  }
-  return raw_args;
-}
-
 export class Command<T extends keyof CommandEventMap = any> {
   private regex?: RegExp;
   // private min_level: UserLevel;
@@ -77,8 +65,8 @@ export class Command<T extends keyof CommandEventMap = any> {
   public stop?: (...args: any[]) => any;
 
   constructor(
+    public message_type: T | 'all' = 'all',
     public raw_name: string,
-    public message_type: 'all' | 'private' | 'group' = 'all',
     public plugin: Plugin,
   ) {
     this.name = removeBrackets(raw_name);
@@ -143,5 +131,25 @@ export class Command<T extends keyof CommandEventMap = any> {
       prefix = this.plugin.prefix;
     }
     return this.plugin.prefix === prefix && this.name === command_name;
+  }
+
+  parseQuery(raw_message: string): { [key: string]: string; } {
+    if (this.regex && this.regex.test(raw_message)) {
+      const { groups } = this.regex.exec(raw_message)!;
+      const query = groups ? { ...groups } : {};
+
+      return query;
+    } else {
+      const query = Object.fromEntries(
+        raw_message
+          .replace(new RegExp(this.plugin.prefix), '')
+          .replace(new RegExp(this.name), '')
+          .split(' ')
+          .filter(i => i !== '')
+          .map((v, i) => [this.args[i].value, v])
+      );
+
+      return query;
+    }
   }
 }
