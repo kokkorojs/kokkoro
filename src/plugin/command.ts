@@ -78,7 +78,7 @@ export class Command<T extends keyof CommandEventMap = any> {
 
   constructor(
     public raw_name: string,
-    public message_type: 'all' | 'private' | 'group',
+    public message_type: 'all' | 'private' | 'group' = 'all',
     public plugin: Plugin,
   ) {
     this.name = removeBrackets(raw_name);
@@ -103,17 +103,17 @@ export class Command<T extends keyof CommandEventMap = any> {
     }
   }
 
-  description(desc: string): Command {
+  description(desc: string): Command<T> {
     this.desc = desc;
     return this;
   }
 
-  sugar(regex: RegExp): Command {
+  sugar(regex: RegExp): Command<T> {
     this.regex = regex;
     return this;
   }
 
-  action(callback: (event: CommandEventMap[T]) => any): Command {
+  action(callback: (event: CommandEventMap[T]) => any): Command<T> {
     this.func = callback;
     return this;
   }
