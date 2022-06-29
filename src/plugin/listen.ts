@@ -1,7 +1,9 @@
+import { MessageElem } from 'oicq';
 import { Plugin } from '.';
+import { BotEventMap, PortEventMap } from '../events';
 
-export class Listen {
-  public func?: (event: any) => any;
+export class Listen<T extends keyof BotEventMap = any>  {
+  public func?: (event: BotEventMap[T]) => any;
 
   constructor(
     private event_name: string,
@@ -10,15 +12,12 @@ export class Listen {
   }
 
   run(event: any) {
-    event.reply = (message: any) => {
-      const { message_type, user_id, group_id } = event;
+    event.reply = (message: string | MessageElem[]) => {
+      const { message_type, user_id, group_id, self_id } = event;
 
       this.reply({
-        name: 'message.send',
-        event: {
-          type: message_type,
-          message, user_id, group_id,
-        },
+        type: message_type,
+        message, self_id, user_id, group_id,
       });
     };
 
@@ -27,12 +26,12 @@ export class Listen {
     }
   }
 
-  trigger(callback: (event: any) => any) {
+  trigger(callback: (event: BotEventMap[T]) => any) {
     this.func = callback;
     return this;
   }
 
-  reply(event: any) {
+  reply(event: PortEventMap['message.send']) {
     this.plugin.sendMessage(event);
   }
 }

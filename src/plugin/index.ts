@@ -5,8 +5,8 @@ import { CronCommand, CronJob } from 'cron';
 import { isMainThread, parentPort, MessagePort } from 'worker_threads';
 
 import { Listen } from './listen';
-import { Command } from './command';
-import { BotEventMap } from '../events';
+import { Command, CommandEventMap } from './command';
+import { BotEventMap, PortEventMap } from '../events';
 import { proxyParentPort } from '../worker';
 
 const modules_path = join(__workname, 'node_modules');
@@ -69,9 +69,21 @@ export class Plugin {
     return this;
   }
 
-  sendMessage(event: any) {
+  sendMessage(event: PortEventMap['message.send']) {
     const { self_id } = event;
-    this.botPort.get(self_id)?.postMessage(event);
+    const port_event = {
+      name: 'message.send', event,
+    };
+    this.botPort.get(self_id)?.postMessage(port_event);
+  }
+
+  sendAllMessage(event: PortEventMap['message.send']) {
+    const port_event = {
+      name: 'message.send', event,
+    };
+    this.botPort.forEach((port) => {
+      port.postMessage(port_event);
+    })
   }
 
   recallMessage(event: any) {
@@ -80,7 +92,7 @@ export class Plugin {
   }
 
   // 指令监听
-  command(raw_name: string, message_type: 'all' | 'private' | 'group' = 'all') {
+  command<T extends keyof CommandEventMap>(raw_name: string, message_type: T): Command<T> {
     const command = new Command(raw_name, message_type, this);
 
     this.events.add('message');
@@ -89,7 +101,7 @@ export class Plugin {
   }
 
   // 事件监听
-  listen<T extends keyof BotEventMap>(name: T) {
+  listen<T extends keyof BotEventMap>(name: T): Listen<T> {
     const listen = new Listen(name, this);
 
     // 单个插件单项事件不应该重复监听
