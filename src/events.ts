@@ -1,7 +1,7 @@
 import { EventMap, MessageElem } from 'oicq';
 
 // 获取事件类型
-type EventType<T> = T extends (arg: infer P) => void ? P : any;
+type EventType<T> = T extends (arg: infer P) => void ? P & { query: { [k: string]: string } } : any;
 
 export type BotEventMap = {
   [K in keyof EventMap]: EventType<EventMap[K]>;

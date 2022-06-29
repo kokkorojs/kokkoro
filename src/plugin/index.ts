@@ -4,6 +4,7 @@ import { mkdir, readdir } from 'fs/promises';
 import { CronCommand, CronJob } from 'cron';
 import { isMainThread, parentPort, MessagePort } from 'worker_threads';
 
+import { KOKKORO_VERSION } from '..';
 import { Listen } from './listen';
 import { Command, CommandEventMap } from './command';
 import { BotEventMap, PortEventMap } from '../events';
@@ -18,6 +19,8 @@ export interface PluginInfo {
 }
 
 export class Plugin {
+  private name: string;
+  private version: string;
   private jobs: CronJob[];
   private events: Set<string>;
   private botPort: Map<number, MessagePort>;
@@ -32,11 +35,44 @@ export class Plugin {
     } else {
       proxyParentPort();
 
+      this.name = '';
+      this.version = '0.0.0';
       this.jobs = [];
       this.events = new Set();
       this.botPort = new Map();
       this.listeners = new Map();
       this.command_list = new Map();
+
+      //#region 帮助指令
+      const helpCommand = new Command('all', 'help', this)
+        .description('帮助信息')
+        .action((event) => {
+          const message = ['Commands: '];
+
+          for (const [_, command] of this.command_list) {
+            const { raw_name, desc } = command;
+            message.push(`  ${raw_name}  ${desc}`);
+          }
+          event.reply(message.join('\n'));
+        });
+      //#endregion
+      // #region 版本指令
+      const versionCommand = new Command('all', 'version', this)
+        .description('版本信息')
+        .action((event) => {
+          if (this.name) {
+            event.reply(`${this.name} v${this.version}`);
+          } else {
+            event.reply('当前插件未添加版本信息，可调用 Plugin.info 设置');
+          }
+        });
+      //#endregion
+
+      // 任何插件实例化后都将自带 version 及 help 指令
+      setTimeout(() => {
+        this.command_list.set(helpCommand.name, helpCommand);
+        this.command_list.set(versionCommand.name, versionCommand);
+      });
 
       // 绑定插件线程通信
       parentPort?.on('bind.port', (event) => {
@@ -69,6 +105,12 @@ export class Plugin {
     return this;
   }
 
+  info(name: string, version: string) {
+    this.name = name;
+    this.version = version;
+    return this;
+  }
+
   sendMessage(event: PortEventMap['message.send']) {
     const { self_id } = event;
     const port_event = {
@@ -92,8 +134,8 @@ export class Plugin {
   }
 
   // 指令监听
-  command<T extends keyof CommandEventMap>(raw_name: string, message_type: T): Command<T> {
-    const command = new Command(raw_name, message_type, this);
+  command<T extends keyof CommandEventMap>(raw_name: string, message_type?: T): Command<T> {
+    const command = new Command(message_type, raw_name, this);
 
     this.events.add('message');
     this.command_list.set(command.name, command);
@@ -114,6 +156,7 @@ export class Plugin {
   private parseAction(event: any) {
     for (const [_, command] of this.command_list) {
       if (command.isMatched(event)) {
+        event.query = command.parseQuery(event.raw_message);
         command.run(event);
       }
     }
