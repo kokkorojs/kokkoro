@@ -3,7 +3,7 @@ import { logger } from '@kokkoro/utils';
 import { Worker, MessageChannel, isMainThread, parentPort } from 'worker_threads';
 
 import { Config } from './bot';
-import { getGlobalConfig } from './config';
+import { getProfile } from './profile';
 import { PluginInfo, retrievalPlugin } from './plugin';
 
 const bot_workers: Map<number, BotWorker> = new Map();
@@ -114,7 +114,7 @@ function createPluginWorker(info: PluginInfo) {
  * 创建机器人多线程服务
  */
 function createBotThreads() {
-  const bots = getGlobalConfig('bots');
+  const bots = getProfile('bots');
   const map = new Map(Object.entries(bots));
 
   if (map.size > 1) {
