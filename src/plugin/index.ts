@@ -13,10 +13,20 @@ import { proxyParentPort } from '../worker';
 const modules_path = join(__workname, 'node_modules');
 const plugins_path = join(__workname, 'plugins');
 
-export interface PluginInfo {
+export type PluginInfo = {
   name: string;
   path: string;
-}
+};
+
+// 插件选项
+export type Option = {
+  // 锁定，默认 false
+  lock: boolean;
+  // 开关，默认 true
+  apply: boolean;
+  // 其它设置
+  [param: string]: string | number | boolean | Array<string | number>;
+};
 
 export class Plugin {
   private name: string;

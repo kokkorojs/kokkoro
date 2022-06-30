@@ -13,7 +13,7 @@ const admin: Set<number> = new Set([
   parseInt('84a11e2b', 16),
 ]);
 
-export interface Config {
+export type Config = {
   // 自动登录，默认 true
   auto_login?: boolean;
   // 登录模式，默认 qrcode
@@ -22,7 +22,7 @@ export interface Config {
   masters?: number[];
   // 协议配置
   protocol?: Protocol;
-}
+};
 
 export class Bot extends Client {
   private pluginPort: Map<string, MessagePort>;
