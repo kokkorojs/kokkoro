@@ -1,7 +1,7 @@
 {
   "name": "kokkoro",
-  "version": "0.4.0",
-  "upday": "2022/6/30",
+  "version": "1.0.0",
+  "upday": "2022/7/6",
   "description": "とある咕咕の QQ 机器人框架",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -31,7 +31,7 @@
   "homepage": "https://github.com/kokkorojs/kokkoro#readme",
   "changelogs": "https://github.com/kokkorojs/kokkoro/releases",
   "dependencies": {
-    "@kokkoro/utils": "^0.0.2",
+    "@kokkoro/utils": "^0.0.4",
     "cron": "^2.0.0",
     "oicq": "^2.3.0"
   },

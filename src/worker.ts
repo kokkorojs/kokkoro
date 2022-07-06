@@ -4,7 +4,7 @@ import { Worker, MessageChannel, isMainThread, parentPort } from 'worker_threads
 
 import { Config } from './bot';
 import { getProfile } from './profile';
-import { PluginInfo, retrievalPlugin } from './plugin';
+import { getPluginList, PluginInfo, retrievalPlugin } from './plugin';
 
 const bot_workers: Map<number, BotWorker> = new Map();
 const plugin_workers: Map<string, PluginWorker> = new Map();
@@ -40,11 +40,10 @@ class BotWorker extends Worker {
         if (code) {
           logger.info('正在重启...');
 
-          setTimeout(() => {
-            createBotWorker(uin, config);
-            // TODO ⎛⎝≥⏝⏝≤⎛⎝ 动态获取插件列表
-            const plugin_list = ['', 'demo'];
+          setTimeout(async () => {
+            const plugin_list = await getPluginList();
 
+            createBotWorker(uin, config);
             plugin_list.forEach((name) => {
               linkMessageChannel(uin, name);
             });
@@ -58,7 +57,9 @@ class PluginWorker extends Worker {
   constructor(info: PluginInfo) {
     const { name, path } = info;
 
-    super(path);
+    super(path, {
+      workerData: { name },
+    });
     plugin_workers.set(name, this);
 
     this
@@ -153,11 +154,9 @@ export async function runWorkerThreads() {
     return;
   }
   const bot_keys = [...bot_workers.keys()];
+  const plugin_list = await getPluginList();
 
   bot_keys.forEach((uin) => {
-    // TODO ⎛⎝≥⏝⏝≤⎛⎝ 动态获取插件列表
-    const plugin_list = ['', 'demo'];
-
     plugin_list.forEach((name) => {
       linkMessageChannel(uin, name);
     });

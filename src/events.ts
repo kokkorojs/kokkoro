@@ -1,4 +1,5 @@
 import { EventMap, MessageElem } from 'oicq';
+import { Option } from './plugin';
 
 // 获取事件类型
 type EventType<T> = T extends (arg: infer P) => void ? P & { query: { [k: string]: string } } : any;
@@ -8,7 +9,11 @@ export type BotEventMap = {
 };
 
 export type PortEventMap = {
-  'bind.event': {
+  'bind.setting': {
+    name: string;
+    option: Option;
+  };
+  'bind.plugin': {
     name: string;
     prefix: string;
   };
