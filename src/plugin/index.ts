@@ -2,13 +2,14 @@ import { join } from 'path';
 import { Dirent } from 'fs';
 import { mkdir, readdir } from 'fs/promises';
 import { CronCommand, CronJob } from 'cron';
-import { isMainThread, parentPort, MessagePort } from 'worker_threads';
+import { isMainThread, parentPort, MessagePort, workerData } from 'worker_threads';
 
 import { KOKKORO_VERSION } from '..';
 import { Listen } from './listen';
 import { Command, CommandEventMap } from './command';
 import { BotEventMap, PortEventMap } from '../events';
 import { proxyParentPort } from '../worker';
+import { deepClone } from '@kokkoro/utils';
 
 const modules_path = join(__workname, 'node_modules');
 const plugins_path = join(__workname, 'plugins');
@@ -30,7 +31,7 @@ export type Option = {
 
 export class Plugin {
   private name: string;
-  private version: string;
+  private ver: string;
   private jobs: CronJob[];
   private events: Set<string>;
   private botPort: Map<number, MessagePort>;
@@ -39,14 +40,15 @@ export class Plugin {
 
   constructor(
     public prefix: string = '',
+    private option: Option = { apply: true, lock: false },
   ) {
     if (isMainThread) {
       throw new Error('你在主线程跑这个干吗？');
     } else {
       proxyParentPort();
 
-      this.name = '';
-      this.version = '0.0.0';
+      this.name = workerData.name;
+      this.ver = '0.0.0';
       this.jobs = [];
       this.events = new Set();
       this.botPort = new Map();
@@ -71,7 +73,7 @@ export class Plugin {
         .description('版本信息')
         .action((event) => {
           if (this.name) {
-            event.reply(`${this.name} v${this.version}`);
+            event.reply(`${this.name} v${this.ver}`);
           } else {
             event.reply('当前插件未添加版本信息，可调用 Plugin.info 设置');
           }
@@ -90,12 +92,17 @@ export class Plugin {
 
         this.botPort.set(uin, port);
         this.events.forEach((name) => {
-          const pluginBindEvent = {
-            name: 'bind.event',
+          const bindPluginEvent = {
+            name: 'bind.plugin',
             event: { name, prefix },
           };
+          const bindSettingEvent = {
+            name: 'bind.setting',
+            event: { name: this.name, option },
+          };
 
-          port.postMessage(pluginBindEvent);
+          port.postMessage(bindPluginEvent);
+          port.postMessage(bindSettingEvent);
           port.on(name, (event: any) => {
             if (name.startsWith('message')) {
               this.parseAction(event);
@@ -115,9 +122,8 @@ export class Plugin {
     return this;
   }
 
-  info(name: string, version: string) {
-    this.name = name;
-    this.version = version;
+  version(ver: string) {
+    this.ver = ver;
     return this;
   }
 
@@ -170,6 +176,11 @@ export class Plugin {
         command.run(event);
       }
     }
+  }
+
+  getOption() {
+    // 深拷贝防止 default option 被修改
+    return deepClone(this.option);
   }
 }
 
@@ -234,4 +245,14 @@ export async function retrievalPlugin() {
   return {
     modules, plugins,
   };
+}
+
+export async function getPluginList(): Promise<string[]> {
+  const { modules, plugins } = await retrievalPlugin();
+  const list = [];
+
+  for (const info of [...modules, ...plugins]) {
+    list.push(info.name);
+  }
+  return list;
 }

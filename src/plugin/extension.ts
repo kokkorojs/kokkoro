@@ -1,7 +1,7 @@
 import { Plugin } from '.';
 import { KOKKORO_VERSION } from '..';
 
-const plugin = new Plugin().info('kokkoro', KOKKORO_VERSION);
+const plugin = new Plugin().version(KOKKORO_VERSION);
 
 //#region 打印
 plugin
