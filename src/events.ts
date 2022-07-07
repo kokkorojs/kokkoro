@@ -15,6 +15,7 @@ export type PortEventMap = {
   };
   'bind.plugin': {
     name: string;
+    plugin: string,
     prefix: string;
   };
   'message.send': MessageSendEvent;

@@ -2,6 +2,7 @@ import { deepClone } from '@kokkoro/utils';
 import { MessageElem } from 'oicq';
 
 import { Plugin } from '.';
+import { UserLevel } from '../bot';
 import { BotEventMap, PortEventMap } from '../events';
 
 type CommandArg = {
@@ -55,14 +56,14 @@ function findAllBrackets(name: string) {
 
 export class Command<T extends keyof CommandEventMap = any> {
   private regex?: RegExp;
-  // private min_level: UserLevel;
-  // private max_level: UserLevel;
+  private min_level: UserLevel;
+  private max_level: UserLevel;
 
   public name: string;
   public desc: string;
   public args: CommandArg[];
+  public stop: (event: CommandEventMap[T]) => any;
   public func?: (event: CommandEventMap[T]) => any;
-  public stop?: (...args: any[]) => any;
 
   constructor(
     public message_type: T | 'all' = 'all',
@@ -72,8 +73,11 @@ export class Command<T extends keyof CommandEventMap = any> {
     this.name = removeBrackets(raw_name);
     this.args = findAllBrackets(raw_name);
     this.desc = '';
-    // this.min_level = 0;
-    // this.max_level = 6;
+    this.min_level = 0;
+    this.max_level = 6;
+    this.stop = event => {
+      event.reply(`插件 ${plugin.name} 在当前群聊已被禁用`);
+    }
   }
 
   run(event: any) {
@@ -86,7 +90,15 @@ export class Command<T extends keyof CommandEventMap = any> {
       });
     };
 
-    if (this.func) {
+    if (this.isLimit(event.permission_level)) {
+      event.reply(`越权，当前指令 level 范围：${this.min_level} ~ ${this.max_level}，你的 level 为：${event.permission_level}`);
+    } else if (this.func && this.plugin.prefix === '') {
+      this.func(event);
+    } else if (event.message_type !== 'private' && !event.option.apply) {
+      this.stop(event);
+    } else if (event.message_type !== 'private' && this.func && event.option.apply) {
+      this.func(event);
+    } else if (event.message_type === 'private' && this.func) {
       this.func(event);
     }
   }
@@ -106,8 +118,27 @@ export class Command<T extends keyof CommandEventMap = any> {
     return this;
   }
 
+  prevent(callback: (event: CommandEventMap[T]) => any): Command<T> {
+    this.stop = callback;
+    return this;
+  }
+
   reply(event: PortEventMap['message.send']): void {
     this.plugin.sendMessage(event);
+  }
+
+  limit(min_level: UserLevel, max_level: UserLevel = 6) {
+    if (min_level > max_level) {
+      throw new Error('min level be greater than max level');
+    }
+    this.min_level = min_level;
+    this.max_level = max_level;
+
+    return this;
+  }
+
+  isLimit(level: UserLevel): boolean {
+    return level < this.min_level || level > this.max_level;
   }
 
   isMatched(event: any) {

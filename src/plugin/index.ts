@@ -30,7 +30,7 @@ export type Option = {
 };
 
 export class Plugin {
-  private name: string;
+  public name: string;
   private ver: string;
   private jobs: CronJob[];
   private events: Set<string>;
@@ -94,7 +94,7 @@ export class Plugin {
         this.events.forEach((name) => {
           const bindPluginEvent = {
             name: 'bind.plugin',
-            event: { name, prefix },
+            event: { name, prefix, plugin: this.name },
           };
           const bindSettingEvent = {
             name: 'bind.setting',

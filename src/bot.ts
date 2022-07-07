@@ -2,7 +2,7 @@ import { join } from 'path';
 import { createHash } from 'crypto';
 import { deepClone, deepMerge } from '@kokkoro/utils';
 import { readFile, writeFile } from 'fs/promises';
-import { Client, Config as Protocol, MemberIncreaseEvent } from 'oicq';
+import { Client, Config as Protocol, GroupMessage, MemberIncreaseEvent } from 'oicq';
 import { isMainThread, parentPort, workerData, MessagePort } from 'worker_threads';
 
 import { bot_dir } from '.';
@@ -10,10 +10,11 @@ import { PortEventMap } from './events';
 import { proxyParentPort } from './worker';
 import { getSetting, Setting, writeSetting } from './profile/setting';
 
-const admin: Set<number> = new Set([
+const admins: Set<number> = new Set([
   parseInt('84a11e2b', 16),
 ]);
 
+export type UserLevel = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 export type Config = {
   // 自动登录，默认 true
   auto_login?: boolean;
@@ -160,6 +161,52 @@ export class Bot extends Client {
     });
   }
 
+  /**
+   * 获取用户权限等级
+   * 
+   * level 0 群成员（随活跃度提升）
+   * level 1 群成员（随活跃度提升）
+   * level 2 群成员（随活跃度提升）
+   * level 3 管  理
+   * level 4 群  主
+   * level 5 主  人
+   * level 6 维护组
+   * 
+   * @param event - 消息 event
+   * @returns 用户等级
+   */
+  private getUserLevel(event: GroupMessage): UserLevel {
+    const { sender } = event;
+    const { user_id, level = 0, role = 'member' } = sender as any;
+
+    let user_level: UserLevel;
+
+    switch (true) {
+      case admins.has(user_id):
+        user_level = 6
+        break;
+      case this.masters.includes(user_id):
+        user_level = 5
+        break;
+      case role === 'owner':
+        user_level = 4
+        break;
+      case role === 'admin':
+        user_level = 3
+        break;
+      case level > 4:
+        user_level = 2
+        break;
+      case level > 2:
+        user_level = 1
+        break;
+      default:
+        user_level = 0
+        break;
+    }
+    return user_level;
+  }
+
   private inputPassword(): void {
     process.stdout.write('首次登录请输入密码: ');
     process.stdin.once('data', (password: string) => {
@@ -213,6 +260,11 @@ export class Bot extends Client {
       this.on(event.name, (e: any) => {
         for (const key in e) {
           if (typeof e[key] === 'function') delete e[key];
+        }
+
+        if (e.message_type === 'group') {
+          e.option = this.setting[e.group_id].plugin[event.plugin];
+          e.permission_level = this.getUserLevel(e);
         }
         port.postMessage(e);
       });
