@@ -1,7 +1,6 @@
 import { join } from 'path';
 import { deepMerge, logger, YAML } from '@kokkoro/utils';
 
-import { bot_dir } from '..';
 import { getPluginList, Option } from '../plugin';
 
 // 群聊
@@ -29,7 +28,7 @@ export type Setting = {
  * @returns setting 文件路径
  */
 function getSettingPath(uin: number): string {
-  return join(bot_dir, `${uin}/setting.yml`);
+  return join(__workname, 'data/bot', `${uin}/setting.yml`);
 }
 
 export async function getSetting(uin: number) {

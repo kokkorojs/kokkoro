@@ -5,7 +5,6 @@ import { readFile, writeFile } from 'fs/promises';
 import { Client, Config as Protocol, GroupMessage, MemberIncreaseEvent } from 'oicq';
 import { isMainThread, parentPort, workerData, MessagePort } from 'worker_threads';
 
-import { bot_dir } from '.';
 import { PortEventMap } from './events';
 import { proxyParentPort } from './worker';
 import { getSetting, Setting, writeSetting } from './profile/setting';
@@ -39,7 +38,7 @@ export class Bot extends Client {
       masters: [],
       mode: 'qrcode',
       protocol: {
-        data_dir: bot_dir,
+        data_dir: join(__workname, 'data', 'bot'),
       },
     };
     config = deepMerge(default_config, config);
