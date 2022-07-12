@@ -1,15 +1,15 @@
 import { join } from 'path';
 import { Dirent } from 'fs';
-import { mkdir, readdir } from 'fs/promises';
+import { deepClone } from '@kokkoro/utils';
 import { CronCommand, CronJob } from 'cron';
+import { mkdir, readdir } from 'fs/promises';
 import { isMainThread, parentPort, MessagePort, workerData } from 'worker_threads';
 
-import { KOKKORO_VERSION } from '..';
 import { Listen } from './listen';
 import { Command, CommandEventMap } from './command';
 import { BotEventMap, PortEventMap } from '../events';
 import { proxyParentPort } from '../worker';
-import { deepClone } from '@kokkoro/utils';
+import { Bot } from '../bot';
 
 const modules_path = join(__workname, 'node_modules');
 const plugins_path = join(__workname, 'plugins');
@@ -18,6 +18,10 @@ export type PluginInfo = {
   name: string;
   path: string;
 };
+
+async function botApi<K extends keyof Bot>(method: K, ...params: Bot[K] extends (...args: infer P) => any ? P : []) {
+
+}
 
 // 插件选项
 export type Option = {

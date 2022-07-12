@@ -18,7 +18,6 @@ type MainThreadEvent = {
 class BotWorker extends Worker {
   constructor(uin: number, config: Config) {
     const bot_path = join(__dirname, 'bot');
-
     super(bot_path, {
       workerData: { uin, config },
     });
@@ -47,6 +46,7 @@ class BotWorker extends Worker {
             plugin_list.forEach((name) => {
               linkMessageChannel(uin, name);
             });
+            linkMessageChannel(uin, 'kokkoro');
           }, 3000);
         }
       });
@@ -133,7 +133,7 @@ function createBotThreads() {
 async function createPluginThreads() {
   const { modules, plugins } = await retrievalPlugin();
   const extension = {
-    name: '',
+    name: 'kokkoro',
     path: join(__dirname, 'plugin/extension'),
   };
   [extension, ...modules, ...plugins].forEach((info) => {

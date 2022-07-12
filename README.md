@@ -121,7 +121,7 @@ bots:
       # 被风控时是否尝试用分片发送，默认 true
       resend: true
       # 数据存储文件夹
-      data_dir: ./data/bot
+      data_dir: ../data/bot
       # 重新登录间隔，默认5(秒)
       reconn_interval: 5
       # 是否缓存群员列表，默认 true，
