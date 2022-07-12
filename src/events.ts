@@ -9,6 +9,10 @@ export type BotEventMap = {
 };
 
 export type PortEventMap = {
+  'bot.api': {
+    name: string;
+    params: any[];
+  };
   'bind.setting': {
     name: string;
     option: Option;
@@ -28,3 +32,5 @@ export type MessageSendEvent = {
   user_id: number;
   group_id: number;
 };
+
+
