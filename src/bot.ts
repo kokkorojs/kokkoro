@@ -12,17 +12,22 @@ import { getSetting, Setting, writeSetting } from './profile/setting';
 const admins: Set<number> = new Set([
   parseInt('84a11e2b', 16),
 ]);
+const bot_dir = join(__workname, 'data', 'bot');
 
+export type BotWorkerData = {
+  uin: number;
+  config: Config;
+};
 export type UserLevel = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 export type Config = {
   // 自动登录，默认 true
-  auto_login?: boolean;
+  auto_login: boolean;
   // 登录模式，默认 qrcode
-  mode?: 'qrcode' | 'password';
+  mode: 'qrcode' | 'password';
   // bot 主人
-  masters?: number[];
+  masters: number[];
   // 协议配置
-  protocol?: Protocol;
+  protocol: Protocol;
 };
 
 export class Bot extends Client {
@@ -38,7 +43,7 @@ export class Bot extends Client {
       masters: [],
       mode: 'qrcode',
       protocol: {
-        data_dir: join(__workname, 'data', 'bot'),
+        data_dir: bot_dir,
       },
     };
     config = deepMerge(default_config, config);
@@ -52,15 +57,16 @@ export class Bot extends Client {
     this.pluginPort = new Map();
 
     // 绑定插件线程通信
-    parentPort?.on('bind.port', (event: { name: string, port: MessagePort }) => {
+    parentPort?.on('bind.plugin.port', (event: PortEventMap['bind.plugin.port']) => {
       const { name, port } = event;
-
+      console.log('bot bind.plugin.port')
       // 线程事件代理
-      port.on('message', (message: any) => {
-        if (message.name) {
-          port.emit(message.name, message.event);
+      port.on('message', (value: any) => {
+        console.log('bot 代理事件 ', value)
+        if (value.name) {
+          port.emit(value.name, value.event);
         }
-        this.logger.debug('bot 收到了消息:', message);
+        this.logger.info('bot 收到了消息:', value);
       });
 
       this.listenPortEvents(port);
@@ -70,9 +76,9 @@ export class Bot extends Client {
     // 首次上线
     this.once('system.online', async () => {
       this.setting = await getSetting(uin);
-      this.bindBotEvents();
-      this.emit('init.setting');
-      this.sendMasterMsg('おはようございます、主様♪');
+      // this.bindBotEvents();
+      // this.emit('init.setting');
+      // this.sendMasterMsg('おはようございます、主様♪');
     });
   }
 
@@ -162,7 +168,7 @@ export class Bot extends Client {
 
   /**
    * 获取用户权限等级
-   * 
+   *
    * level 0 群成员（随活跃度提升）
    * level 1 群成员（随活跃度提升）
    * level 2 群成员（随活跃度提升）
@@ -170,7 +176,7 @@ export class Bot extends Client {
    * level 4 群  主
    * level 5 主  人
    * level 6 维护组
-   * 
+   *
    * @param event - 消息 event
    * @returns 用户等级
    */
@@ -224,158 +230,183 @@ export class Bot extends Client {
   }
 
   // 监听主线程端口事件
-  private listenPortEvents(port: MessagePort) {
-    // 绑定插件配置
-    port.on('bind.setting', (event: PortEventMap['bind.setting']) => {
-      if (!this.isOnline()) {
-        this.once('init.setting', () => {
-          port.emit('bind.setting', event);
-        })
-      }
-      const { name, option } = event;
+  private listenPortEvents<T extends keyof Bot>(port: MessagePort) {
+    //     // 绑定插件配置
+    //     port.on('bind.setting', (event: PortEventMap['bind.setting']) => {
+    //       if (!this.isOnline()) {
+    //         this.once('init.setting', () => {
+    //           port.emit('bind.setting', event);
+    //         })
+    //       }
+    //       const { name, option } = event;
 
-      for (const [_, group_info] of this.gl) {
-        const { group_id, group_name } = group_info;
+    //       for (const [_, group_info] of this.gl) {
+    //         const { group_id, group_name } = group_info;
 
-        this.setting[group_id] ||= {
-          name: group_name, plugin: {},
-        };
+    //         this.setting[group_id] ||= {
+    //           name: group_name, plugin: {},
+    //         };
 
-        if (this.setting[group_id].name !== group_name) {
-          this.setting[group_id].name = group_name;
-        }
-        const local_option = this.setting[group_id].plugin[name];
+    //         if (this.setting[group_id].name !== group_name) {
+    //           this.setting[group_id].name = group_name;
+    //         }
+    //         const local_option = this.setting[group_id].plugin[name];
 
-        this.setting[group_id].plugin[name] = deepClone(deepMerge(option, local_option));
-      }
+    //         this.setting[group_id].plugin[name] = deepClone(deepMerge(option, local_option));
+    //       }
 
-      if (this.setting) {
-        writeSetting(this.uin, this.setting);
-      }
-    });
+    //       if (this.setting) {
+    //         writeSetting(this.uin, this.setting);
+    //       }
+    // });
 
     // 事件监听
-    port.on('bind.plugin', (event: PortEventMap['bind.plugin']) => {
-      this.on(event.name, (e: any) => {
+    port.on('bind.plugin.listen', (event: PortEventMap['bind.plugin.listen']) => {
+      const { name, listen } = event;
+
+      this.on(listen !== 'message.all' ? listen : 'message', (e: any) => {
         for (const key in e) {
           if (typeof e[key] === 'function') delete e[key];
         }
 
         if (e.message_type === 'group') {
-          e.option = this.setting[e.group_id].plugin[event.plugin];
+          e.option = this.setting[e.group_id].plugin[name];
           e.permission_level = this.getUserLevel(e);
         }
-        port.postMessage(e);
+        port.postMessage({
+          name: listen, event: e,
+        });
       });
-      this.logger.debug(`插件 ${event.prefix} 绑定 ${event.name} 事件`);
+      this.logger.info(`插件 ${name} 绑定 ${listen} 事件`);
     });
+
 
     // 发送消息
-    port.on('message.send', (event: PortEventMap['message.send']) => {
-      this.sendMessage(event);
+    port.on('bot.api', async (event: PortEventMap['bot.api']) => {
+      const { method, params } = event as {
+        method: T, params: any[],
+      };
+
+      let value;
+      if (typeof this[method] === 'function') {
+        value = await (this[method] as Function)(...params);
+      } else {
+        value = this[method];
+      }
+
+      port.postMessage({
+        name: 'bot.api.callback',
+        event: value,
+      });
     });
 
-    // 撤回消息
-    port.on('message.recall', (event: any) => {
-      this.recallMessage(event);
-    });
+    //     // 发送消息
+    //     port.on('message.send', (event: PortEventMap['message.send']) => {
+    //       this.sendMessage(event);
+    //     });
+
+    //     // 撤回消息
+    //     port.on('message.recall', (event: any) => {
+    //       this.recallMessage(event);
+    //     });
   }
 
-  // 监听 bot 事件
-  private bindBotEvents() {
-    this.removeAllListeners('system.login.slider');
-    this.removeAllListeners('system.login.device');
-    this.removeAllListeners('system.login.qrcode');
+  //   // 监听 bot 事件
+  //   private bindBotEvents() {
+  //     this.removeAllListeners('system.login.slider');
+  //     this.removeAllListeners('system.login.device');
+  //     this.removeAllListeners('system.login.qrcode');
 
-    this.on('system.online', this.onOnline);
-    this.on('system.offline', this.onOffline);
-    this.on('notice.group.increase', this.onGroupIncrease);
-    // this.on('notice.group.decrease', this.onGroupDecrease);
-  }
+  //     this.on('system.online', this.onOnline);
+  //     this.on('system.offline', this.onOffline);
+  //     this.on('notice.group.increase', this.onGroupIncrease);
+  //     // this.on('notice.group.decrease', this.onGroupDecrease);
+  //   }
 
-  private onOnline(): void {
-    this.sendMasterMsg('该账号刚刚从离线中恢复，现在一切正常');
-    this.logger.mark(`${this.nickname} 刚刚从离线中恢复，现在一切正常`);
-  }
+  //   private onOnline(): void {
+  //     this.sendMasterMsg('该账号刚刚从离线中恢复，现在一切正常');
+  //     this.logger.mark(`${this.nickname} 刚刚从离线中恢复，现在一切正常`);
+  //   }
 
-  private onOffline(event: { message: string }): void {
-    this.logger.mark(`${this.nickname} 已离线，${event.message}`);
-  }
+  //   private onOffline(event: { message: string }): void {
+  //     this.logger.mark(`${this.nickname} 已离线，${event.message}`);
+  //   }
 
-  private async onGroupIncrease(event: MemberIncreaseEvent): Promise<void> {
-    if (event.user_id !== this.uin) return;
+  //   private async onGroupIncrease(event: MemberIncreaseEvent): Promise<void> {
+  //     if (event.user_id !== this.uin) return;
 
-    // const group_id = event.group_id;
-    // const group_name = (await this.getGroupInfo(group_id)).group_name;
+  //     // const group_id = event.group_id;
+  //     // const group_name = (await this.getGroupInfo(group_id)).group_name;
 
-    // this.setting[group_id] ||= {
-    //   name: group_name, plugin: {},
-    // };
+  //     // this.setting[group_id] ||= {
+  //     //   name: group_name, plugin: {},
+  //     // };
 
-    // if (this.setting[group_id].name !== group_name) {
-    //   this.setting[group_id].name = group_name;
-    // }
-    // for (const name of this.setting.plugins) {
-    //   try {
-    //     const plugin = await getPlugin(name);
-    //     const default_option = plugin.getOption();
-    //     const local_option = setting[group_id].plugin[name];
-    //     const option = deepMerge(default_option, local_option);
+  //     // if (this.setting[group_id].name !== group_name) {
+  //     //   this.setting[group_id].name = group_name;
+  //     // }
+  //     // for (const name of this.setting.plugins) {
+  //     //   try {
+  //     //     const plugin = await getPlugin(name);
+  //     //     const default_option = plugin.getOption();
+  //     //     const local_option = setting[group_id].plugin[name];
+  //     //     const option = deepMerge(default_option, local_option);
 
-    //     setting[group_id].plugin[name] = option;
-    //   } catch (error) {
-    //     this.logger.error((error as Error).message);
-    //   }
-    // }
-    // writeSetting(this.uin)
-    //   .then(() => {
-    //     this.logger.info(`更新了群配置，新增了群：${group_id}`);
-    //   })
-    //   .catch(error => {
-    //     this.logger.error(`群配置失败，${error.message}`);
-    //   })
-  }
+  //     //     setting[group_id].plugin[name] = option;
+  //     //   } catch (error) {
+  //     //     this.logger.error((error as Error).message);
+  //     //   }
+  //     // }
+  //     // writeSetting(this.uin)
+  //     //   .then(() => {
+  //     //     this.logger.info(`更新了群配置，新增了群：${group_id}`);
+  //     //   })
+  //     //   .catch(error => {
+  //     //     this.logger.error(`群配置失败，${error.message}`);
+  //     //   })
+  //   }
 
-  // 给 bot 主人发送信息
-  private sendMasterMsg(message: string): void {
-    for (const uin of this.masters) {
-      this.sendPrivateMsg(uin, message);
-    }
-  }
+  //   // 给 bot 主人发送信息
+  //   private sendMasterMsg(message: string): void {
+  //     for (const uin of this.masters) {
+  //       this.sendPrivateMsg(uin, message);
+  //     }
+  //   }
 
-  // 消息发送
-  sendMessage(event: PortEventMap['message.send']) {
-    switch (event.type) {
-      case 'private':
-        this.sendPrivateMsg(event.user_id, event.message);
-        break;
-      case 'group':
-        this.sendGroupMsg(event.group_id, event.message);
-        break;
-    }
-  }
+  //   // 消息发送
+  //   sendMessage(event: PortEventMap['message.send']) {
+  //     switch (event.type) {
+  //       case 'private':
+  //         this.sendPrivateMsg(event.user_id, event.message);
+  //         break;
+  //       case 'group':
+  //         this.sendGroupMsg(event.group_id, event.message);
+  //         break;
+  //     }
+  //   }
 
 
 
-  // 撤回消息
-  recallMessage(event: any) {
-    const group = this.pickGroup(event.group_id);
+  //   // 撤回消息
+  //   recallMessage(event: any) {
+  //     const group = this.pickGroup(event.group_id);
 
-    switch (event.type) {
-      case 'private':
-        group.recallMsg(event.seq, event.rand);
-        break;
-      case 'group':
-        group.recallMsg(event.seq, event.rand);
-        break;
-    }
-  }
+  //     switch (event.type) {
+  //       case 'private':
+  //         group.recallMsg(event.seq, event.rand);
+  //         break;
+  //       case 'group':
+  //         group.recallMsg(event.seq, event.rand);
+  //         break;
+  //     }
+  //   }
 }
+
 
 if (isMainThread) {
   throw new Error('你在主线程跑这个干吗？');
 } else {
-  const { uin, config } = workerData;
+  const { uin, config } = workerData as BotWorkerData;
   const bot = new Bot(uin, config);
 
   bot.linkStart();

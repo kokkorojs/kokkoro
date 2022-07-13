@@ -19,10 +19,6 @@ export type PluginInfo = {
   path: string;
 };
 
-async function botApi<K extends keyof Bot>(method: K, ...params: Bot[K] extends (...args: infer P) => any ? P : []) {
-
-}
-
 // 插件选项
 export type Option = {
   // 锁定，默认 false
@@ -91,14 +87,14 @@ export class Plugin {
       });
 
       // 绑定插件线程通信
-      parentPort?.on('bind.port', (event) => {
+      parentPort?.on('bind.bot.port', (event: PortEventMap['bind.bot.port']) => {
         const { uin, port } = event;
 
         this.botPort.set(uin, port);
         this.events.forEach((name) => {
           const bindPluginEvent = {
-            name: 'bind.plugin',
-            event: { name, prefix, plugin: this.name },
+            name: 'bind.plugin.listen',
+            event: { listen: name, name: this.name },
           };
           const bindSettingEvent = {
             name: 'bind.setting',
@@ -107,6 +103,12 @@ export class Plugin {
 
           port.postMessage(bindPluginEvent);
           port.postMessage(bindSettingEvent);
+
+          port.on('message', (value: any) => {
+            if (value.name) {
+              port.emit(value.name, value.event);
+            }
+          })
           port.on(name, (event: any) => {
             if (name.startsWith('message')) {
               this.parseAction(event);
@@ -117,6 +119,20 @@ export class Plugin {
         });
       });
     }
+  }
+
+  botApi<K extends keyof Bot>(uin: number, method: K, ...params: Bot[K] extends (...args: infer P) => any ? P : []) {
+    return new Promise((resolve, reject) => {
+      const event = {
+        name: 'bot.api',
+        event: { method, params },
+      };
+
+      this.botPort.get(uin)?.postMessage(event);
+      this.botPort.get(uin)?.once('bot.api.callback', e => {
+        resolve(e);
+      })
+    });
   }
 
   schedule(cron: string, command: CronCommand) {
@@ -131,33 +147,33 @@ export class Plugin {
     return this;
   }
 
-  sendMessage(event: PortEventMap['message.send']) {
-    const { self_id } = event;
-    const port_event = {
-      name: 'message.send', event,
-    };
-    this.botPort.get(self_id)?.postMessage(port_event);
-  }
+  // sendMessage(event: PortEventMap['message.send']) {
+  //   const { self_id } = event;
+  //   const port_event = {
+  //     name: 'message.send', event,
+  //   };
+  //   this.botPort.get(self_id)?.postMessage(port_event);
+  // }
 
-  sendAllMessage(event: PortEventMap['message.send']) {
-    const port_event = {
-      name: 'message.send', event,
-    };
-    this.botPort.forEach((port) => {
-      port.postMessage(port_event);
-    })
-  }
+  // sendAllMessage(event: PortEventMap['message.send']) {
+  //   const port_event = {
+  //     name: 'message.send', event,
+  //   };
+  //   this.botPort.forEach((port) => {
+  //     port.postMessage(port_event);
+  //   })
+  // }
 
-  recallMessage(event: any) {
-    const { self_id } = event;
-    this.botPort.get(self_id)?.postMessage(event);
-  }
+  // recallMessage(event: any) {
+  //   const { self_id } = event;
+  //   this.botPort.get(self_id)?.postMessage(event);
+  // }
 
   // 指令监听
   command<T extends keyof CommandEventMap>(raw_name: string, message_type?: T): Command<T> {
     const command = new Command(message_type, raw_name, this);
 
-    this.events.add('message');
+    this.events.add('message.all');
     this.command_list.set(command.name, command);
     return command;
   }

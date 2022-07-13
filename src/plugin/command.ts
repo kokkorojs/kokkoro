@@ -84,10 +84,10 @@ export class Command<T extends keyof CommandEventMap = any> {
     event.reply = (message: string | MessageElem[]) => {
       const { message_type, user_id, group_id, self_id } = event;
 
-      this.reply({
-        type: message_type,
-        message, self_id, user_id, group_id,
-      });
+      // this.reply({
+      //   type: message_type,
+      //   message, self_id, user_id, group_id,
+      // });
     };
 
     if (this.isLimit(event.permission_level)) {
@@ -123,9 +123,9 @@ export class Command<T extends keyof CommandEventMap = any> {
     return this;
   }
 
-  reply(event: PortEventMap['message.send']): void {
-    this.plugin.sendMessage(event);
-  }
+  // reply(event: PortEventMap['message.send']): void {
+  //   this.plugin.sendMessage(event);
+  // }
 
   limit(min_level: UserLevel, max_level: UserLevel = 6) {
     if (min_level > max_level) {

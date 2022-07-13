@@ -1,94 +1,103 @@
 import { join } from 'path';
+import log4js, { Logger } from 'log4js';
 import { logger } from '@kokkoro/utils';
-import { Worker, MessageChannel, isMainThread, parentPort } from 'worker_threads';
+import { Worker, MessageChannel, isMainThread, parentPort, WorkerOptions } from 'worker_threads';
 
-import { Config } from './bot';
+import { BotWorkerData, Config } from './bot';
 import { getProfile } from './profile';
 import { getPluginList, PluginInfo, retrievalPlugin } from './plugin';
 
-const bot_workers: Map<number, BotWorker> = new Map();
-const plugin_workers: Map<string, PluginWorker> = new Map();
+const bot_filename = join(__dirname, 'bot');
+const bot_pool: Map<number, BotWorker> = new Map();
+const plugin_pool: Map<string, PluginWorker> = new Map();
 
-// 主线程事件
-type MainThreadEvent = {
-  name: string;
-  event: {};
-};
+class WorkerThread extends Worker {
+  logger: Logger;
 
-class BotWorker extends Worker {
-  constructor(uin: number, config: Config) {
-    const bot_path = join(__dirname, 'bot');
-    super(bot_path, {
-      workerData: { uin, config },
-    });
-    bot_workers.set(uin, this);
+  constructor(filename: string, options: WorkerOptions) {
+    super(filename, options);
+
+    const { workerData } = options;
+    const { uin, config, info } = workerData;
+    const category = `[worker:${uin ? uin : info.name}]`;
+
+    this.logger = log4js.getLogger(category);
+    this.logger.level = 'all' ?? 'info';
 
     this
       .once('online', () => {
-        logger.debug(`bot(${uin}) 线程已创建`);
+        this.logger.debug(`线程已创建`);
       })
       .on('error', (error) => {
-        logger.error(error.message);
+        this.logger.error(error);
       })
-      .on('message', (event) => {
-        console.log(`主线程收到 bot 消息`, event);
+      .on('message', (value) => {
+        this.logger.debug(`主线程收到消息:`, value);
       })
       .on('exit', (code) => {
-        logger.debug(`bot(${uin}) 线程已退出，代码:`, code);
+        this.logger.debug(`线程已退出，代码:`, code);
 
         if (code) {
-          logger.info('正在重启...');
+          this.logger.info('正在重启...');
+          const is_plugin = !!info;
 
           setTimeout(async () => {
-            const plugin_list = await getPluginList();
-
-            createBotWorker(uin, config);
-            plugin_list.forEach((name) => {
-              linkMessageChannel(uin, name);
-            });
-            linkMessageChannel(uin, 'kokkoro');
+            is_plugin
+              ? await rebindBotChannel(info)
+              : await rebindPluginChannel(uin, config);
           }, 3000);
         }
-      });
+      })
   }
 }
 
-class PluginWorker extends Worker {
+class BotWorker extends WorkerThread {
+  constructor(uin: number, config?: Config) {
+    super(bot_filename, {
+      workerData: { uin, config } as BotWorkerData,
+    });
+    bot_pool.set(uin, this);
+  }
+}
+
+class PluginWorker extends WorkerThread {
   constructor(info: PluginInfo) {
     const { name, path } = info;
 
     super(path, {
-      workerData: { name },
+      workerData: { info },
     });
-    plugin_workers.set(name, this);
-
-    this
-      .once('online', () => {
-        logger.debug(`插件 "${name}" 线程已创建`);
-      })
-      .on('error', (error) => {
-        logger.error(error.message);
-      })
-      .on('message', (event) => {
-        console.log(`主线程收到 plugin 消息`, event);
-      })
-      .on('exit', (code) => {
-        logger.debug(`插件 "${name}" 线程已退出，代码:`, code);
-
-        if (code) {
-          logger.info('正在重启...');
-
-          setTimeout(() => {
-            createPluginWorker(info);
-            const bot_keys = [...bot_workers.keys()];
-
-            bot_keys.forEach((uin) => {
-              linkMessageChannel(uin, name);
-            });
-          }, 3000);
-        }
-      });
+    plugin_pool.set(name, this);
   }
+}
+
+/**
+ * 重新绑定 bot 信道
+ * 
+ * @param info 
+ */
+async function rebindBotChannel(info: PluginInfo) {
+  createPluginWorker(info);
+  const bot_keys = [...bot_pool.keys()];
+
+  bot_keys.forEach((uin) => {
+    linkMessageChannel(uin, info.name);
+  });
+}
+
+/**
+ * 重新绑定插件信道
+ * 
+ * @param uin 
+ * @param config 
+ */
+async function rebindPluginChannel(uin: number, config: Config) {
+  createBotWorker(uin, config);
+  const plugin_list = await getPluginList();
+
+  ['kokkoro', ...plugin_list].forEach((name) => {
+    linkMessageChannel(uin, name);
+  });
 }
 
 /**
@@ -97,7 +106,7 @@ class PluginWorker extends Worker {
  * @param uin
  * @param config
  */
-function createBotWorker(uin: number, config: Config) {
+function createBotWorker(uin: number, config?: Config) {
   return new BotWorker(uin, config);
 }
 
@@ -132,7 +141,7 @@ function createBotThreads() {
  */
 async function createPluginThreads() {
   const { modules, plugins } = await retrievalPlugin();
-  const extension = {
+  const extension: PluginInfo = {
     name: 'kokkoro',
     path: join(__dirname, 'plugin/extension'),
   };
@@ -153,7 +162,7 @@ export async function runWorkerThreads() {
     logger.warn('未来将不再支持终端账号登录，统一在 web 端管理');
     return;
   }
-  const bot_keys = [...bot_workers.keys()];
+  const bot_keys = [...bot_pool.keys()];
   const plugin_list = await getPluginList();
 
   bot_keys.forEach((uin) => {
@@ -170,18 +179,18 @@ export async function runWorkerThreads() {
  * @param name 插件名称
  */
 function linkMessageChannel(uin: number, name: string): void {
-  if (!bot_workers.has(uin) || !plugin_workers.has(name)) {
+  if (!bot_pool.has(uin) || !plugin_pool.has(name)) {
     throw new Error('thread is not defined');
   }
   const { port1: botPort, port2: pluginPort } = new MessageChannel();
-  const bot_worker = bot_workers.get(uin)!;
-  const plugin_worker = plugin_workers.get(name)!;
+  const bot_worker = bot_pool.get(uin)!;
+  const plugin_worker = plugin_pool.get(name)!;
   const botPortEvent = {
-    name: 'bind.port',
+    name: 'bind.plugin.port',
     event: { name, port: pluginPort },
   };
   const pluginPortEvent = {
-    name: 'bind.port',
+    name: 'bind.bot.port',
     event: { uin, port: botPort },
   };
 
@@ -195,16 +204,10 @@ export function proxyParentPort() {
     throw new Error('当前已在主线程');
   }
   // 事件转发
-  parentPort!.on('message', (message: MainThreadEvent) => {
+  parentPort!.on('message', (message: any) => {
+    console.log('转发消息', message.name);
     if (message.name) {
-      emitParentPort(message.name, message.event);
+      parentPort!.emit(message.name, message.event);
     }
   });
-}
-
-export function emitParentPort(name: string, event: object) {
-  if (isMainThread) {
-    throw new Error('当前已在主线程');
-  }
-  parentPort!.emit(name, event);
 }
