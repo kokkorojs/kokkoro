@@ -15,10 +15,10 @@ export class Listen<T extends keyof BotEventMap = any>  {
     event.reply = (message: string | MessageElem[]) => {
       const { message_type, user_id, group_id, self_id } = event;
 
-      this.reply({
-        type: message_type,
-        message, self_id, user_id, group_id,
-      });
+      // this.reply({
+      //   type: message_type,
+      //   message, self_id, user_id, group_id,
+      // });
     };
 
     if (this.func) {
@@ -31,7 +31,7 @@ export class Listen<T extends keyof BotEventMap = any>  {
     return this;
   }
 
-  reply(event: PortEventMap['message.send']) {
-    this.plugin.sendMessage(event);
-  }
+  // reply(event: PortEventMap['message.send']) {
+  //   this.plugin.sendMessage(event);
+  // }
 }
