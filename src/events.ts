@@ -1,4 +1,5 @@
 import { EventMap, MessageElem } from 'oicq';
+import { MessagePort } from 'worker_threads';
 import { Option } from './plugin';
 
 // 获取事件类型
@@ -10,19 +11,29 @@ export type BotEventMap = {
 
 export type PortEventMap = {
   'bot.api': {
-    name: string;
+    method: string;
     params: any[];
+  };
+  // 绑定 bot 通信
+  'bind.bot.port': {
+    uin: number;
+    port: MessagePort;
+  };
+  // 绑定插件通信
+  'bind.plugin.port': {
+    // 插件名
+    name: string;
+    port: MessagePort;
   };
   'bind.setting': {
     name: string;
     option: Option;
   };
-  'bind.plugin': {
+  // 绑定插件事件监听器
+  'bind.plugin.listen': {
+    listen: string,
     name: string;
-    plugin: string,
-    prefix: string;
   };
-  'message.send': MessageSendEvent;
 };
 
 export type MessageSendEvent = {
@@ -32,5 +43,3 @@ export type MessageSendEvent = {
   user_id: number;
   group_id: number;
 };
-
-
