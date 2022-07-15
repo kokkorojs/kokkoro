@@ -161,8 +161,9 @@ export class Bot extends Client {
     this.logger.mark('取 ticket 教程: https://github.com/takayama-lily/oicq/wiki/01.滑动验证码和设备锁');
 
     process.stdout.write('请输入 ticket : ');
-    process.stdin.once('data', (event: string) => {
-      this.submitSlider(event);
+    parentPort?.postMessage('input');
+    parentPort?.once('input', (text) => {
+      this.submitSlider(text);
     });
   }
 
@@ -177,7 +178,7 @@ export class Bot extends Client {
    * level 5 主  人
    * level 6 维护组
    *
-   * @param event - 消息 event
+   * @param event - 消息事件
    * @returns 用户等级
    */
   private getUserLevel(event: GroupMessage): UserLevel {
@@ -214,18 +215,17 @@ export class Bot extends Client {
 
   private inputPassword(): void {
     process.stdout.write('首次登录请输入密码: ');
-    process.stdin.once('data', (password: string) => {
-      password = password.trim();
-
-      if (!password.length) {
+    parentPort?.postMessage('input');
+    parentPort?.once('input', (text) => {
+      if (!text.length) {
         return this.inputPassword();
       }
-      const password_md5 = createHash('md5').update(password).digest();
+      const password = createHash('md5').update(text).digest();
 
-      writeFile(this.password_path, password_md5, { mode: 0o600 })
+      writeFile(this.password_path, password, { mode: 0o600 })
         .then(() => this.logger.mark('写入 password md5 成功'))
         .catch(error => this.logger.error(`写入 password md5 失败，${error.message}`))
-        .finally(() => this.login(password_md5));
+        .finally(() => this.login(password));
     });
   }
 
