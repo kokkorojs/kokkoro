@@ -19,7 +19,7 @@ class WorkerThread extends Worker {
 
     const { workerData } = options;
     const { uin, config, info } = workerData;
-    const category = `[worker:${uin ? uin : info.name}]`;
+    const category = `[worker:${info ? info.name : uin}]`;
 
     this.logger = log4js.getLogger(category);
     this.logger.level = 'all' ?? 'info';
@@ -32,6 +32,9 @@ class WorkerThread extends Worker {
         this.logger.error(error);
       })
       .on('message', (value) => {
+        if (value === 'input') {
+          inputText(this);
+        }
         this.logger.debug(`主线程收到消息:`, value);
       })
       .on('exit', (code) => {
@@ -203,11 +206,21 @@ export function proxyParentPort() {
   if (isMainThread) {
     throw new Error('当前已在主线程');
   }
-  // 事件转发
-  parentPort!.on('message', (message: any) => {
-    console.log('转发消息', message.name);
+  parentPort!.on('message', (message: { name: string, event: object }) => {
     if (message.name) {
       parentPort!.emit(message.name, message.event);
     }
+  });
+}
+
+function inputText(worker: BotWorker | PluginWorker) {
+  logger.info('检测到 input 事件，已停止 log 打印');
+  logger.level = 'off'
+  process.stdin.once('data', (event) => {
+    worker.postMessage({
+      name: 'input', event: event.toString().trim(),
+    });
+    logger.level = 'all';
+    logger.info('输入完毕，启用 log 打印');
   });
 }
