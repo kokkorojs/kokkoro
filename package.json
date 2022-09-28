@@ -1,6 +1,6 @@
 {
   "name": "kokkoro",
-  "version": "1.0.0",
+  "version": "0.4.0",
   "upday": "2022/7/14",
   "description": "とある咕咕の QQ 机器人框架",
   "main": "lib/index.js",
@@ -9,7 +9,8 @@
     "node": ">= v15"
   },
   "scripts": {
-    "test": "node test/index.js"
+    "test": "node test/index.js",
+    "start": "tsc && node lib/index.js"
   },
   "repository": {
     "type": "git",
