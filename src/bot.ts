@@ -1,68 +1,40 @@
 import { join } from 'path';
 import { createHash } from 'crypto';
+import { deepClone, deepMerge } from '@kokkoro/utils';
 import { readFile, writeFile } from 'fs/promises';
-import { Client, Config as Protocol, MemberDecreaseEvent, MemberIncreaseEvent, PrivateMessageEvent, segment } from 'oicq';
+import { Client, Config as Protocol, GroupMessage, MemberIncreaseEvent } from 'oicq';
+import { isMainThread, parentPort, workerData, MessagePort } from 'worker_threads';
 
-import { AllMessageEvent } from './events';
-import { getGlobalConfig, setBotConfig } from './config';
-import { logger, deepMerge, checkUin, emitter } from './util';
-import { initSetting, Setting, writeSetting } from './setting';
-import { importAllPlugin, bindBot, getPlugin, extension } from './plugin';
-import { KOKKORO_VERSION, KOKKORO_UPDAY, KOKKORO_CHANGELOGS, bot_dir } from '.';
+import { PortEventMap } from './events';
+import { proxyParentPort } from './worker';
+import { getSetting, Setting, writeSetting } from './profile/setting';
 
 const admins: Set<number> = new Set([
   parseInt('84a11e2b', 16),
 ]);
-const bot_list: Map<number, Bot> = new Map();
+const bot_dir = join(__workname, 'data', 'bot');
 
-// 登录终了
-emitter.once('kokkoro.logined', () => {
-  // 导入插件模块
-  importAllPlugin()
-    .then(async plugin_list => {
-      logger.mark(`加载了${plugin_list.size}个插件`);
-
-      for (const [uin, bot] of bot_list) {
-        const setting = await initSetting(uin);
-        const plugins = setting.plugins;
-
-        // 恢复绑定 plugins
-        for (let i = 0; i < plugins.length; i++) {
-          const name = plugins[i];
-
-          await bindBot(name, uin).catch(error => {
-            logger.error(`import module failed, ${error.message}`);
-          })
-        }
-        await bot.setSetting(setting);
-      }
-    })
-    .catch(error => {
-      /**
-       * 如果在这里就报错，项目不应该继续执行下去
-       * 抛出异常多半是由于权限不足导致的本地文件读写失败，不做 catch 处理
-       */
-      throw error;
-    })
-});
-
+export type BotWorkerData = {
+  uin: number;
+  config: Config;
+};
 export type UserLevel = 0 | 1 | 2 | 3 | 4 | 5 | 6;
-
-export interface Config {
+export type Config = {
   // 自动登录，默认 true
-  auto_login?: boolean;
+  auto_login: boolean;
   // 登录模式，默认 qrcode
-  mode?: 'qrcode' | 'password';
+  mode: 'qrcode' | 'password';
   // bot 主人
-  masters?: number[];
+  masters: number[];
   // 协议配置
-  protocol?: Protocol;
-}
+  protocol: Protocol;
+};
 
 export class Bot extends Client {
-  private mode: string;
+  private masters: number[];
   private setting!: Setting;
-  private masters: Set<number>;
+  private pluginPort: Map<string, MessagePort>;
+  private readonly mode: 'qrcode' | 'password';
   private readonly password_path: string;
 
   constructor(uin: number, config?: Config) {
@@ -77,16 +49,36 @@ export class Bot extends Client {
     config = deepMerge(default_config, config);
 
     super(uin, config.protocol);
+    proxyParentPort();
 
+    this.masters = [];
     this.mode = config.mode!;
-    this.masters = new Set(config.masters);
     this.password_path = join(this.dir, 'password');
+    this.pluginPort = new Map();
 
-    this.once('system.online', () => {
-      extension.bindBot(this);
+    // 绑定插件线程通信
+    parentPort?.on('bind.plugin.port', (event: PortEventMap['bind.plugin.port']) => {
+      const { name, port } = event;
+      console.log('bot bind.plugin.port')
+      // 线程事件代理
+      port.on('message', (value: any) => {
+        console.log('bot 代理事件 ', value)
+        if (value.name) {
+          port.emit(value.name, value.event);
+        }
+        this.logger.info('bot 收到了消息:', value);
+      });
 
-      this.bindEvents();
-      this.sendMasterMsg('おはようございます、主様♪');
+      this.listenPortEvents(port);
+      this.pluginPort.set(name, port);
+    });
+
+    // 首次上线
+    this.once('system.online', async () => {
+      this.setting = await getSetting(uin);
+      // this.bindBotEvents();
+      // this.emit('init.setting');
+      // this.sendMasterMsg('おはようございます、主様♪');
     });
   }
 
@@ -94,7 +86,7 @@ export class Bot extends Client {
     switch (this.mode) {
       /**
        * 扫描登录
-       * 
+       *
        * 优点是不需要过滑块和设备锁
        * 缺点是万一 token 失效，无法自动登录，需要重新扫码
        */
@@ -123,7 +115,7 @@ export class Bot extends Client {
         break;
       /**
        * 密码登录
-       * 
+       *
        * 优点是一劳永逸
        * 缺点是需要过滑块，可能会报环境异常
        */
@@ -165,9 +157,19 @@ export class Bot extends Client {
     await new Promise(resolve => this.once('system.online', resolve));
   }
 
+  private inputTicket(): void {
+    this.logger.mark('取 ticket 教程: https://github.com/takayama-lily/oicq/wiki/01.滑动验证码和设备锁');
+
+    process.stdout.write('请输入 ticket : ');
+    parentPort?.postMessage('input');
+    parentPort?.once('input', (text) => {
+      this.submitSlider(text);
+    });
+  }
+
   /**
    * 获取用户权限等级
-   * 
+   *
    * level 0 群成员（随活跃度提升）
    * level 1 群成员（随活跃度提升）
    * level 2 群成员（随活跃度提升）
@@ -175,11 +177,11 @@ export class Bot extends Client {
    * level 4 群  主
    * level 5 主  人
    * level 6 维护组
-   * 
-   * @param {AllMessageEvent} event - 消息 event
-   * @returns {number} 用户等级
+   *
+   * @param event - 消息事件
+   * @returns 用户等级
    */
-  getUserLevel(event: AllMessageEvent): UserLevel {
+  private getUserLevel(event: GroupMessage): UserLevel {
     const { sender } = event;
     const { user_id, level = 0, role = 'member' } = sender as any;
 
@@ -189,7 +191,7 @@ export class Bot extends Client {
       case admins.has(user_id):
         user_level = 6
         break;
-      case this.masters.has(user_id):
+      case this.masters.includes(user_id):
         user_level = 5
         break;
       case role === 'owner':
@@ -211,314 +213,201 @@ export class Bot extends Client {
     return user_level;
   }
 
-  async setSetting(setting: Setting) {
-    await writeSetting(this.uin)
-      .then(rewrite => {
-        this.setting = setting;
+  private inputPassword(): void {
+    process.stdout.write('首次登录请输入密码: ');
+    parentPort?.postMessage('input');
+    parentPort?.once('input', (text) => {
+      if (!text.length) {
+        return this.inputPassword();
+      }
+      const password = createHash('md5').update(text).digest();
 
-        if (rewrite) {
-          this.logger.mark('已更新 setting.yml');
-        }
-      })
-      .catch(error => {
-        this.logger.error(`更新写入 setting.yml 失败，${error.message}`);
-      })
-  }
-
-  getSetting() {
-    return this.setting;
-  }
-
-  getOption(group_id: number, name: string) {
-    return this.setting[group_id].plugin[name];
-  }
-
-  /**
-   * 查询用户是否为 master
-   * 
-   * @param {number} user_id - 用户 id
-   * @returns {boolean}
-   */
-  isMaster(user_id: number): boolean {
-    return this.masters.has(user_id);
-  }
-
-  /**
-   * 查询用户是否为 admin
-   * 
-   * @param {number} user_id - 用户 id
-   * @returns {boolean}
-   */
-  isAdmin(user_id: number): boolean {
-    return admins.has(user_id);
-  }
-
-  /**
-   * 给 bot 主人发送信息
-   * 
-   * @param {string} message - 通知信息 
-   */
-  private sendMasterMsg(message: string): void {
-    for (const uin of this.masters) {
-      this.sendPrivateMsg(uin, message);
-    }
-  }
-
-  private inputTicket(): void {
-    this.logger.mark('取 ticket 教程: https://github.com/takayama-lily/oicq/wiki/01.滑动验证码和设备锁');
-
-    process.stdout.write('请输入 ticket : ');
-    process.stdin.once('data', (event: string) => {
-      this.submitSlider(event);
+      writeFile(this.password_path, password, { mode: 0o600 })
+        .then(() => this.logger.mark('写入 password md5 成功'))
+        .catch(error => this.logger.error(`写入 password md5 失败，${error.message}`))
+        .finally(() => this.login(password));
     });
   }
 
-  private inputPassword(): void {
-    process.stdout.write('首次登录请输入密码: ');
-    process.stdin.once('data', (password: string) => {
-      password = password.trim();
+  // 监听主线程端口事件
+  private listenPortEvents<T extends keyof Bot>(port: MessagePort) {
+    //     // 绑定插件配置
+    //     port.on('bind.setting', (event: PortEventMap['bind.setting']) => {
+    //       if (!this.isOnline()) {
+    //         this.once('init.setting', () => {
+    //           port.emit('bind.setting', event);
+    //         })
+    //       }
+    //       const { name, option } = event;
 
-      if (!password.length) {
-        return this.inputPassword();
-      }
-      const password_md5 = createHash('md5').update(password).digest();
+    //       for (const [_, group_info] of this.gl) {
+    //         const { group_id, group_name } = group_info;
 
-      writeFile(this.password_path, password_md5, { mode: 0o600 })
-        .then(() => this.logger.mark('写入 password md5 成功'))
-        .catch(error => this.logger.error(`写入 password md5 失败，${error.message}`))
-        .finally(() => this.login(password_md5));
-    })
-  }
+    //         this.setting[group_id] ||= {
+    //           name: group_name, plugin: {},
+    //         };
 
-  private bindEvents(): void {
-    this.removeAllListeners('system.login.slider');
-    this.removeAllListeners('system.login.device');
-    this.removeAllListeners('system.login.qrcode');
+    //         if (this.setting[group_id].name !== group_name) {
+    //           this.setting[group_id].name = group_name;
+    //         }
+    //         const local_option = this.setting[group_id].plugin[name];
 
-    this.on('system.online', this.onOnline);
-    this.on('system.offline', this.onOffline);
-    this.on('notice.group.increase', this.onGroupIncrease);
-    this.on('notice.group.decrease', this.onGroupDecrease);
-  }
+    //         this.setting[group_id].plugin[name] = deepClone(deepMerge(option, local_option));
+    //       }
 
-  private onOnline(): void {
-    this.sendMasterMsg('该账号刚刚从离线中恢复，现在一切正常');
-    this.logger.mark(`${this.nickname} 刚刚从离线中恢复，现在一切正常`);
-  }
+    //       if (this.setting) {
+    //         writeSetting(this.uin, this.setting);
+    //       }
+    // });
 
-  private onOffline(event: { message: string }): void {
-    this.logger.mark(`${this.nickname} 已离线，${event.message}`);
-  }
+    // 事件监听
+    port.on('bind.plugin.listen', (event: PortEventMap['bind.plugin.listen']) => {
+      const { name, listen } = event;
 
-  private async onGroupIncrease(event: MemberIncreaseEvent): Promise<void> {
-    if (event.user_id !== this.uin) return;
-
-    const setting = this.getSetting();
-    const group_id = event.group_id;
-    const group_name = (await this.getGroupInfo(group_id)).group_name;
-
-    setting[group_id] ||= {
-      name: group_name, plugin: {},
-    };
-
-    if (setting[group_id].name !== group_name) {
-      setting[group_id].name = group_name;
-    }
-    for (const name of setting.plugins) {
-      try {
-        const plugin = await getPlugin(name);
-        const default_option = plugin.getOption();
-        const local_option = setting[group_id].plugin[name];
-        const option = deepMerge(default_option, local_option);
-
-        setting[group_id].plugin[name] = option;
-      } catch (error) {
-        this.logger.error((error as Error).message);
-      }
-    }
-    writeSetting(this.uin)
-      .then(() => {
-        this.logger.info(`更新了群配置，新增了群：${group_id}`);
-      })
-      .catch(error => {
-        this.logger.error(`群配置失败，${error.message}`);
-      })
-  }
-
-  private onGroupDecrease(event: MemberDecreaseEvent): void {
-    if (event.user_id !== this.uin) return;
-
-    const group_id = event.group_id;
-    const setting = this.getSetting();
-
-    delete setting[group_id];
-    writeSetting(this.uin)
-      .then(() => {
-        this.logger.info(`更新了群配置，删除了群：${group_id}`);
-      })
-      .catch(error => {
-        this.logger.error(`群配置失败，${error.message}`);
-      })
-  }
-}
-
-export async function getBot(uin: number): Promise<Bot> {
-  if (!bot_list.has(uin)) {
-    throw new Error(`bot "${uin}" is undefined`);
-  }
-  return bot_list.get(uin)!;
-}
-
-export function getBotList(): Map<number, Bot> {
-  return bot_list;
-}
-
-/**
- * 添加一个新的 bot 并登录
- *
- * @param {Bot} this - 被私聊的 bot 对象
- * @param {number} uin - 添加的 uin
- * @param {PrivateMessageEvent} private_event 私聊消息 event
- */
-export function addBot(this: Bot, uin: number, private_event: PrivateMessageEvent) {
-  const config: Config = {
-    auto_login: true,
-    mode: 'qrcode',
-    masters: [private_event.sender.user_id],
-    protocol: {
-      log_level: 'info',
-      platform: 1,
-      ignore_self: true,
-      resend: true,
-      data_dir: './data/bot',
-      reconn_interval: 5,
-      cache_group_member: true,
-      auto_server: true,
-    }
-  };
-  const bot = new Bot(uin);
-
-  bot
-    .on('system.login.qrcode', (event) => {
-      private_event.reply([
-        segment.image(event.image),
-        '\n使用手机 QQ 扫码登录，输入 “cancel” 取消登录',
-      ]);
-
-      // TODO ⎛⎝≥⏝⏝≤⎛⎝ scanner 重构
-      // const listenLogin = () => {
-      //   const scanner = new Scanner(this);
-
-      //   scanner.nextText(private_event.sender.user_id, (element) => {
-      //     const text = element.text;
-
-      //     if (text === 'cancel') {
-      //       bot.terminate();
-      //       clearInterval(interval_id);
-      //       private_event.reply('登录已取消');
-      //     }
-      //     listenLogin();
-      //   })
-      // }
-
-      const listenLogin = (event: PrivateMessageEvent) => {
-        if (event.sender.user_id === private_event.sender.user_id && event.raw_message === 'cancel') {
-          bot.terminate();
-          clearInterval(interval_id);
-          private_event.reply('登录已取消');
+      this.on(listen !== 'message.all' ? listen : 'message', (e: any) => {
+        for (const key in e) {
+          if (typeof e[key] === 'function') delete e[key];
         }
-      }
-      const interval_id = setInterval(async () => {
-        const { retcode } = await bot.queryQrcodeResult();
 
-        if (retcode === 0 || ![48, 53].includes(retcode)) {
-          bot.login();
-          clearInterval(interval_id);
-          retcode && private_event.reply(`Error: 错误代码 ${retcode}`);
-          this.off('message.private', listenLogin);
+        if (e.message_type === 'group') {
+          e.option = this.setting[e.group_id].plugin[name];
+          e.permission_level = this.getUserLevel(e);
         }
-      }, 2000);
-
-      this.on('message.private', listenLogin)
-    })
-    .once('system.login.error', data => {
-      this.terminate();
-      private_event.reply(`Error: ${data.message}`);
-    })
-    .once('system.online', () => {
-      setBotConfig(uin, config)
-        .then(() => {
-          bot.logger.info('写入 kokkoro.yml 成功');
-        })
-        .catch(() => {
-          bot.logger.error('写入 kokkoro.yml 失败');
-        })
-        .finally(async () => {
-          try {
-            const setting = await initSetting(uin);
-            const plugins = setting.plugins;
-
-            bot_list.set(uin, bot);
-            private_event.reply('登录成功');
-
-            // 绑定插件
-            for (let i = 0; i < plugins.length; i++) {
-              await bindBot(plugins[i], uin);
-            }
-            await bot.setSetting(setting);
-          } catch (error) {
-            const { message } = error as Error;
-
-            logger.error(message);
-            private_event.reply(message);
-          }
+        port.postMessage({
+          name: listen, event: e,
         });
-    })
-    .login();
+      });
+      this.logger.info(`插件 ${name} 绑定 ${listen} 事件`);
+    });
+
+
+    // 发送消息
+    port.on('bot.api', async (event: PortEventMap['bot.api']) => {
+      const { method, params } = event as {
+        method: T, params: any[],
+      };
+
+      let value;
+      if (typeof this[method] === 'function') {
+        value = await (this[method] as Function)(...params);
+      } else {
+        value = this[method];
+      }
+
+      port.postMessage({
+        name: 'bot.api.callback',
+        event: value,
+      });
+    });
+
+    //     // 发送消息
+    //     port.on('message.send', (event: PortEventMap['message.send']) => {
+    //       this.sendMessage(event);
+    //     });
+
+    //     // 撤回消息
+    //     port.on('message.recall', (event: any) => {
+    //       this.recallMessage(event);
+    //     });
+  }
+
+  //   // 监听 bot 事件
+  //   private bindBotEvents() {
+  //     this.removeAllListeners('system.login.slider');
+  //     this.removeAllListeners('system.login.device');
+  //     this.removeAllListeners('system.login.qrcode');
+
+  //     this.on('system.online', this.onOnline);
+  //     this.on('system.offline', this.onOffline);
+  //     this.on('notice.group.increase', this.onGroupIncrease);
+  //     // this.on('notice.group.decrease', this.onGroupDecrease);
+  //   }
+
+  //   private onOnline(): void {
+  //     this.sendMasterMsg('该账号刚刚从离线中恢复，现在一切正常');
+  //     this.logger.mark(`${this.nickname} 刚刚从离线中恢复，现在一切正常`);
+  //   }
+
+  //   private onOffline(event: { message: string }): void {
+  //     this.logger.mark(`${this.nickname} 已离线，${event.message}`);
+  //   }
+
+  //   private async onGroupIncrease(event: MemberIncreaseEvent): Promise<void> {
+  //     if (event.user_id !== this.uin) return;
+
+  //     // const group_id = event.group_id;
+  //     // const group_name = (await this.getGroupInfo(group_id)).group_name;
+
+  //     // this.setting[group_id] ||= {
+  //     //   name: group_name, plugin: {},
+  //     // };
+
+  //     // if (this.setting[group_id].name !== group_name) {
+  //     //   this.setting[group_id].name = group_name;
+  //     // }
+  //     // for (const name of this.setting.plugins) {
+  //     //   try {
+  //     //     const plugin = await getPlugin(name);
+  //     //     const default_option = plugin.getOption();
+  //     //     const local_option = setting[group_id].plugin[name];
+  //     //     const option = deepMerge(default_option, local_option);
+
+  //     //     setting[group_id].plugin[name] = option;
+  //     //   } catch (error) {
+  //     //     this.logger.error((error as Error).message);
+  //     //   }
+  //     // }
+  //     // writeSetting(this.uin)
+  //     //   .then(() => {
+  //     //     this.logger.info(`更新了群配置，新增了群：${group_id}`);
+  //     //   })
+  //     //   .catch(error => {
+  //     //     this.logger.error(`群配置失败，${error.message}`);
+  //     //   })
+  //   }
+
+  //   // 给 bot 主人发送信息
+  //   private sendMasterMsg(message: string): void {
+  //     for (const uin of this.masters) {
+  //       this.sendPrivateMsg(uin, message);
+  //     }
+  //   }
+
+  //   // 消息发送
+  //   sendMessage(event: PortEventMap['message.send']) {
+  //     switch (event.type) {
+  //       case 'private':
+  //         this.sendPrivateMsg(event.user_id, event.message);
+  //         break;
+  //       case 'group':
+  //         this.sendGroupMsg(event.group_id, event.message);
+  //         break;
+  //     }
+  //   }
+
+
+
+  //   // 撤回消息
+  //   recallMessage(event: any) {
+  //     const group = this.pickGroup(event.group_id);
+
+  //     switch (event.type) {
+  //       case 'private':
+  //         group.recallMsg(event.seq, event.rand);
+  //         break;
+  //       case 'group':
+  //         group.recallMsg(event.seq, event.rand);
+  //         break;
+  //     }
+  //   }
 }
 
-export async function startup() {
-  process.title = 'kokkoro';
 
-  let logined = false;
-  const { bots } = getGlobalConfig();
+if (isMainThread) {
+  throw new Error('你在主线程跑这个干吗？');
+} else {
+  const { uin, config } = workerData as BotWorkerData;
+  const bot = new Bot(uin, config);
 
-  logger.mark(`----------`);
-  logger.mark(`Package Version: kokkoro@${KOKKORO_VERSION} (Released on ${KOKKORO_UPDAY})`);
-  logger.mark(`View Changelogs: ${KOKKORO_CHANGELOGS}`);
-  logger.mark(`----------`);
-  logger.mark(`项目启动完成，开始登录账号`);
-
-  for (const uin in bots) {
-    const config = bots[uin];
-    const bot = new Bot(+uin, config);
-
-    bot_list.set(bot.uin, bot);
-
-    if (!config.auto_login) continue;
-
-    await bot.linkStart()
-      .then(() => { logined = true; })
-      .catch(error => { bot.logger.error(error.message); })
-  }
-
-  if (logined) {
-    emitter.emit('kokkoro.logined');
-  } else {
-    logger.info('当前无可登录的账号，请检查 kokkoro.yml 相关配置');
-  }
-}
-
-/**
- * 创建 bot 对象
- * 
- * @param {number} uin - bot uin
- * @param {Config} config - bot config
- * @returns {Bot} bot 实例对象
- */
-export function createBot(uin: number, config?: Config): Bot {
-  if (!checkUin(uin)) {
-    throw new Error(`${uin} is not an qq account`);
-  }
-  return new Bot(uin, config);
+  bot.linkStart();
 }

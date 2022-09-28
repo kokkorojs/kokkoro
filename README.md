@@ -4,7 +4,7 @@
     <small> &gt; とある咕咕の QQ 机器人框架 &lt; </small>
 </div>
 
-*****
+---
 
 [![priconne redive](https://img.shields.io/badge/%E3%83%97%E3%83%AA%E3%83%B3%E3%82%BB%E3%82%B9%E3%82%B3%E3%83%8D%E3%82%AF%E3%83%88-Re%3ADive-F55291?style=flat-square&labelColor=FAFAFA&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAAABGdBTUEAALGPC%2FxhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAABSlBMVEX%2F%2F%2F%2F1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH1UpH%2F%2F%2F%2BQAc1iAAAAbHRSTlMAAAtOkbLJzLeYWxYQjev3oyLq%2BnqLtImwT4QF%2BKlKQ44rirqMyAF0KSFGeJKAoUEg8LOivbE1gxMEb1OP1cE9FREGGOPCNxQS5JwcB2x52JedhlItmYLAdSytDDMuZaXLxZaq%2Fj4fcKvZzX%2BVYCqxAAAAAWJLR0QAiAUdSAAAAAd0SU1FB%2BUHAgwRA1G%2Bv8QAAAFESURBVDjLY2CgC2CEAiZmFlY2dg5OLm6YCIoCHl6%2BHCjgFxDEVMAllIMEhEXQFYjmoAExVAXiORhAAlmBZA4WIIVQIC0DE5SVk1eAq1CEK1CCCSmDLFaB8VRhCtSEYULqIAUacCM0oQq04CKsIAXaCFdAFehAuBy6ejL6jIwGhka6xhARE6gCU7i3zMwtLK2sgQwbsJAtVIEdmGcPDjsHRycQ5QwWcoEqcAXz3MAKHN3BlAdYyBOqQAzM8wKKe2s7%2BPiCVPqBhfyhCgIgTgq0DuILZmQMEQq1DoOIhEMVMMP95QoyHh5sObxQBT5wkQiQgkg4NwQW1IEwkSiUgPKHx0U0XE9gTKwunOOGiO44bNHthZxg4jHlE1CTXCC6fKITWqKNQJVPwkz2GskpiPBIxZIvGBnT0jNUMzOzJLIV0TIOjQEAe%2FGzgoDvmDIAAAAldEVYdGRhdGU6Y3JlYXRlADIwMjEtMDctMDJUMTI6MTc6MDMrMDM6MDArdontAAAAJXRFWHRkYXRlOm1vZGlmeQAyMDIxLTA3LTAyVDEyOjE3OjAzKzAzOjAwWisxUQAAAABJRU5ErkJggg%3D%3D)](https://priconne-redive.jp/)
 [![qq group](https://img.shields.io/badge/qq-1030982964-12B7F5?style=flat-square&labelColor=FAFAFA&logo=data:image/png;base64,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&logoColor=000000)](https://jq.qq.com/?_wv=1027&k=3hcWCnhq)
@@ -13,9 +13,18 @@
 
 > 本项目是一个基于 [oicq](https://github.com/takayama-lily/oicq) 协议库，使用 [TypeScript](https://www.typescriptlang.org/) 语言开发的 [QQ](https://im.qq.com/) 机器人框架
 
+## 注意
+
+近期项目结构频繁变动，为了 bot 稳定性，当前通过 cli 创建的项目 kokkoro 版本锁定为 v0.2  
+目前 npm 最新上传版本为 v0.4，该分支当前版本为 v1.0，如果你想开发自己的插件目前来说不建议你在这里投入过多的时间
+
+计划 **下个月** 发版 v1.0 并更新相关文档，有任何问题可以进群反馈或提 issue（你先别急.jpg）
+
 ## 介绍
+
 原项目 [yumemi_bot](https://github.com/rumicchi/yumemi_bot) 最初为个人自用 bot，主要围绕 [公主连结☆Re:Dive](https://priconne-redive.jp/) 开发相关功能，因代码严重耦合不利于维护，使用 ts 分离重构为插件一对多形式的框架
 
+- [x] 基于 Observable 设计模式，让事件处理更加强大
 - [x] 多群插件管理，所有插件针对不同群聊均支持参数自定义
 - [x] 默认扫码登录，能有效避免因操作不当导致账号风控、掉线等问题
 - [x] 友好的脚手架，无需手动修改配置文件，全由命令自动构建，能防止因修改文件导致占用或缓存而产生的异常
@@ -23,6 +32,7 @@
 - [ ] web 可扩展性，每个插件均支持独立的 web 页面及路由服务 ~~咕咕咕~~
 
 ## 构建
+
 本项目不用安装任何第三方软件，非常简单轻便  
 仅需三行命令即可构建，你可以选择下列任意一种方式来初始化你的项目
 
@@ -56,6 +66,7 @@ npx kokkoro init
 ~~yuki，你为什么不讲下用 yarn 如何安装呀？（这是给小白看的，你 npm 都会用了还需要讲 yarn 么）~~
 
 ## 结构
+
 当你输入 `kokkoro init` 后， kokkoro 将会为你在当前所在目录自动安装并生成相关文件
 
 ```text
@@ -69,6 +80,7 @@ npx kokkoro init
 > 项目 **启动后** 尽量避免编辑器直接修改配置文件，你改了也不会生效的，使用指令修改可以立即生效
 
 ## 启动
+
 一切准备就绪，开始启动你的项目吧
 
 ```shell
@@ -77,58 +89,8 @@ kokkoro start
 
 如果你是使用的本地安装，就要使用 `npx kokkoro start` 启动项目
 
-## 指令
-登录成功后，你将会收到一条私信（你填写的 masters）  
-输入 `print` 指令可以测试消息打印，现在开启一段属于你的物语吧 q(≧▽≦q)
-
-常用指令
-
-| command  | type    | level | description              |
-| -------- | ------- | ----- | ------------------------ |
-| print    | all     | 0     | 打印输出文本             |
-| restart  | all     | 5     | 重启程序进程             |
-| shutdown | all     | 5     | 退出程序进程             |
-| state    | private | 5     | 查询机器人状态           |
-| login    | private | 5     | 添加新的登录 qq 账号     |
-| logout   | private | 5     | 下线已登录的 qq 账号     |
-| plugin   | private | 5     | 列出本地插件模块列表     |
-| enable   | private | 5     | 为当前机器人启用插件     |
-| disable  | private | 5     | 为当前机器人禁用插件     |
-| reload   | private | 5     | 重载当前插件模块(热更新) |
-| server   | group   | 0     | 列出当前群聊可用服务列表 |
-| open     | group   | 3     | 开启当前群聊插件消息监听 |
-| close    | group   | 3     | 关闭当前群聊插件消息监听 |
-
-所有指令都有 `type` 属性，对应群聊与私聊的消息处理  
-可以输入 `help` 查看自带的全部指令与参数，安装插件后能使用更多功能
-
-插件列表
-
-| plugin   | description                      |
-| -------- | -------------------------------- |
-| bilibili | b 站动态订阅                     |
-| rsshub   | rsshub 订阅                     |
-| group    | 群管(申请头衔、新人欢迎)         |
-| guild    | 会战相关                         |
-| hitokoto | 每日一言                         |
-| saucenao | saucenao 搜图                    |
-| setu     | hso，我都不看这些的              |
-| sandbox  | 将收到的消息当做代码在沙盒中执行 |
-
-使用说明可访问对应仓库地址，开发文档可访问: https://kokkoro.js.org/
-
-## 权限
-在 kokkoro 看来，任何发送消息都是成员都是有等级的
-
-- level 0 群成员（随活跃度提升）
-- level 1 群成员（随活跃度提升）
-- level 2 群成员（随活跃度提升）
-- level 3 管　理
-- level 4 群　主
-- level 5 主　人
-- level 6 维护组
-
 ## 参数
+
 在初始化项目后，会在根目录下生成 `kokkoro.yml` 文件，你可以在此修改相关配置
 
 #### 什么是 YAML
@@ -166,7 +128,7 @@ bots:
       # 被风控时是否尝试用分片发送，默认 true
       resend: true
       # 数据存储文件夹
-      data_dir: ./data/bot
+      data_dir: ../data/bot
       # 重新登录间隔，默认5(秒)
       reconn_interval: 5
       # 是否缓存群员列表，默认 true，
@@ -179,13 +141,13 @@ bots:
 ```
 
 ## 补充
+
 首次登录推荐使用扫码，密码登录需要过滑块验证，非真机环境下抓取 ticket 会失效  
 但是扫码登录后如果进行敏感操作，例如频繁下线上线等，可能会出现掉线需要重新扫码的情况  
 登录一段时间后，就不会再弹出滑动验证，此时建议将 `mode` 改为 `password` 来切换密码登录，更加稳定 φ(≧ω≦*)♪
 
 ## 鸣谢
-感谢以下项目给予的灵感与启发
 
-- [rxjs](https://github.com/ReactiveX/rxjs)
-- [oicq](https://github.com/takayama-lily/oicq)
-- [commander](https://github.com/tj/commander.js)
+感谢 **[JetBrains](https://www.jetbrains.com/?from=kokkoro)** 提供了免费的开源许可证
+
+![JetBrains Logo (Main) logo](https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.svg)
