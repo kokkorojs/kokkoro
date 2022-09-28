@@ -24,4 +24,4 @@ export function startup() {
   runWorkerThreads();
 }
 
-export { Plugin } from './plugin';
+export { Plugin, Option } from './plugin';
