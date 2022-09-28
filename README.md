@@ -13,6 +13,13 @@
 
 > 本项目是一个基于 [oicq](https://github.com/takayama-lily/oicq) 协议库，使用 [TypeScript](https://www.typescriptlang.org/) 语言开发的 [QQ](https://im.qq.com/) 机器人框架
 
+## 注意
+
+近期项目结构频繁变动，为了 bot 稳定性，当前通过 cli 创建的项目 kokkoro 版本锁定为 v0.2  
+目前 npm 最新上传版本为 v0.4，该分支当前版本为 v1.0，如果你想开发自己的插件目前来说不建议你在这里投入过多的时间
+
+计划 **下个月** 发版 v1.0 并更新相关文档，有任何问题可以进群反馈或提 issue（你先别急.jpg）
+
 ## 介绍
 
 原项目 [yumemi_bot](https://github.com/rumicchi/yumemi_bot) 最初为个人自用 bot，主要围绕 [公主连结☆Re:Dive](https://priconne-redive.jp/) 开发相关功能，因代码严重耦合不利于维护，使用 ts 分离重构为插件一对多形式的框架
