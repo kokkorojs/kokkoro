@@ -34,7 +34,7 @@
   "dependencies": {
     "@kokkoro/utils": "^0.0.4",
     "cron": "^2.0.0",
-    "oicq": "^2.3.0"
+    "oicq": "^2.3.1"
   },
   "devDependencies": {
     "@types/cron": "^2.0.0",
