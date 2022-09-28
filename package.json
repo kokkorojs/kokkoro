@@ -1,7 +1,7 @@
 {
   "name": "kokkoro",
-  "version": "0.4.0",
-  "upday": "2022/7/14",
+  "version": "1.0.0",
+  "upday": "2022/9/28",
   "description": "とある咕咕の QQ 机器人框架",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
