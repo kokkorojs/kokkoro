@@ -1,7 +1,6 @@
 import { resolve } from 'path';
-import { YAML } from '@kokkoro/utils';
 
-import { Config } from '../bot';
+import { BotConfig } from '@/core/bot';
 
 // kokkoro 全局配置
 export type Profile = {
@@ -13,12 +12,12 @@ export type Profile = {
   // bot 信息
   bots: {
     // uin 账号
-    [uin: number]: Config;
+    [uin: number]: BotConfig;
   };
 };
 
-const profile_path = resolve(__workname, 'kokkoro.yml');
-const profile = YAML.readSync(profile_path) as Profile;
+const profile_path = resolve(__workname, 'kokkoro.json');
+const profile = require(profile_path) as Profile;
 
 export function getProfile<T extends keyof Profile>(key: T): Profile[T] {
   return profile[key];
