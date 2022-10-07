@@ -1,9 +1,8 @@
-import { deepClone } from '@kokkoro/utils';
 import { MessageElem } from 'oicq';
 
 import { Plugin } from '.';
-import { UserLevel } from '../bot';
-import { BotEventMap, PortEventMap } from '../events';
+import { UserLevel } from '@/core/bot';
+import { ContextMap } from '../events';
 
 type CommandArg = {
   required: boolean;
@@ -12,9 +11,9 @@ type CommandArg = {
 };
 
 export type CommandEventMap = {
-  'all': BotEventMap['message'];
-  'group': BotEventMap['message.group'];
-  'private': BotEventMap['message.private'];
+  'all': ContextMap['message'];
+  'group': ContextMap['message.group'];
+  'private': ContextMap['message.private'];
 };
 
 function removeBrackets(name: string): string {
@@ -76,7 +75,7 @@ export class Command<T extends keyof CommandEventMap = any> {
     this.min_level = 0;
     this.max_level = 6;
     this.stop = event => {
-      event.reply(`插件 ${plugin.name} 在当前群聊已被禁用`);
+      // event.reply(`插件 ${plugin.name} 在当前群聊已被禁用`);
     }
   }
 
