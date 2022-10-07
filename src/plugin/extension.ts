@@ -9,6 +9,6 @@ plugin
   .description('打印输出信息，一般用作测试')
   .sugar(/^(打印|输出)\s?(?<message>.+)$/)
   .action((event) => {
-    event.reply(event.query.message);
+    // event.reply(event.query.message);
   });
 //#endregion

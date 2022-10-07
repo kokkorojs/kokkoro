@@ -1,15 +1,15 @@
 import { join } from 'path';
 import { Dirent } from 'fs';
-import { deepClone } from '@kokkoro/utils';
 import { CronCommand, CronJob } from 'cron';
 import { mkdir, readdir } from 'fs/promises';
 import { isMainThread, parentPort, MessagePort, workerData } from 'worker_threads';
 
 import { Listen } from './listen';
 import { Command, CommandEventMap } from './command';
-import { BotEventMap, PortEventMap } from '../events';
+import { ContextMap } from '../events';
 import { proxyParentPort } from '../worker';
-import { Bot } from '../bot';
+import { Bot } from '@/core/bot';
+import { deepClone } from '@/utils';
 
 const modules_path = join(__workname, 'node_modules');
 const plugins_path = join(__workname, 'plugins');
@@ -17,15 +17,16 @@ const plugins_path = join(__workname, 'plugins');
 export type PluginInfo = {
   name: string;
   path: string;
+  local: boolean;
 };
 
-// 插件选项
+/** 插件选项 */
 export type Option = {
-  // 锁定，默认 false
+  /** 锁定，默认 false */
   lock: boolean;
-  // 开关，默认 true
+  /** 开关，默认 true */
   apply: boolean;
-  // 其它设置
+  /** 其它设置 */
   [param: string]: string | number | boolean | Array<string | number>;
 };
 
@@ -65,7 +66,7 @@ export class Plugin {
             const { raw_name, desc } = command;
             message.push(`  ${raw_name}  ${desc}`);
           }
-          event.reply(message.join('\n'));
+          // event.reply(message.join('\n'));
         });
       //#endregion
       // #region 版本指令
@@ -73,9 +74,9 @@ export class Plugin {
         .description('版本信息')
         .action((event) => {
           if (this.name) {
-            event.reply(`${this.name} v${this.ver}`);
+            // event.reply(`${this.name} v${this.ver}`);
           } else {
-            event.reply('当前插件未添加版本信息，可调用 Plugin.info 设置');
+            // event.reply('当前插件未添加版本信息，可调用 Plugin.info 设置');
           }
         });
       //#endregion
@@ -87,7 +88,7 @@ export class Plugin {
       });
 
       // 绑定插件线程通信
-      parentPort?.on('bind.bot.port', (event: PortEventMap['bind.bot.port']) => {
+      parentPort?.on('bind.bot.port', (event) => {
         const { uin, port } = event;
 
         this.botPort.set(uin, port);
@@ -179,7 +180,7 @@ export class Plugin {
   }
 
   // 事件监听
-  listen<T extends keyof BotEventMap>(name: T): Listen<T> {
+  listen<T extends keyof ContextMap>(name: T): Listen<T> {
     const listen = new Listen(name, this);
 
     // 单个插件单项事件不应该重复监听
@@ -209,20 +210,19 @@ export class Plugin {
  *
  * @returns Promise
  */
-export async function retrievalPlugin() {
-  const modules_dir: Dirent[] = [];
-  const plugins_dir: Dirent[] = [];
-  const modules: PluginInfo[] = [];
+export async function retrievalPlugins(): Promise<PluginInfo[]> {
+  const plugin_dirs: Dirent[] = [];
+  const module_dirs: Dirent[] = [];
   const plugins: PluginInfo[] = [];
 
   try {
     const dirs = await readdir(plugins_path, { withFileTypes: true });
-    plugins_dir.push(...dirs);
+    plugin_dirs.push(...dirs);
   } catch (error) {
     await mkdir(plugins_path);
   }
 
-  for (const dir of plugins_dir) {
+  for (const dir of plugin_dirs) {
     if (dir.isDirectory() || dir.isSymbolicLink()) {
       const name = dir.name;
       const path = join(plugins_path, name);
@@ -230,7 +230,7 @@ export async function retrievalPlugin() {
       try {
         require.resolve(path);
         const info: PluginInfo = {
-          name, path,
+          name, path, local: true,
         };
         plugins.push(info);
       } catch {
@@ -240,12 +240,12 @@ export async function retrievalPlugin() {
 
   try {
     const dirs = await readdir(modules_path, { withFileTypes: true });
-    modules_dir.push(...dirs);
+    module_dirs.push(...dirs);
   } catch (err) {
     await mkdir(modules_path);
   }
 
-  for (const dir of modules_dir) {
+  for (const dir of module_dirs) {
     if (dir.isDirectory() && dir.name.startsWith('kokkoro-plugin-')) {
       // 移除文件名前缀
       const name = dir.name.replace('kokkoro-plugin-', '');
@@ -254,25 +254,13 @@ export async function retrievalPlugin() {
       try {
         require.resolve(path);
         const info: PluginInfo = {
-          name, path,
+          name, path, local: false,
         };
-        modules.push(info);
+        plugins.push(info);
       } catch {
       }
     }
   }
 
-  return {
-    modules, plugins,
-  };
-}
-
-export async function getPluginList(): Promise<string[]> {
-  const { modules, plugins } = await retrievalPlugin();
-  const list = [];
-
-  for (const info of [...modules, ...plugins]) {
-    list.push(info.name);
-  }
-  return list;
+  return plugins;
 }

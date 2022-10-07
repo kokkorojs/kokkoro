@@ -1,9 +1,9 @@
 import { MessageElem } from 'oicq';
 import { Plugin } from '.';
-import { BotEventMap, PortEventMap } from '../events';
+import { ContextMap } from '../events';
 
-export class Listen<T extends keyof BotEventMap = any>  {
-  public func?: (event: BotEventMap[T]) => any;
+export class Listen<T extends keyof ContextMap = any>  {
+  public func?: (event: ContextMap[T]) => any;
 
   constructor(
     private event_name: string,
@@ -26,7 +26,7 @@ export class Listen<T extends keyof BotEventMap = any>  {
     }
   }
 
-  trigger(callback: (event: BotEventMap[T]) => any) {
+  trigger(callback: (event: ContextMap[T]) => any) {
     this.func = callback;
     return this;
   }
