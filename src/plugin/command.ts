@@ -1,20 +1,20 @@
 import { MessageElem } from 'oicq';
 
 import { Plugin } from '.';
+import { ContextMap } from '@/events';
 import { UserLevel } from '@/core/bot';
-import { ContextMap } from '../events';
 
 type CommandArg = {
   required: boolean;
   value: string;
   variadic: boolean;
-};
+}
 
 export type CommandEventMap = {
   'all': ContextMap['message'];
   'group': ContextMap['message.group'];
   'private': ContextMap['message.private'];
-};
+}
 
 function removeBrackets(name: string): string {
   return name.replace(/[<[].+/, '').trim();
@@ -83,14 +83,14 @@ export class Command<T extends keyof CommandEventMap = any> {
     event.reply = (message: string | MessageElem[]) => {
       const { message_type, user_id, group_id, self_id } = event;
 
-      // this.reply({
-      //   type: message_type,
-      //   message, self_id, user_id, group_id,
-      // });
+      this.reply({
+        type: message_type,
+        message, self_id, user_id, group_id,
+      });
     };
 
     if (this.isLimit(event.permission_level)) {
-      event.reply(`越权，当前指令 level 范围：${this.min_level} ~ ${this.max_level}，你的 level 为：${event.permission_level}`);
+      event.reply(`越权，该指令 level 范围：${this.min_level} ~ ${this.max_level}，你当前的 level 为：${event.permission_level}`);
     } else if (this.func && this.plugin.prefix === '') {
       this.func(event);
     } else if (event.message_type !== 'private' && !event.option.apply) {
