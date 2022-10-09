@@ -2,7 +2,8 @@ import { join } from 'path';
 import { Client } from 'oicq';
 import { EventEmitter } from 'events';
 import { Logger, getLogger } from 'log4js';
-import { Worker, MessageChannel, isMainThread, parentPort, WorkerOptions, MessagePort } from 'worker_threads';
+import { MessagePort } from 'worker_threads';
+import { Worker, MessageChannel, isMainThread, parentPort, WorkerOptions } from 'worker_threads';
 
 import { logger } from '@/utils';
 import { BotConfig } from '@/core/bot';
@@ -30,14 +31,6 @@ interface BindListenEvent {
   listen: string;
 }
 
-export interface ThreadMessage {
-  name: string;
-  event: {
-    [key: string]: any;
-  }
-}
-
-/** worker_threads 扩展 */
 declare module 'worker_threads' {
   interface Worker extends EventEmitter {
     addListener(event: 'input.start', listener: () => void): this;
@@ -62,55 +55,66 @@ declare module 'worker_threads' {
     addListener(event: 'input.end', listener: (text: string) => void): this;
     addListener(event: 'bind.bot.port', listener: (event: BindBotEvent) => void): this;
     addListener(event: 'bind.plugin.port', listener: (event: BindPluginEvent) => void): this;
-    addListener(event: 'bind.plugin.listen', listener: (event: BindListenEvent) => void): this;
+    addListener(event: 'bind.plugin.event', listener: (event: BindListenEvent) => void): this;
 
     emit(event: 'bot.api'): boolean;
     emit(event: 'input.end'): boolean;
     emit(event: 'bind.bot.port'): boolean;
     emit(event: 'bind.plugin.port'): boolean;
-    emit(event: 'bind.plugin.listen'): boolean;
+    emit(event: 'bind.plugin.event'): boolean;
 
     on(event: 'bot.api', listener: (event: BotApiEvent) => void): this;
     on(event: 'input.end', listener: (text: string) => void): this;
     on(event: 'bind.bot.port', listener: (event: BindBotEvent) => void): this;
     on(event: 'bind.plugin.port', listener: (event: BindPluginEvent) => void): this;
-    on(event: 'bind.plugin.listen', listener: (event: BindListenEvent) => void): this;
+    on(event: 'bind.plugin.event', listener: (event: BindListenEvent) => void): this;
 
     once(event: 'bot.api', listener: (event: BotApiEvent) => void): this;
     once(event: 'input.end', listener: (text: string) => void): this;
     once(event: 'bind.bot.port', listener: (event: BindBotEvent) => void): this;
     once(event: 'bind.plugin.port', listener: (event: BindPluginEvent) => void): this;
-    once(event: 'bind.plugin.listen', listener: (event: BindListenEvent) => void): this;
+    once(event: 'bind.plugin.event', listener: (event: BindListenEvent) => void): this;
 
     prependListener(event: 'bot.api', listener: (event: BotApiEvent) => void): this;
     prependListener(event: 'input.end', listener: (text: string) => void): this;
     prependListener(event: 'bind.bot.port', listener: (event: BindBotEvent) => void): this;
     prependListener(event: 'bind.plugin.port', listener: (event: BindPluginEvent) => void): this;
-    prependListener(event: 'bind.plugin.listen', listener: (event: BindListenEvent) => void): this;
+    prependListener(event: 'bind.plugin.event', listener: (event: BindListenEvent) => void): this;
 
     prependOnceListener(event: 'bot.api', listener: (event: BotApiEvent) => void): this;
     prependOnceListener(event: 'input.end', listener: (text: string) => void): this;
     prependOnceListener(event: 'bind.bot.port', listener: (event: BindBotEvent) => void): this;
     prependOnceListener(event: 'bind.plugin.port', listener: (event: BindPluginEvent) => void): this;
-    prependOnceListener(event: 'bind.plugin.listen', listener: (event: BindListenEvent) => void): this;
+    prependOnceListener(event: 'bind.plugin.event', listener: (event: BindListenEvent) => void): this;
 
     removeListener(event: 'bot.api', listener: (event: BotApiEvent) => void): this;
     removeListener(event: 'input.end', listener: (text: string) => void): this;
     removeListener(event: 'bind.bot.port', listener: (event: BindBotEvent) => void): this;
     removeListener(event: 'bind.plugin.port', listener: (event: BindPluginEvent) => void): this;
-    removeListener(event: 'bind.plugin.listen', listener: (event: BindListenEvent) => void): this;
+    removeListener(event: 'bind.plugin.event', listener: (event: BindListenEvent) => void): this;
 
     off(event: 'bot.api', listener: (event: BotApiEvent) => void): this;
     off(event: 'input.end', listener: (text: string) => void): this;
     off(event: 'bind.bot.port', listener: (event: BindBotEvent) => void): this;
     off(event: 'bind.plugin.port', listener: (event: BindPluginEvent) => void): this;
-    off(event: 'bind.plugin.listen', listener: (event: BindListenEvent) => void): this;
+    off(event: 'bind.plugin.event', listener: (event: BindListenEvent) => void): this;
   }
 }
 
+export interface ThreadMessage {
+  name: string;
+  event: {
+    [key: string]: any;
+  }
+}
 
+interface WorkerData {
+  info: PluginInfo;
+  uin: number;
+  config: BotConfig;
+}
 
-const bot_filename = join(__dirname, 'bot');
+const bot_filename = join(__dataname, 'bot');
 // bot 池
 const botPool: Map<number, BotWorker> = new Map();
 // 插件池
@@ -123,7 +127,7 @@ class Thread extends Worker {
     super(filename, options);
 
     const { workerData } = options;
-    const { uin, config, info } = workerData;
+    const { uin, config, info } = <WorkerData>workerData;
     const category = `[worker:${info ? info.name : uin}]`;
 
     this.logger = getLogger(category);
@@ -182,6 +186,63 @@ class PluginWorker extends Thread {
 }
 
 /**
+ * 创建机器人线程实例
+ *
+ * @param uin - qq 账号
+ * @param config - 机器人配置项
+ * @returns 机器人线程实例
+ */
+function createBotWorker(uin: number, config?: BotConfig) {
+  return new BotWorker(uin, config);
+}
+
+/**
+ * 创建插件线程实例
+ *
+ * @param info - 插件信息
+ * @returns 插件线程实例
+ */
+function createPluginWorker(info: PluginInfo) {
+  return new PluginWorker(info);
+}
+
+/**
+ * 创建机器人多线程服务
+ */
+function createBotThreads() {
+  const bots = getProfile('bots');
+  const uins = Object.keys(bots);
+
+  if (uins.length > 1) {
+    throw new Error('v1.0 暂不支持多账号登录，如有使用需求可回滚 v0.3');
+  }
+  const uins_length = uins.length;
+
+  for (let i = 0; i < uins_length; i++) {
+    const uin: number = +uins[i];
+    const config: BotConfig = bots[uin];
+
+    createBotWorker(uin, config);
+  }
+}
+
+/**
+ * 创建插件多线程服务
+ */
+async function createPluginThreads() {
+  const plugins = await retrievalPlugins();
+  const extension: PluginInfo = {
+    name: 'kokkoro',
+    path: join(__dirname, 'plugin/extension'),
+    local: true,
+  };
+
+  [extension, ...plugins].forEach((info) => {
+    createPluginWorker(info);
+  });
+}
+
+/**
  * 重新绑定 bot 信道
  * 
  * @param info 
@@ -207,58 +268,6 @@ async function rebindPluginChannel(uin: number, config: BotConfig) {
 
   plugins.forEach((name: string) => {
     linkMessageChannel(uin, name);
-  });
-}
-
-/**
- * 创建机器人线程实例
- *
- * @param uin
- * @param config
- */
-function createBotWorker(uin: number, config?: BotConfig) {
-  return new BotWorker(uin, config);
-}
-
-/**
- * 创建插件线程实例
- *
- * @param info
- * @returns
- */
-function createPluginWorker(info: PluginInfo) {
-  return new PluginWorker(info);
-}
-
-/**
- * 创建机器人多线程服务
- */
-function createBotThreads() {
-  const bots = getProfile('bots');
-  const map = new Map(Object.entries(bots));
-
-  if (map.size > 1) {
-    throw new Error('v1.0 暂不支持多账号登录，如有使用需求可回滚 v0.3');
-  }
-
-  map.forEach((config, uin) => {
-    createBotWorker(+uin, config);
-  });
-}
-
-/**
- * 创建插件多线程服务
- */
-async function createPluginThreads() {
-  const plugins = await retrievalPlugins();
-  const extension: PluginInfo = {
-    name: 'kokkoro',
-    path: join(__dirname, 'plugin/extension'),
-    local: true,
-  };
-
-  [extension, ...plugins].forEach((info) => {
-    createPluginWorker(info);
   });
 }
 
@@ -308,6 +317,7 @@ function linkMessageChannel(uin: number, name: string): void {
   const { port1: botPort, port2: pluginPort } = new MessageChannel();
   const bot_worker = botPool.get(uin)!;
   const plugin_worker = pluginPool.get(name)!;
+
   const botPortEvent = {
     name: 'bind.plugin.port',
     event: { name, port: pluginPort },
@@ -335,10 +345,16 @@ export function proxyParentPort() {
   });
 }
 
-function terminalInput(this: BotWorker) {
+/**
+ * 监听控制台输入
+ * 
+ * @param this - 机器人线程实例
+ */
+function terminalInput(this: BotWorker, write?: string) {
   logger.info('检测到 input.start 事件，已停止 log 打印');
-  logger.level = 'off'
+  logger.level = 'off';
 
+  write && process.stdout.write(write);
   process.stdin.once('data', (event) => {
     this.postMessage({
       name: 'input.end', event: event.toString().trim(),

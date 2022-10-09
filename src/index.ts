@@ -12,9 +12,9 @@ global.__dataname = join(__workname, 'data');
 
 const { upday, version, changelogs } = require('../package.json');
 
-export const UPDAY = upday;
-export const VERSION = version;
-export const CHANGELOGS = changelogs;
+export const UPDAY: string = upday;
+export const VERSION: string = version;
+export const CHANGELOGS: string = changelogs;
 
-export { Plugin, Option } from './plugin';
+export { Plugin, Option } from '@/plugin';
 export { runWorkerThreads } from '@/worker';

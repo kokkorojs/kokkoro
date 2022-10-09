@@ -2,7 +2,7 @@ import { join } from 'path';
 import { createHash } from 'crypto';
 import { readFile, writeFile } from 'fs/promises';
 import { parentPort, MessagePort } from 'worker_threads';
-import { Client, Config as Protocol, GroupMessage, MemberDecreaseEvent, MemberIncreaseEvent, MessageRet } from 'oicq';
+import { Client, Config as Protocol, GroupMessage, GroupRole, MemberDecreaseEvent, MemberIncreaseEvent, MessageRet, PrivateMessage } from 'oicq';
 
 // import { PortEventMap } from '../events';
 // import { getSetting, Setting, writeSetting } from '../profile/setting';
@@ -65,7 +65,7 @@ export class Bot extends Client {
     this.password_path = join(this.dir, 'password');
 
     // 绑定插件线程通信
-    parentPort?.on('bind.plugin.port', (event) => {
+    parentPort!.on('bind.plugin.port', (event) => {
       const { name, port } = event;
 
       // 线程事件代理
@@ -133,7 +133,10 @@ export class Bot extends Client {
             // TODO ⎛⎝≥⏝⏝≤⎛⎝ 设备锁轮询，oicq 暂无相关 func
             this.logger.mark('验证完成后按回车键继续...');
 
-            process.stdin.once('data', () => {
+            parentPort!.postMessage({
+              name: 'input.start',
+            });
+            parentPort!.once('input.end', () => {
               this.login();
             });
           })
@@ -167,9 +170,13 @@ export class Bot extends Client {
   private inputTicket(): void {
     this.logger.mark('取 ticket 教程: https://github.com/takayama-lily/oicq/wiki/01.滑动验证码和设备锁');
 
-    process.stdout.write('请输入 ticket : ');
-    parentPort?.postMessage('input.start');
-    parentPort?.once('input.end', (text) => {
+    parentPort!.postMessage({
+      name: 'input.start',
+      event: {
+        write: '请输入 ticket: ',
+      },
+    });
+    parentPort!.once('input.end', (text) => {
       this.submitSlider(text);
     });
   }
@@ -185,13 +192,20 @@ export class Bot extends Client {
    * level 5 主  人
    * level 6 维护组
    *
-   * @param event - 消息事件
+   * @param event - 群聊/私聊消息
    * @returns 用户等级
    */
-  private getUserLevel(event: GroupMessage): UserLevel {
-    const { sender } = event;
-    const { user_id, level = 0, role = 'member' } = sender;
+  private getUserLevel(event: GroupMessage | PrivateMessage): UserLevel {
+    let level: number = 0;
+    let role: GroupRole = 'member';
+    let user_id: number = event.sender.user_id;
 
+    if (event.message_type === 'group') {
+      const { sender } = event;
+
+      level = sender.level;
+      role = sender.role;
+    }
     let user_level: UserLevel;
 
     switch (true) {
@@ -221,11 +235,11 @@ export class Bot extends Client {
   }
 
   private inputPassword(): void {
-    process.stdout.write('首次登录请输入密码: ');
-    parentPort?.postMessage({
+    parentPort!.postMessage({
       name: 'input.start',
+      write: '首次登录请输入密码: '
     });
-    parentPort?.once('input.end', (text) => {
+    parentPort!.once('input.end', (text) => {
       if (!text.length) {
         return this.inputPassword();
       }
@@ -239,7 +253,7 @@ export class Bot extends Client {
   }
 
   // 监听主线程端口事件
-  private listenPortEvents<T extends keyof Bot>(port: MessagePort) {
+  private listenPortEvents(port: MessagePort) {
     //     // 绑定插件配置
     //     port.on('bind.setting', (event: PortEventMap['bind.setting']) => {
     //       if (!this.isOnline()) {
@@ -269,8 +283,8 @@ export class Bot extends Client {
     //       }
     // });
 
-    // 事件监听
-    port.on('bind.plugin.listen', (event) => {
+    // 绑定插件事件
+    port.on('bind.plugin.event', (event) => {
       const { name, listen } = event;
 
       this.on(listen !== 'message.all' ? listen : 'message', (e: any) => {
@@ -289,13 +303,13 @@ export class Bot extends Client {
       this.logger.info(`插件 ${name} 绑定 ${listen} 事件`);
     });
 
-    // 发送消息
+    // 执行 client 实例方法
     port.on('bot.api', async (event) => {
       const { method, params } = event;
 
       let value;
       if (typeof this[method] === 'function') {
-        value = await (this[method] as Function)(...params);
+        value = await (<Function>this[method])(...params);
       } else {
         value = this[method];
       }
@@ -314,7 +328,7 @@ export class Bot extends Client {
    * @returns 发消息的返回值
    */
   sendMasterMsg(message: string): Promise<MessageRet[]> {
-    const queue = [];
+    const queue: Promise<MessageRet>[] = [];
 
     for (const uin of this.masters) {
       queue.push(this.sendPrivateMsg(uin, message));

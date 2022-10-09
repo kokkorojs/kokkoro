@@ -1,6 +1,4 @@
-import { EventMap, MessageElem } from 'oicq';
-import { MessagePort } from 'worker_threads';
-import { Option } from './plugin';
+import { EventMap } from 'oicq';
 
 // 展开对象 value 类型
 type ValueOf<T> = T[keyof T];
@@ -22,11 +20,14 @@ export interface ThreadsMessage {
   };
 }
 
-// 获取事件类型
-// type EventType<T> = T extends (arg: infer P) => void ? P & { query: { [k: string]: string } } : any;
+// 获取插件上下文
+type getContext<T> = T extends (arg: infer P) => void ? OmitType<P, Function> & {
+  /** 指令集匹配到的参数 */
+  query: { [k: string]: string }
+} : never;
 
 export type ContextMap = {
-  [Key in EventName]: Parameters<EventMap[Key]>;
+  [Key in EventName]: getContext<EventMap[Key]>;
 };
 
 // export type BotEventMap = {
@@ -54,7 +55,7 @@ export type ContextMap = {
 //     option: Option;
 //   };
 //   // 绑定插件事件监听器
-//   'bind.plugin.listen': {
+//   'bind.plugin.event': {
 //     listen: string,
 //     name: string;
 //   };

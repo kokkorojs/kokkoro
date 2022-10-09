@@ -1,5 +1,4 @@
 import { resolve } from 'path';
-
 import { BotConfig } from '@/core/bot';
 
 // kokkoro 全局配置
@@ -17,7 +16,7 @@ export type Profile = {
 };
 
 const profile_path = resolve(__workname, 'kokkoro.json');
-const profile = require(profile_path) as Profile;
+const profile = <Profile>require(profile_path);
 
 export function getProfile<T extends keyof Profile>(key: T): Profile[T] {
   return profile[key];
