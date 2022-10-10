@@ -130,7 +130,16 @@ export class Command<T extends keyof CommandEventMap = any> {
   }
 
   reply(event: any): void {
-    this.plugin.sendPrivateMsg(event);
+    const { self_id, message_type, user_id, group_id, message } = event;
+
+    switch (message_type) {
+      case 'private':
+        this.plugin.botApi(self_id, 'sendPrivateMsg', user_id, message);
+        break;
+      case 'group':
+        this.plugin.botApi(self_id, 'sendGroupMsg', group_id, message);
+        break;
+    }
   }
 
   limit(min_level: UserLevel, max_level: UserLevel = 6) {
