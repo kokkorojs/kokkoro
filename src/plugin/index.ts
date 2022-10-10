@@ -159,13 +159,13 @@ export class Plugin {
     return this;
   }
 
-  sendPrivateMsg(event: any) {
-    const { self_id } = event;
-    const port_event = {
-      name: 'message.send', event,
-    };
-    this.botPort.get(self_id)?.postMessage(port_event);
-  }
+  // sendPrivateMsg(event: any) {
+  //   const { self_id } = event;
+  //   const port_event = {
+  //     name: 'message.send', event,
+  //   };
+  //   this.botPort.get(self_id)?.postMessage(port_event);
+  // }
 
   // sendAllMessage(event: PortEventMap['message.send']) {
   //   const port_event = {
