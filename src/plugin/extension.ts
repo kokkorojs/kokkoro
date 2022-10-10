@@ -1,5 +1,5 @@
-import { Plugin } from '.';
-import { VERSION } from '..';
+import { Plugin } from '@/plugin';
+import { VERSION } from '@/kokkoro';
 
 const plugin = new Plugin().version(VERSION);
 

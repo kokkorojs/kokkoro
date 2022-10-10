@@ -1,12 +1,16 @@
 import { MessageElem } from 'oicq';
 
-import { Plugin } from '.';
+import { Plugin } from '@/plugin';
+import { UserLevel } from '@/core';
 import { ContextMap } from '@/events';
-import { UserLevel } from '@/core/bot';
 
+/** 指令参数 */
 type CommandArg = {
+  /** 是否必填 */
   required: boolean;
+  /** 指令值 */
   value: string;
+  /** 可选参数 */
   variadic: boolean;
 }
 
@@ -65,9 +69,12 @@ export class Command<T extends keyof CommandEventMap = any> {
   public func?: (event: CommandEventMap[T]) => any;
 
   constructor(
-    public message_type: T | 'all' = 'all',
-    public raw_name: string,
+    /** 插件实例 */
     public plugin: Plugin,
+    /** 命令 */
+    public raw_name: string,
+    /** 消息类型 */
+    public message_type: keyof CommandEventMap = 'all',
   ) {
     this.name = removeBrackets(raw_name);
     this.args = findAllBrackets(raw_name);
@@ -122,9 +129,9 @@ export class Command<T extends keyof CommandEventMap = any> {
     return this;
   }
 
-  // reply(event: PortEventMap['message.send']): void {
-  //   this.plugin.sendMessage(event);
-  // }
+  reply(event: any): void {
+    this.plugin.sendPrivateMsg(event);
+  }
 
   limit(min_level: UserLevel, max_level: UserLevel = 6) {
     if (min_level > max_level) {

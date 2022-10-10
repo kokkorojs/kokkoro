@@ -4,7 +4,8 @@ import { writeFileSync } from 'fs';
 import { writeFile } from 'fs/promises';
 
 import { Option } from '@/plugin';
-import { Bot, data_dir } from '@/core/bot';
+import { debounce, deepProxy } from '@/utils';
+import { Bot, data_dir } from '@/core';
 
 /** 群聊 */
 export type Group = {
@@ -44,43 +45,63 @@ export class Setting {
       writeFileSync(this.setting_dir, '{}');
     }
 
-    this.group = group ?? {};
-    this.plugins = plugins ?? [];
+    this.group = deepProxy(group ?? {}, {
+      set: (target: { [group_id: string]: Group; }, prop: string, value, receiver) => {
+        target[prop] = value;
+
+        this.write();
+        return true;
+      }
+    });
+    this.plugins = deepProxy(plugins ?? [], {
+      //   set: (target: this['plugins'], prop: string, value, receiver) => {
+      //     target[prop] = value;
+
+      //     this.write();
+      //     return true;
+      //   }
+    });
 
     generate && this.logger.mark("创建了新的配置文件：" + this.setting_dir);
   }
 
-  private write() {
+  private write = debounce(async () => {
     const data = {
       group: this.group,
       plugins: this.plugins,
     };
 
-    return writeFile(this.setting_dir, JSON.stringify(data, null, 2));
-  }
-
-  public async refresh(bot: Bot) {
-    const group: this['group'] = {};
-
-    for (const [, info] of bot.gl) {
-      const { group_id, group_name } = info;
-
-      group[group_id] = {
-        name: group_name, plugin: {},
-      };
+    // TODO ⎛⎝≥⏝⏝≤⎛⎝ 数据校验，避免重复调用 writeFile
+    try {
+      await writeFile(this.setting_dir, JSON.stringify(data, null, 2));
+      this.logger.info('更新了配置文件');
+    } catch (error) {
+      this.logger.info(`更新配置文件失败，${(<Error>error).message}`);
     }
+  }, 10);
 
-    if (JSON.stringify(group) !== JSON.stringify(this.group)) {
-      this.group = group;
+  // public async refresh(bot: Bot) {
+  //   const group: this['group'] = {};
 
-      try {
-        await this.write();
-        this.logger.info('更新了配置文件');
-      } catch (error) {
-        this.logger.info(`更新配置文件失败，${(error as Error).message}`);
-      }
-    }
-  }
+  //   for (const [, info] of bot.gl) {
+  //     const { group_id, group_name } = info;
+
+  //     group[group_id] = {
+  //       name: group_name, plugin: {},
+  //     };
+  //   }
+
+  //   if (JSON.stringify(group) !== JSON.stringify(this.group)) {
+  //     this.group = group;
+
+  //     try {
+  //       await this.write();
+  //       this.logger.info('更新了配置文件');
+  //     } catch (error) {
+  //       this.logger.info(`更新配置文件失败，${(error as Error).message}`);
+  //     }
+  //   }
+  // }
 }
 
 

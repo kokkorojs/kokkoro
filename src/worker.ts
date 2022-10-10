@@ -6,10 +6,10 @@ import { MessagePort } from 'worker_threads';
 import { Worker, MessageChannel, isMainThread, parentPort, WorkerOptions } from 'worker_threads';
 
 import { logger } from '@/utils';
-import { BotConfig } from '@/core/bot';
+import { BotConfig } from '@/core';
 import { getProfile } from '@/profile';
-import { CHANGELOGS, UPDAY, VERSION } from '.';
-import { PluginInfo, retrievalPlugins } from '@/plugin';
+import { CHANGELOGS, UPDAY, VERSION } from '@/kokkoro';
+import { Option, PluginInfo, retrievalPlugins } from '@/plugin';
 
 interface BotApiEvent {
   method: keyof Client;
@@ -29,6 +29,10 @@ interface BindPluginEvent {
 interface BindListenEvent {
   name: string;
   listen: string;
+}
+interface BindSettingEvent {
+  name: string;
+  option: Option;
 }
 
 declare module 'worker_threads' {
@@ -56,48 +60,56 @@ declare module 'worker_threads' {
     addListener(event: 'bind.bot.port', listener: (event: BindBotEvent) => void): this;
     addListener(event: 'bind.plugin.port', listener: (event: BindPluginEvent) => void): this;
     addListener(event: 'bind.plugin.event', listener: (event: BindListenEvent) => void): this;
+    addListener(event: 'bind.setting', listener: (event: BindSettingEvent) => void): this;
 
     emit(event: 'bot.api'): boolean;
     emit(event: 'input.end'): boolean;
     emit(event: 'bind.bot.port'): boolean;
     emit(event: 'bind.plugin.port'): boolean;
     emit(event: 'bind.plugin.event'): boolean;
+    emit(event: 'bind.setting'): boolean;
 
     on(event: 'bot.api', listener: (event: BotApiEvent) => void): this;
     on(event: 'input.end', listener: (text: string) => void): this;
     on(event: 'bind.bot.port', listener: (event: BindBotEvent) => void): this;
     on(event: 'bind.plugin.port', listener: (event: BindPluginEvent) => void): this;
     on(event: 'bind.plugin.event', listener: (event: BindListenEvent) => void): this;
+    on(event: 'bind.setting', listener: (event: BindSettingEvent) => void): this;
 
     once(event: 'bot.api', listener: (event: BotApiEvent) => void): this;
     once(event: 'input.end', listener: (text: string) => void): this;
     once(event: 'bind.bot.port', listener: (event: BindBotEvent) => void): this;
     once(event: 'bind.plugin.port', listener: (event: BindPluginEvent) => void): this;
     once(event: 'bind.plugin.event', listener: (event: BindListenEvent) => void): this;
+    once(event: 'bind.setting', listener: (event: BindSettingEvent) => void): this;
 
     prependListener(event: 'bot.api', listener: (event: BotApiEvent) => void): this;
     prependListener(event: 'input.end', listener: (text: string) => void): this;
     prependListener(event: 'bind.bot.port', listener: (event: BindBotEvent) => void): this;
     prependListener(event: 'bind.plugin.port', listener: (event: BindPluginEvent) => void): this;
     prependListener(event: 'bind.plugin.event', listener: (event: BindListenEvent) => void): this;
+    prependListener(event: 'bind.setting', listener: (event: BindSettingEvent) => void): this;
 
     prependOnceListener(event: 'bot.api', listener: (event: BotApiEvent) => void): this;
     prependOnceListener(event: 'input.end', listener: (text: string) => void): this;
     prependOnceListener(event: 'bind.bot.port', listener: (event: BindBotEvent) => void): this;
     prependOnceListener(event: 'bind.plugin.port', listener: (event: BindPluginEvent) => void): this;
     prependOnceListener(event: 'bind.plugin.event', listener: (event: BindListenEvent) => void): this;
+    prependOnceListener(event: 'bind.setting', listener: (event: BindSettingEvent) => void): this;
 
     removeListener(event: 'bot.api', listener: (event: BotApiEvent) => void): this;
     removeListener(event: 'input.end', listener: (text: string) => void): this;
     removeListener(event: 'bind.bot.port', listener: (event: BindBotEvent) => void): this;
     removeListener(event: 'bind.plugin.port', listener: (event: BindPluginEvent) => void): this;
     removeListener(event: 'bind.plugin.event', listener: (event: BindListenEvent) => void): this;
+    removeListener(event: 'bind.setting', listener: (event: BindSettingEvent) => void): this;
 
     off(event: 'bot.api', listener: (event: BotApiEvent) => void): this;
     off(event: 'input.end', listener: (text: string) => void): this;
     off(event: 'bind.bot.port', listener: (event: BindBotEvent) => void): this;
     off(event: 'bind.plugin.port', listener: (event: BindPluginEvent) => void): this;
     off(event: 'bind.plugin.event', listener: (event: BindListenEvent) => void): this;
+    off(event: 'bind.setting', listener: (event: BindSettingEvent) => void): this;
   }
 }
 
@@ -109,12 +121,11 @@ export interface ThreadMessage {
 }
 
 interface WorkerData {
-  info: PluginInfo;
-  uin: number;
-  config: BotConfig;
+  type: 'bot' | 'plugin';
+  data: { uin?: number; config?: BotConfig; } | PluginInfo;
 }
 
-const bot_filename = join(__dataname, 'bot');
+const bot_filename = join(__dirname, 'bot');
 // bot 池
 const botPool: Map<number, BotWorker> = new Map();
 // 插件池
@@ -127,8 +138,8 @@ class Thread extends Worker {
     super(filename, options);
 
     const { workerData } = options;
-    const { uin, config, info } = <WorkerData>workerData;
-    const category = `[worker:${info ? info.name : uin}]`;
+    const { type, data } = <WorkerData>workerData;
+    const category = `[${type}:${type === 'plugin' ? (<PluginInfo>data).name : (<any>data).uin}]`;
 
     this.logger = getLogger(category);
     // TODO ⎛⎝≥⏝⏝≤⎛⎝ 日志等级
@@ -152,12 +163,11 @@ class Thread extends Worker {
 
         if (code) {
           this.logger.info('正在重启...');
-          const is_plugin = !!info;
 
           setTimeout(async () => {
-            is_plugin
-              ? await rebindBotChannel(info)
-              : await rebindPluginChannel(uin, config);
+            type === 'plugin'
+              ? await rebindBotChannel(<PluginInfo>data)
+              : await rebindPluginChannel((<any>data).uin, (<any>data).config);
           }, 3000);
         }
       })
@@ -168,7 +178,12 @@ class Thread extends Worker {
 class BotWorker extends Thread {
   constructor(uin: number, config?: BotConfig) {
     super(bot_filename, {
-      workerData: { uin, config },
+      workerData: <WorkerData>{
+        type: 'bot',
+        data: {
+          uin, config
+        }
+      },
     });
     botPool.set(uin, this);
   }
@@ -179,7 +194,10 @@ class PluginWorker extends Thread {
     const { name, path } = info;
 
     super(path, {
-      workerData: { info },
+      workerData: <WorkerData>{
+        type: 'plugin',
+        data: info,
+      },
     });
     pluginPool.set(name, this);
   }
@@ -211,7 +229,7 @@ function createPluginWorker(info: PluginInfo) {
  */
 function createBotThreads() {
   const bots = getProfile('bots');
-  const uins = Object.keys(bots);
+  const uins = Object.keys(bots).map(Number);
 
   if (uins.length > 1) {
     throw new Error('v1.0 暂不支持多账号登录，如有使用需求可回滚 v0.3');
@@ -219,7 +237,7 @@ function createBotThreads() {
   const uins_length = uins.length;
 
   for (let i = 0; i < uins_length; i++) {
-    const uin: number = +uins[i];
+    const uin: number = uins[i];
     const config: BotConfig = bots[uin];
 
     createBotWorker(uin, config);
