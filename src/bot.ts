@@ -1,5 +1,5 @@
 import { isMainThread, workerData } from 'worker_threads';
-import { BotConfig, Bot } from '@/core/bot';
+import { BotConfig, Bot } from '@/core';
 
 type BotWorkerData = {
   uin: number;
@@ -9,7 +9,8 @@ type BotWorkerData = {
 if (isMainThread) {
   throw new Error('你在主线程跑这个干吗？');
 } else {
-  const { uin, config } = <BotWorkerData>workerData;
+  const { uin, config } = <BotWorkerData>workerData.data;
+
   const bot = new Bot(uin, config);
 
   bot.linkStart();

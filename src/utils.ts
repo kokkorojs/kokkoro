@@ -58,3 +58,74 @@ export function deepMerge<T, K extends keyof T>(target: T, sources: T): T {
 export function deepClone<T>(object: T): T {
   return JSON.parse(JSON.stringify(object));
 }
+
+/**
+ * 深度代理
+ * 
+ * @param target - 代理对象
+ * @param handler - 处理函数
+ * @returns 
+ */
+export function deepProxy<T extends { [key: string]: any }>(target: T, handler: ProxyHandler<T>): T {
+  if (typeof target === 'object') {
+    const keys = Object.keys(target);
+    const keys_length = keys.length;
+
+    for (let i = 0; i < keys_length; i++) {
+      const key = keys[i];
+
+      if (typeof target[key] === 'object') {
+        (<object>target[key]) = deepProxy(<object>target[key], handler);
+      }
+    }
+  }
+  return new Proxy(target, handler);
+}
+
+/**
+ * 防抖函数
+ * 
+ * @param this 
+ * @param func - 函数
+ * @param timeout - 防抖延迟
+ * @param leading - 在延迟开始前调用函数
+ * @returns 
+ */
+export function debounce(this: any, func: Function, timeout: number = 300, leading: boolean = false) {
+  let timer: NodeJS.Timeout | undefined;
+
+  if (!leading) {
+    return (...args: unknown[]) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => func.apply(this, args), timeout);
+    };
+  } else {
+    return (...args: unknown[]) => {
+      if (!timer) {
+        func.apply(this, args);
+      }
+      clearTimeout(timer);
+      timer = setTimeout(() => timer = undefined, timeout);
+    };
+  }
+}
+
+/**
+ * 节流函数
+ * 
+ * @param this 
+ * @param func - 函数
+ * @param timeout - 防抖延迟
+ * @returns 
+ */
+export function throttle(this: Function, func: Function, timeout: number = 300) {
+  let flag: boolean = true;
+
+  return (...args: unknown[]) => {
+    if (flag) {
+      func.apply(this, args);
+      flag = false;
+      setTimeout(() => flag = true, timeout);
+    }
+  }
+}

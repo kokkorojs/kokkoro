@@ -4,7 +4,8 @@ import { mkdir, readdir } from 'fs/promises';
 import { CronCommand, CronJob } from 'cron';
 import { isMainThread, parentPort, MessagePort, workerData } from 'worker_threads';
 
-import { Bot } from '@/core/bot';
+import '@/kokkoro';
+import { Bot } from '@/core';
 import { deepClone } from '@/utils';
 import { ContextMap } from '@/events';
 import { proxyParentPort } from '@/worker';
@@ -15,11 +16,15 @@ import { Client } from 'oicq';
 const modules_path = join(__workname, 'node_modules');
 const plugins_path = join(__workname, 'plugins');
 
+/** 插件信息 */
 export type PluginInfo = {
+  /** 插件名 */
   name: string;
+  /** 插件路径 */
   path: string;
+  /** 是否是本地插件 */
   local: boolean;
-};
+}
 
 /** 插件选项 */
 export type Option = {
@@ -29,16 +34,21 @@ export type Option = {
   apply: boolean;
   /** 其它设置 */
   [param: string]: string | number | boolean | Array<string | number>;
-};
+}
 
 export class Plugin {
+  // 插件名
   public name: string;
+  // 版本号
   private ver: string;
+  // 定时任务
   private jobs: CronJob[];
+  // 事件名
   private events: string[];
+  // bot 通信端口
   private botPort: Map<number, MessagePort>;
-  private listenerList: Map<string, Listen>;
-  private commandList: Map<string, Command>;
+  private commands: Command[];
+  // private listeners: Listen[];
 
   constructor(
     public prefix: string = '',
@@ -49,43 +59,43 @@ export class Plugin {
     }
     proxyParentPort();
 
-    this.name = workerData.name;
+    this.name = workerData.data.name;
     this.ver = '0.0.0';
     this.jobs = [];
     this.events = [];
     this.botPort = new Map();
-    this.listenerList = new Map();
-    this.commandList = new Map();
+    this.commands = [];
+    // this.listeners = [];
 
     //#region 帮助指令
-    const helpCommand = new Command('all', 'help', this)
+    const helpCommand = new Command(this, 'help')
       .description('帮助信息')
       .action((event) => {
         const message = ['Commands: '];
+        const commands_length = this.commands.length;
 
-        for (const [_, command] of this.commandList) {
+        for (let i = 0; i < commands_length; i++) {
+          const command = this.commands[i];
           const { raw_name, desc } = command;
+
           message.push(`  ${raw_name}  ${desc}`);
         }
-        // event.reply(message.join('\n'));
+        event.reply(message.join('\n'));
       });
     //#endregion
+
     // #region 版本指令
-    const versionCommand = new Command('all', 'version', this)
+    const versionCommand = new Command(this, 'version')
       .description('版本信息')
       .action((event) => {
-        if (this.name) {
-          // event.reply(`${this.name} v${this.ver}`);
-        } else {
-          // event.reply('当前插件未添加版本信息，可调用 Plugin.info 设置');
-        }
+        event.reply(`${this.name} v${this.ver}`);
       });
     //#endregion
 
     // 任何插件实例化后都将自带 version 及 help 指令
     setTimeout(() => {
-      this.commandList.set(helpCommand.name, helpCommand);
-      this.commandList.set(versionCommand.name, versionCommand);
+      this.commands.push(helpCommand);
+      this.commands.push(versionCommand);
     });
 
     // 绑定插件线程通信
@@ -106,18 +116,19 @@ export class Plugin {
         port.postMessage(bindPluginEvent);
         port.postMessage(bindSettingEvent);
 
-        port.on('message', (value: any) => {
-          if (value.name) {
-            port.emit(value.name, value.event);
-          }
-        })
-        port.on(name, (event: any) => {
-          if (name.startsWith('message')) {
-            this.parseAction(event);
-          } else {
-            this.listenerList.get(name)!.run(event);
-          }
-        });
+        port
+          .on('message', (value: any) => {
+            if (value.name) {
+              port.emit(value.name, value.event);
+            }
+          })
+          .on(name, (event: any) => {
+            if (name.startsWith('message')) {
+              this.parseAction(event);
+            } else {
+              // this.listenerList.get(name)!.run(event);
+            }
+          })
       });
     });
   }
@@ -148,7 +159,7 @@ export class Plugin {
     return this;
   }
 
-  sendPrivateMsg(event: Parameters<Client['sendPrivateMsg']>) {
+  sendPrivateMsg(event: any) {
     const { self_id } = event;
     const port_event = {
       name: 'message.send', event,
@@ -170,33 +181,40 @@ export class Plugin {
   //   this.botPort.get(self_id)?.postMessage(event);
   // }
 
-  // 指令监听
+  /**
+   * 指令监听
+   * 
+   * @param raw_name - 指令
+   * @param message_type - 消息类型
+   * @returns Command 实例
+   */
   command<T extends keyof CommandEventMap>(raw_name: string, message_type?: T): Command<T> {
-    const command = new Command(message_type, raw_name, this);
+    const command = new Command(this, raw_name, message_type);
 
+    this.commands.push(command);
     this.events.push('message.all');
-    this.commandList.set(command.name, command);
     return command;
   }
 
   // 事件监听
-  listen<T extends keyof ContextMap>(name: T): Listen<T> {
-    const listen = new Listen(name, this);
+  // listen<T extends keyof ContextMap>(name: T): Listen<T> {
+  //   const listen = new Listen(name, this);
 
-    // 单个插件单项事件不应该重复监听
-    this.events.push(name);
-    this.listenerList.set(name, listen);
-    return listen;
-  }
+  //   // 单个插件单项事件不应该重复监听
+  //   this.events.push(name);
+  //   this.listenerList.set(name, listen);
+  //   return listen;
+  // }
 
   // 指令解析器
   private parseAction(event: any) {
-    for (const [_, command] of this.commandList) {
-      if (command.isMatched(event)) {
-        event.query = command.parseQuery(event.raw_message);
-        command.run(event);
+    this.commands.forEach((command) => {
+      if (!command.isMatched(event)) {
+        return;
       }
-    }
+      event.query = command.parseQuery(event.raw_message);
+      command.run(event);
+    });
   }
 
   getOption() {
@@ -208,7 +226,7 @@ export class Plugin {
 /**
  * 检索可用插件
  *
- * @returns Promise
+ * @returns 插件信息集合
  */
 export async function retrievalPlugins(): Promise<PluginInfo[]> {
   const plugin_dirs: Dirent[] = [];
