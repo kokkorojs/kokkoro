@@ -44,7 +44,7 @@ export class Plugin {
   // 定时任务
   private jobs: CronJob[];
   // 事件名
-  private events: string[];
+  private events: Set<string>;
   // bot 通信端口
   private botPort: Map<number, MessagePort>;
   private commands: Command[];
@@ -62,7 +62,7 @@ export class Plugin {
     this.name = workerData.data.name;
     this.ver = '0.0.0';
     this.jobs = [];
-    this.events = [];
+    this.events = new Set();
     this.botPort = new Map();
     this.commands = [];
     // this.listeners = [];
@@ -192,7 +192,7 @@ export class Plugin {
     const command = new Command(this, raw_name, message_type);
 
     this.commands.push(command);
-    this.events.push('message.all');
+    this.events.add('message.all');
     return command;
   }
 
@@ -201,7 +201,7 @@ export class Plugin {
   //   const listen = new Listen(name, this);
 
   //   // 单个插件单项事件不应该重复监听
-  //   this.events.push(name);
+  //   this.events.add(name);
   //   this.listenerList.set(name, listen);
   //   return listen;
   // }
