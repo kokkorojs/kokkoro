@@ -30,6 +30,8 @@ export type ContextMap = {
   [Key in EventName]: getContext<EventMap[Key]>;
 };
 
+export type Context<Key extends keyof ContextMap = keyof ContextMap> = ContextMap[Key];
+
 // export type BotEventMap = {
 //   [K in keyof EventMap]: EventType<EventMap[K]>;
 // };

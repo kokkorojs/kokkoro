@@ -1,6 +1,7 @@
 import { MessageElem } from 'oicq';
-import { Plugin } from '.';
-import { ContextMap } from '../events';
+
+import { Plugin } from '@/plugin';
+import { ContextMap } from '@/events';
 
 export class Listen<T extends keyof ContextMap = any>  {
   public func?: (event: ContextMap[T]) => any;
