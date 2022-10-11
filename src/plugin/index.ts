@@ -216,11 +216,6 @@ export class Plugin {
       command.run(event);
     });
   }
-
-  getOption() {
-    // 深拷贝防止 default option 被修改
-    return deepClone(this.option);
-  }
 }
 
 /**

@@ -336,17 +336,17 @@ function linkMessageChannel(uin: number, name: string): void {
   const bot_worker = botPool.get(uin)!;
   const plugin_worker = pluginPool.get(name)!;
 
-  const botPortEvent = {
+  const bindPluginEvent = {
     name: 'bind.plugin.port',
     event: { name, port: pluginPort },
   };
-  const pluginPortEvent = {
+  const bindBotEvent = {
     name: 'bind.bot.port',
     event: { uin, port: botPort },
   };
 
-  bot_worker.postMessage(botPortEvent, [pluginPort]);
-  plugin_worker.postMessage(pluginPortEvent, [botPort]);
+  bot_worker.postMessage(bindPluginEvent, [pluginPort]);
+  plugin_worker.postMessage(bindBotEvent, [botPort]);
 }
 
 /**
