@@ -7,7 +7,7 @@ import { Client, Config as Protocol, GroupMessage, GroupRole, MemberDecreaseEven
 // import { PortEventMap } from '../events';
 // import { getSetting, Setting, writeSetting } from '../profile/setting';
 
-import { deepMerge } from '@/utils';
+import { deepClone, deepMerge } from '@/utils';
 import { Setting } from '@/profile/setting';
 import { proxyParentPort, ThreadMessage } from '@/worker';
 
@@ -267,7 +267,7 @@ export class Bot extends Client {
         return;
       }
 
-      for (const [_, info] of this.gl) {
+      for (const [, info] of this.gl) {
         const { group_id, group_name } = info;
 
         this.setting.group[group_id] ??= {
@@ -277,8 +277,8 @@ export class Bot extends Client {
         if (this.setting.group[group_id].name !== group_name) {
           this.setting.group[group_id].name = group_name;
         }
-        const default_option = this.setting.group[group_id].plugin[name] ?? {};
-        this.setting.group[group_id].plugin[name] = deepMerge(option, default_option);
+        const currentOption = this.setting.group[group_id].plugin[name] ?? {};
+        this.setting.group[group_id].plugin[name] = deepMerge(currentOption, option);
       }
     });
 
@@ -292,14 +292,14 @@ export class Bot extends Client {
         }
 
         if (e.message_type === 'group') {
-          e.option = (this.setting as any)[e.group_id].plugin[name];
+          e.option = this.getOption(e.group_id, name);
           e.permission_level = this.getUserLevel(e);
         }
         port.postMessage({
           name: listen, event: e,
         });
       });
-      this.logger.debug(`插件 ${name} 绑定 ${listen} 事件`);
+      this.logger.info(`绑定 ${name} 插件 ${listen} 事件`);
     });
 
     // 执行 client 实例方法
@@ -318,6 +318,11 @@ export class Bot extends Client {
         event: value,
       });
     });
+  }
+
+  private getOption(group_id: number, name: string) {
+    // 深拷贝防止 option 被修改
+    return deepClone(this.setting.group[group_id].plugin[name] ?? {});
   }
 
   /**
