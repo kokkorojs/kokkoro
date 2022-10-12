@@ -1,11 +1,11 @@
 import { join } from 'path';
-import { Client } from 'oicq';
+import { Client, MemberDecreaseEvent, MemberIncreaseEvent } from 'oicq';
 import { writeFileSync } from 'fs';
 import { writeFile } from 'fs/promises';
 
-import { Option } from '@/plugin';
-import { debounce, deepProxy } from '@/utils';
 import { Bot, data_dir } from '@/core';
+import { Option } from '@/plugin';
+import { debounce, deepClone, deepMerge } from '@/utils';
 
 /** 群聊 */
 export type Group = {
@@ -19,52 +19,59 @@ export type Group = {
 }
 
 export class Setting {
-  logger: Client['logger'];
   setting_dir: string;
   group: {
     [group_id: number]: Group;
   };
   plugins: string[];
 
-  constructor(uin: number, logger: Client['logger']) {
-    let generate: boolean;
-    let group: this['group'] | undefined;
-    let plugins: this['plugins'] | undefined;
-
-    this.logger = logger;
-    this.setting_dir = join(data_dir, uin.toString(), `setting-${uin}.json`);
+  constructor(
+    private bot: Bot,
+  ) {
+    const fullpath = join(data_dir, this.bot.uin.toString());
+    this.setting_dir = join(fullpath, `setting-${this.bot.uin}.json`);
 
     try {
       const setting: Setting = require(this.setting_dir);
 
-      group = setting.group;
-      plugins = setting.plugins;
-      generate = false;
+      this.group = setting.group;
+      this.plugins = setting.plugins;
     } catch (error) {
-      generate = true;
+      this.group = {};
+      this.plugins = [];
+
       writeFileSync(this.setting_dir, '{}');
+      this.bot.logger.mark("创建了新的配置文件：" + this.setting_dir);
     }
 
-    this.group = deepProxy(group ?? {}, {
-      set: (target: { [group_id: string]: Group; }, prop: string, value, receiver) => {
-        target[prop] = value;
+    this.bot
+      .on('bind.setting', (event) => {
+        const { name, option } = event;
 
+        // 内置插件不用初始化配置
+        if (name === 'kokkoro') {
+          return;
+        }
+
+        for (const [, info] of this.bot.gl) {
+          const { group_id, group_name } = info;
+
+          this.group[group_id] ??= {
+            name: group_name, plugin: {},
+          };
+          this.group[group_id].name = group_name;
+          this.group[group_id].plugin[name] = deepMerge(
+            deepClone(option),
+            this.group[group_id].plugin[name]
+          )
+        }
         this.write();
-        return true;
-      }
-    });
-    this.plugins = deepProxy(plugins ?? [], {
-      //   set: (target: this['plugins'], prop: string, value, receiver) => {
-      //     target[prop] = value;
-
-      //     this.write();
-      //     return true;
-      //   }
-    });
-
-    generate && this.logger.mark("创建了新的配置文件：" + this.setting_dir);
+      })
+      .on('notice.group.increase', this.onGroupIncrease)
+      .on('notice.group.decrease', this.onGroupDecrease)
   }
 
+  // TODO ⎛⎝≥⏝⏝≤⎛⎝ 使用 proxy 重构
   private write = debounce(async () => {
     const data = {
       group: this.group,
@@ -72,13 +79,62 @@ export class Setting {
     };
 
     // TODO ⎛⎝≥⏝⏝≤⎛⎝ 数据校验，避免重复调用 writeFile
+    // const localData = require(this.setting_dir);
+
     try {
       await writeFile(this.setting_dir, JSON.stringify(data, null, 2));
-      this.logger.info('更新了配置文件');
+      this.bot.logger.info('更新了配置文件');
     } catch (error) {
-      this.logger.info(`更新配置文件失败，${(<Error>error).message}`);
+      this.bot.logger.info(`更新配置文件失败，${(<Error>error).message}`);
     }
   }, 10);
+
+  private onGroupIncrease(event: MemberIncreaseEvent): void {
+    if (event.user_id !== this.bot.uin) {
+      return;
+    }
+    const group_id = event.group_id;
+    const group_name = event.group.info!.group_name;
+    // const group_name = (await this.getGroupInfo(group_id)).group_name;
+
+    this.group[group_id] ??= {
+      name: group_name, plugin: {},
+    };
+    this.group[group_id].name = group_name;
+
+    // for (const name of this.setting.plugins) {
+
+    //   // const plugin = await getPlugin(name);
+    //   // const default_option = plugin.getOption();
+    //   // const local_option = setting[group_id].plugin[name];
+    //   // const option = deepMerge(default_option, local_option);
+
+    //   this.setting.group[group_id].plugin[name] = option;
+    // }
+    this.write()
+      .then(() => {
+        this.bot.logger.info(`更新了群配置，新增了群：${group_id}`);
+      })
+      .catch((error) => {
+        this.bot.logger.error(`群配置失败，${error.message}`);
+      })
+  }
+
+  private onGroupDecrease(event: MemberDecreaseEvent): void {
+    if (event.user_id !== this.bot.uin) {
+      return;
+    }
+    const group_id = event.group_id;
+
+    delete this.group[group_id];
+    this.write()
+      .then(() => {
+        this.bot.logger.info(`更新了群配置，删除了群：${group_id}`);
+      })
+      .catch((error) => {
+        this.bot.logger.error(`群配置失败，${error.message}`);
+      })
+  }
 
   // public async refresh(bot: Bot) {
   //   const group: this['group'] = {};
@@ -93,18 +149,9 @@ export class Setting {
 
   //   if (JSON.stringify(group) !== JSON.stringify(this.group)) {
   //     this.group = group;
-
-  //     try {
-  //       await this.write();
-  //       this.logger.info('更新了配置文件');
-  //     } catch (error) {
-  //       this.logger.info(`更新配置文件失败，${(error as Error).message}`);
-  //     }
   //   }
   // }
 }
-
-
 
 // export type Setting = {
 //   // 插件列表

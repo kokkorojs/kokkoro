@@ -96,15 +96,17 @@ export class Command<T extends keyof CommandEventMap = any> {
       });
     };
 
-    if (this.isLimit(event.permission_level)) {
+    if (!this.func) {
+      return;
+    } else if (this.isLimit(event.permission_level)) {
       event.reply(`越权，该指令 level 范围：${this.min_level} ~ ${this.max_level}，你当前的 level 为：${event.permission_level}`);
-    } else if (this.func && this.plugin.prefix === '') {
+    } else if (event.plugin_name === 'kokkoro') {
       this.func(event);
-    } else if (event.message_type !== 'private' && !event.option.apply) {
+    } else if (event.message_type === 'group' && !event.option.apply) {
       this.stop(event);
-    } else if (event.message_type !== 'private' && this.func && event.option.apply) {
+    } else if (event.message_type === 'group' && event.option.apply) {
       this.func(event);
-    } else if (event.message_type === 'private' && this.func) {
+    } else if (event.message_type === 'private') {
       this.func(event);
     }
   }
