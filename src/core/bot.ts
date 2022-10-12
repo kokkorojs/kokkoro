@@ -9,7 +9,8 @@ import { Client, Config as Protocol, GroupMessage, GroupRole, MemberDecreaseEven
 
 import { deepClone, deepMerge } from '@/utils';
 import { Setting } from '@/profile/setting';
-import { proxyParentPort, ThreadMessage } from '@/worker';
+import { BindSettingEvent, proxyParentPort, ThreadMessage } from '@/worker';
+import { BaseClient } from 'oicq/lib/core';
 
 enum Platform {
   Android = 1,
@@ -37,6 +38,26 @@ const admins: number[] = [
 ];
 export const data_dir = join(__dataname, 'bot');
 
+declare module 'oicq' {
+  interface Client extends BaseClient {
+    addListener(event: 'bind.setting', listener: (event: BindSettingEvent) => void): this;
+
+    emit(eventName: 'bind.setting', event: BindSettingEvent): boolean;
+
+    on(event: 'bind.setting', listener: (event: BindSettingEvent) => void): this;
+
+    once(event: 'bind.setting', listener: (event: BindSettingEvent) => void): this;
+
+    prependListener(event: 'bind.setting', listener: (event: BindSettingEvent) => void): this;
+
+    prependOnceListener(event: 'bind.setting', listener: (event: BindSettingEvent) => void): this;
+
+    removeListener(event: 'bind.setting', listener: (event: BindSettingEvent) => void): this;
+
+    off(event: 'bind.setting', listener: (event: BindSettingEvent) => void): this;
+  }
+}
+
 export class Bot extends Client {
   private masters: number[];
   private setting!: Setting;
@@ -60,7 +81,7 @@ export class Bot extends Client {
 
     this.masters = [];
     this.mode = config.mode;
-    this.setting = new Setting(uin, this.logger);
+    this.setting = new Setting(this);
     this.pluginPort = new Map();
     this.password_path = join(this.dir, 'password');
 
@@ -255,31 +276,28 @@ export class Bot extends Client {
   private listenPortEvents(port: MessagePort) {
     // 绑定插件配置
     port.on('bind.setting', (event) => {
+      // const { name, option } = event;
       if (!this.isOnline()) {
         this.once('system.online', () => {
-          port.emit('bind.setting', event);
+          this.emit('bind.setting', event);
         })
-        return;
-      }
-      const { name, option } = event;
-
-      if (name === 'kokkoro') {
-        return;
+        //   return;
       }
 
-      for (const [, info] of this.gl) {
-        const { group_id, group_name } = info;
+      // for (const [, info] of this.gl) {
+      //   const { group_id, group_name } = info;
 
-        this.setting.group[group_id] ??= {
-          name: group_name, plugin: {},
-        };
-
-        if (this.setting.group[group_id].name !== group_name) {
-          this.setting.group[group_id].name = group_name;
-        }
-        const currentOption = this.setting.group[group_id].plugin[name] ?? {};
-        this.setting.group[group_id].plugin[name] = deepMerge(currentOption, option);
-      }
+      //   this.setting.group[group_id] ??= {
+      //     name: group_name, plugin: {},
+      //   };
+      //   this.setting.group[group_id].name = group_name;
+      //   this.setting.group[group_id].plugin[name] = deepMerge(
+      //     option,
+      //     this.setting.group[group_id].plugin[name]
+      //   )
+      // }
+      // // TODO ⎛⎝≥⏝⏝≤⎛⎝ 避免重复 write
+      // this.setting.write();
     });
 
     // 绑定插件事件
@@ -293,6 +311,7 @@ export class Bot extends Client {
 
         if (e.message_type === 'group') {
           e.option = this.getOption(e.group_id, name);
+          e.plugin_name = name;
           e.permission_level = this.getUserLevel(e);
         }
         port.postMessage({
@@ -321,8 +340,7 @@ export class Bot extends Client {
   }
 
   private getOption(group_id: number, name: string) {
-    // 深拷贝防止 option 被修改
-    return deepClone(this.setting.group[group_id].plugin[name] ?? {});
+    return this.setting.group[group_id].plugin[name];
   }
 
   /**
@@ -349,36 +367,6 @@ export class Bot extends Client {
     this.logger.mark(`${this.nickname} 已离线，${event.message}`);
   }
 
-  private onGroupIncrease(event: MemberIncreaseEvent): void {
-    if (event.user_id !== this.uin) {
-      return;
-    }
-    const group_id = event.group_id;
-    const group_name = event.group.info!.group_name;
-    // const group_name = (await this.getGroupInfo(group_id)).group_name;
-
-    this.setting.group[group_id] ??= {
-      name: group_name, plugin: {},
-    };
-
-    if (this.setting.group[group_id].name !== group_name) {
-      this.setting.group[group_id].name = group_name;
-    }
-    // for (const name of this.setting.plugins) {
-
-    //   // const plugin = await getPlugin(name);
-    //   // const default_option = plugin.getOption();
-    //   // const local_option = setting[group_id].plugin[name];
-    //   // const option = deepMerge(default_option, local_option);
-
-    //   this.setting.group[group_id].plugin[name] = option;
-    // }
-  }
-
-  private onGroupDecrease(event: MemberDecreaseEvent): void {
-    // this.setting.refresh(this);
-  }
-
   /**
    * 绑定事件监听
    */
@@ -389,8 +377,6 @@ export class Bot extends Client {
 
     this.on('system.online', this.onOnline);
     this.on('system.offline', this.onOffline);
-    this.on('notice.group.increase', this.onGroupIncrease);
-    this.on('notice.group.decrease', this.onGroupDecrease);
   }
 
   /**

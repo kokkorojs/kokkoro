@@ -56,7 +56,7 @@ export function deepMerge<T, K extends keyof T>(target: T, sources: T): T {
  * @returns {object}
  */
 export function deepClone<T>(object: T): T {
-  return JSON.parse(JSON.stringify(object));
+  return !!object ? JSON.parse(JSON.stringify(object)) : {};
 }
 
 /**
