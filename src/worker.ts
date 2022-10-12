@@ -30,7 +30,7 @@ interface BindListenEvent {
   name: string;
   listen: string;
 }
-interface BindSettingEvent {
+export interface BindSettingEvent {
   name: string;
   option: Option;
 }
