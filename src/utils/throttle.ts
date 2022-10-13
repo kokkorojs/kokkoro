@@ -15,7 +15,7 @@ interface Option {
  * @param options - 选项对象
  * @returns 返回节流的函数
  */
-export function throttle<T extends (...args: unknown[]) => any>(func: T, wait: number, options?: Option) {
+export function throttle<T extends (...args: any[]) => any>(func: T, wait: number, options?: Option) {
   let leading = true;
   let trailing = true;
 

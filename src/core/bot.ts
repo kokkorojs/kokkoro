@@ -2,15 +2,15 @@ import { join } from 'path';
 import { createHash } from 'crypto';
 import { readFile, writeFile } from 'fs/promises';
 import { parentPort, MessagePort } from 'worker_threads';
-import { Client, Config as Protocol, GroupMessage, GroupRole, MemberDecreaseEvent, MemberIncreaseEvent, MessageRet, PrivateMessage } from 'oicq';
+import { Client, Config as Protocol, GroupMessage, GroupRole, MessageRet, PrivateMessage } from 'oicq';
 
 // import { PortEventMap } from '../events';
 // import { getSetting, Setting, writeSetting } from '../profile/setting';
 
-import { deepClone, deepMerge } from '@/utils';
+import { deepMerge } from '@/utils';
+import { BaseClient } from 'oicq/lib/core';
 import { Setting } from '@/profile/setting';
 import { BindSettingEvent, proxyParentPort, ThreadMessage } from '@/worker';
-import { BaseClient } from 'oicq/lib/core';
 
 enum Platform {
   Android = 1,
@@ -103,7 +103,6 @@ export class Bot extends Client {
 
     // 首次上线
     this.once('system.online', async () => {
-      // this.setting.refresh(this);
       this.bindEvents();
       this.sendMasterMsg('おはようございます、主様♪');
     });
@@ -276,28 +275,11 @@ export class Bot extends Client {
   private listenPortEvents(port: MessagePort) {
     // 绑定插件配置
     port.on('bind.setting', (event) => {
-      // const { name, option } = event;
       if (!this.isOnline()) {
         this.once('system.online', () => {
           this.emit('bind.setting', event);
         })
-        //   return;
       }
-
-      // for (const [, info] of this.gl) {
-      //   const { group_id, group_name } = info;
-
-      //   this.setting.group[group_id] ??= {
-      //     name: group_name, plugin: {},
-      //   };
-      //   this.setting.group[group_id].name = group_name;
-      //   this.setting.group[group_id].plugin[name] = deepMerge(
-      //     option,
-      //     this.setting.group[group_id].plugin[name]
-      //   )
-      // }
-      // // TODO ⎛⎝≥⏝⏝≤⎛⎝ 避免重复 write
-      // this.setting.write();
     });
 
     // 绑定插件事件

@@ -1,10 +1,11 @@
 import { join } from 'path';
-import { Client, MemberDecreaseEvent, MemberIncreaseEvent } from 'oicq';
 import { writeFileSync } from 'fs';
 import { writeFile } from 'fs/promises';
+import { MemberDecreaseEvent, MemberIncreaseEvent } from 'oicq';
 
-import { Bot, data_dir } from '@/core';
 import { Option } from '@/plugin';
+import { Bot, data_dir } from '@/core';
+import { BindSettingEvent } from '@/worker';
 import { debounce, deepClone, deepMerge } from '@/utils';
 
 /** 群聊 */
@@ -19,17 +20,23 @@ export type Group = {
 }
 
 export class Setting {
+  plugins: string[];
   setting_dir: string;
   group: {
     [group_id: number]: Group;
   };
-  plugins: string[];
+  defaultOption: {
+    [key: string]: Option;
+  };
 
   constructor(
     private bot: Bot,
   ) {
     const fullpath = join(data_dir, this.bot.uin.toString());
-    this.setting_dir = join(fullpath, `setting-${this.bot.uin}.json`);
+    const filename = `setting-${this.bot.uin}.json`;
+
+    this.defaultOption = {};
+    this.setting_dir = join(fullpath, filename);
 
     try {
       const setting: Setting = require(this.setting_dir);
@@ -43,36 +50,20 @@ export class Setting {
       writeFileSync(this.setting_dir, '{}');
       this.bot.logger.mark("创建了新的配置文件：" + this.setting_dir);
     }
+    this.bindEvents();
+  }
 
-    this.bot
-      .on('bind.setting', (event) => {
-        const { name, option } = event;
-
-        // 内置插件不用初始化配置
-        if (name === 'kokkoro') {
-          return;
-        }
-
-        for (const [, info] of this.bot.gl) {
-          const { group_id, group_name } = info;
-
-          this.group[group_id] ??= {
-            name: group_name, plugin: {},
-          };
-          this.group[group_id].name = group_name;
-          this.group[group_id].plugin[name] = deepMerge(
-            deepClone(option),
-            this.group[group_id].plugin[name]
-          )
-        }
-        this.write();
-      })
-      .on('notice.group.increase', this.onGroupIncrease)
-      .on('notice.group.decrease', this.onGroupDecrease)
+  /**
+   * 绑定事件监听
+   */
+  private bindEvents(): void {
+    this.bot.on('bind.setting', event => this.onBindSetting(event));
+    this.bot.on('notice.group.increase', event => this.onGroupIncrease(event));
+    this.bot.on('notice.group.decrease', event => this.onGroupDecrease(event));
   }
 
   // TODO ⎛⎝≥⏝⏝≤⎛⎝ 使用 proxy 重构
-  private write = debounce(async () => {
+  private async write() {
     const data = {
       group: this.group,
       plugins: this.plugins,
@@ -81,13 +72,19 @@ export class Setting {
     // TODO ⎛⎝≥⏝⏝≤⎛⎝ 数据校验，避免重复调用 writeFile
     // const localData = require(this.setting_dir);
 
-    try {
-      await writeFile(this.setting_dir, JSON.stringify(data, null, 2));
-      this.bot.logger.info('更新了配置文件');
-    } catch (error) {
-      this.bot.logger.info(`更新配置文件失败，${(<Error>error).message}`);
+    return writeFile(this.setting_dir, JSON.stringify(data, null, 2));
+  }
+
+  private onBindSetting(event: BindSettingEvent) {
+    const { name, option } = event;
+
+    // 内置插件不用初始化配置
+    if (name === 'kokkoro') {
+      return;
     }
-  }, 10);
+    this.defaultOption[name] = option;
+    this.refresh(name, option);
+  }
 
   private onGroupIncrease(event: MemberIncreaseEvent): void {
     if (event.user_id !== this.bot.uin) {
@@ -102,21 +99,25 @@ export class Setting {
     };
     this.group[group_id].name = group_name;
 
-    // for (const name of this.setting.plugins) {
+    const optionNames = Object.keys(this.defaultOption);
+    const options_length = optionNames.length;
 
-    //   // const plugin = await getPlugin(name);
-    //   // const default_option = plugin.getOption();
-    //   // const local_option = setting[group_id].plugin[name];
-    //   // const option = deepMerge(default_option, local_option);
+    for (let i = 0; i < options_length; i++) {
+      const name: string = optionNames[i];
+      const option: Option = this.getOption(name);
 
-    //   this.setting.group[group_id].plugin[name] = option;
-    // }
+      this.group[group_id].plugin[name] = deepMerge(
+        option,
+        this.group[group_id].plugin[name]
+      )
+    }
+
     this.write()
       .then(() => {
         this.bot.logger.info(`更新了群配置，新增了群：${group_id}`);
       })
       .catch((error) => {
-        this.bot.logger.error(`群配置失败，${error.message}`);
+        this.bot.logger.error(`更新群配置失败，${error.message}`);
       })
   }
 
@@ -132,95 +133,36 @@ export class Setting {
         this.bot.logger.info(`更新了群配置，删除了群：${group_id}`);
       })
       .catch((error) => {
-        this.bot.logger.error(`群配置失败，${error.message}`);
+        this.bot.logger.error(`更新群配置失败，${error.message}`);
       })
   }
 
-  // public async refresh(bot: Bot) {
-  //   const group: this['group'] = {};
+  private refresh = debounce(async (name: string, option: Option) => {
+    for (const [, info] of this.bot.gl) {
+      const { group_id, group_name } = info;
 
-  //   for (const [, info] of bot.gl) {
-  //     const { group_id, group_name } = info;
+      this.group[group_id] ??= {
+        name: group_name, plugin: {},
+      };
+      this.group[group_id].name = group_name;
+      // 刷新指定插件配置项
+      this.group[group_id].plugin[name] = deepMerge(
+        deepClone(option),
+        this.group[group_id].plugin[name]
+      )
+    }
 
-  //     group[group_id] = {
-  //       name: group_name, plugin: {},
-  //     };
-  //   }
+    try {
+      await this.write();
+      this.bot.logger.info(`更新了群配置`);
+    } catch (error) {
+      if (error instanceof Error) {
+        this.bot.logger.error(`更新群配置失败，${(error).message}`);
+      }
+    }
+  }, 10)
 
-  //   if (JSON.stringify(group) !== JSON.stringify(this.group)) {
-  //     this.group = group;
-  //   }
-  // }
+  private getOption(name: string): Option {
+    return deepClone(this.defaultOption[name]);
+  }
 }
-
-// export type Setting = {
-//   // 插件列表
-//   plugins: string[];
-//   // 群聊列表
-//   [group_id: number]: Group;
-// };
-
-// /**
-//  * 获取 setting 路径
-//  *
-//  * @param uin - bot 账号
-//  * @returns setting 文件路径
-//  */
-// function getSettingPath(uin: number): string {
-//   return join(__workname, 'data/bot', `${uin}/setting.yml`);
-// }
-
-// export async function getSetting(uin: number) {
-//   const setting: Setting = {
-//     plugins: [],
-//   };
-//   const setting_path = getSettingPath(uin);
-
-//   try {
-//     const local_setting = YAML.readSync(setting_path);
-//     deepMerge(setting, local_setting);
-//   } catch (error) {
-//     const rewrite = !(<Error>error).message.includes('ENOENT: no such file or directory');
-
-//     if (rewrite) {
-//       throw error;
-//     }
-//     const plugin_list = await getPluginList();
-
-//     // 不存在 setting.yml 就将本地全部模块写入列表
-//     setting.plugins = [...plugin_list];
-
-//     await YAML.write(setting_path, setting)
-//       .then(() => {
-//         logger.mark(`创建了新的设置文件: data/bot/${uin}/setting.yml`);
-//       })
-//       .catch((error: Error) => {
-//         logger.error(`Error: ${error.message}`);
-//         throw error;
-//       })
-//   }
-//   return setting;
-// }
-
-// /**
-//  * 写入 setting 数据
-//  *
-//  * @param {number} uin - bot 账号
-//  * @returns {Promise}
-//  */
-// export async function writeSetting(uin: number, setting: Setting): Promise<boolean> {
-//   const setting_path = getSettingPath(uin);
-
-//   try {
-//     const local_setting = YAML.readSync(setting_path);
-
-//     // 与本地 setting 作对比
-//     if (JSON.stringify(local_setting) === JSON.stringify(setting)) {
-//       return false;
-//     }
-//     YAML.writeSync(setting_path, setting);
-//     return true;
-//   } catch (error) {
-//     throw error;
-//   }
-// }
