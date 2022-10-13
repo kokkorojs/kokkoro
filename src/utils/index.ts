@@ -82,50 +82,5 @@ export function deepProxy<T extends { [key: string]: any }>(target: T, handler: 
   return new Proxy(target, handler);
 }
 
-/**
- * 防抖函数
- * 
- * @param this 
- * @param func - 函数
- * @param timeout - 防抖延迟
- * @param leading - 在延迟开始前调用函数
- * @returns 
- */
-export function debounce(this: any, func: Function, timeout: number = 300, leading: boolean = false) {
-  let timer: NodeJS.Timeout | undefined;
-
-  if (!leading) {
-    return (...args: unknown[]) => {
-      clearTimeout(timer);
-      timer = setTimeout(() => func.apply(this, args), timeout);
-    };
-  } else {
-    return (...args: unknown[]) => {
-      if (!timer) {
-        func.apply(this, args);
-      }
-      clearTimeout(timer);
-      timer = setTimeout(() => timer = undefined, timeout);
-    };
-  }
-}
-
-/**
- * 节流函数
- * 
- * @param this 
- * @param func - 函数
- * @param timeout - 防抖延迟
- * @returns 
- */
-export function throttle(this: Function, func: Function, timeout: number = 300) {
-  let flag: boolean = true;
-
-  return (...args: unknown[]) => {
-    if (flag) {
-      func.apply(this, args);
-      flag = false;
-      setTimeout(() => flag = true, timeout);
-    }
-  }
-}
+export { debounce } from '@/utils/debounce';
+export { throttle } from '@/utils/throttle';
