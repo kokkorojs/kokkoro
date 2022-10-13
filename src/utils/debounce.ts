@@ -15,7 +15,7 @@ interface DebounceOption {
  * @param options - 选项对象
  * @returns 返回新的 debounced（防抖动）函数
  */
-export function debounce<T extends (...args: unknown[]) => any>(func: T, wait: number, options?: DebounceOption) {
+export function debounce<T extends (...args: any) => any>(func: T, wait: number, options?: DebounceOption) {
   let lastArgs: unknown[] | undefined;
   let lastThis: unknown;
   let maxWait: number;
@@ -49,7 +49,7 @@ export function debounce<T extends (...args: unknown[]) => any>(func: T, wait: n
 
     lastArgs = lastThis = undefined;
     lastInvokeTime = time;
-    result = func.apply(thisArg, <unknown[]>args);
+    result = func.apply(thisArg, <any[]>args);
     return result;
   }
 
