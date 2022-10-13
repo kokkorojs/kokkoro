@@ -91,7 +91,7 @@ export class Command<T extends keyof CommandEventMap = any> {
       const { message_type, user_id, group_id, self_id } = event;
 
       this.reply({
-        type: message_type,
+        message_type,
         message, self_id, user_id, group_id,
       });
     };
