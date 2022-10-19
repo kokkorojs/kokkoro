@@ -3,9 +3,8 @@ import { writeFileSync } from 'fs';
 import { writeFile } from 'fs/promises';
 import { MemberDecreaseEvent, MemberIncreaseEvent } from 'oicq';
 
-import { Option } from '@/plugin';
-import { Bot, data_dir } from '@/core';
-import { BindSettingEvent } from '@/worker';
+import { Bot } from '@/core';
+import { PluginSetting } from '@/plugin';
 import { debounce, deepClone, deepMerge } from '@/utils';
 
 /** 群聊 */
@@ -15,40 +14,42 @@ export type Group = {
   /** 插件 */
   plugin: {
     /** 插件名 */
-    [name: string]: Option;
+    [name: string]: PluginSetting;
   }
 }
 
-export class Setting {
+export interface UpdateSettingEvent {
+  name: string;
+  setting: PluginSetting;
+}
+
+export class Profile {
   plugins: string[];
-  setting_dir: string;
   group: {
     [group_id: number]: Group;
   };
-  defaultOption: {
-    [key: string]: Option;
+  defaultSetting: {
+    [key: string]: PluginSetting;
   };
+  readonly file: string;
 
   constructor(
     private bot: Bot,
   ) {
-    const fullpath = join(data_dir, this.bot.uin.toString());
-    const filename = `setting-${this.bot.uin}.json`;
-
-    this.defaultOption = {};
-    this.setting_dir = join(fullpath, filename);
+    this.defaultSetting = {};
+    this.file = join(this.bot.dir, `profile-${this.bot.uin}.json`);
 
     try {
-      const setting: Setting = require(this.setting_dir);
+      const profile: Profile = require(this.file);
 
-      this.group = setting.group;
-      this.plugins = setting.plugins;
+      this.group = profile.group;
+      this.plugins = profile.plugins;
     } catch (error) {
       this.group = {};
       this.plugins = [];
 
-      writeFileSync(this.setting_dir, '{}');
-      this.bot.logger.mark("创建了新的配置文件：" + this.setting_dir);
+      writeFileSync(this.file, '{}');
+      this.bot.logger.mark("创建了新的配置文件：" + this.file);
     }
     this.bindEvents();
   }
@@ -57,9 +58,9 @@ export class Setting {
    * 绑定事件监听
    */
   private bindEvents(): void {
-    this.bot.on('bind.setting', event => this.onBindSetting(event));
-    this.bot.on('notice.group.increase', event => this.onGroupIncrease(event));
-    this.bot.on('notice.group.decrease', event => this.onGroupDecrease(event));
+    this.bot.on('config.update.setting', (event) => this.onUpdateSetting(event));
+    this.bot.on('notice.group.increase', (event) => this.onGroupIncrease(event));
+    this.bot.on('notice.group.decrease', (event) => this.onGroupDecrease(event));
   }
 
   // TODO ⎛⎝≥⏝⏝≤⎛⎝ 使用 proxy 重构
@@ -72,18 +73,18 @@ export class Setting {
     // TODO ⎛⎝≥⏝⏝≤⎛⎝ 数据校验，避免重复调用 writeFile
     // const localData = require(this.setting_dir);
 
-    return writeFile(this.setting_dir, JSON.stringify(data, null, 2));
+    return writeFile(this.file, JSON.stringify(data, null, 2));
   }
 
-  private onBindSetting(event: BindSettingEvent) {
-    const { name, option } = event;
+  private onUpdateSetting(event: UpdateSettingEvent) {
+    const { name, setting } = event;
 
     // 内置插件不用初始化配置
     if (name === 'kokkoro') {
       return;
     }
-    this.defaultOption[name] = option;
-    this.refresh(name, option);
+    this.defaultSetting[name] = setting;
+    this.refresh(name, setting);
   }
 
   private onGroupIncrease(event: MemberIncreaseEvent): void {
@@ -99,15 +100,15 @@ export class Setting {
     };
     this.group[group_id].name = group_name;
 
-    const optionNames = Object.keys(this.defaultOption);
-    const options_length = optionNames.length;
+    const settingNames = Object.keys(this.defaultSetting);
+    const settings_length = settingNames.length;
 
-    for (let i = 0; i < options_length; i++) {
-      const name: string = optionNames[i];
-      const option: Option = this.getOption(name);
+    for (let i = 0; i < settings_length; i++) {
+      const name: string = settingNames[i];
+      const setting: PluginSetting = this.getDefaultSetting(name);
 
       this.group[group_id].plugin[name] = deepMerge(
-        option,
+        setting,
         this.group[group_id].plugin[name]
       )
     }
@@ -137,7 +138,7 @@ export class Setting {
       })
   }
 
-  private refresh = debounce(async (name: string, option: Option) => {
+  private refresh = debounce(async (name: string, setting: PluginSetting) => {
     for (const [, info] of this.bot.gl) {
       const { group_id, group_name } = info;
 
@@ -147,7 +148,7 @@ export class Setting {
       this.group[group_id].name = group_name;
       // 刷新指定插件配置项
       this.group[group_id].plugin[name] = deepMerge(
-        deepClone(option),
+        deepClone(setting),
         this.group[group_id].plugin[name]
       )
     }
@@ -162,7 +163,11 @@ export class Setting {
     }
   }, 10)
 
-  private getOption(name: string): Option {
-    return deepClone(this.defaultOption[name]);
+  getDefaultSetting(name: string): PluginSetting {
+    return deepClone(this.defaultSetting[name]);
+  }
+
+  getSetting(group_id: number, name: string) {
+    return this.group[group_id].plugin[name];
   }
 }

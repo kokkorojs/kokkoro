@@ -1,10 +1,10 @@
 import { MessageElem } from 'oicq';
 
 import { Plugin } from '@/plugin';
-import { ContextMap } from '@/events';
+import { Context } from '@/events';
 
-export class Listen<T extends keyof ContextMap = any>  {
-  public func?: (event: ContextMap[T]) => any;
+export class Listen<T extends keyof Context = any>  {
+  public func?: (event: Context[T]) => any;
 
   constructor(
     private event_name: string,
@@ -27,7 +27,7 @@ export class Listen<T extends keyof ContextMap = any>  {
     }
   }
 
-  trigger(callback: (event: ContextMap[T]) => any) {
+  trigger(callback: (event: Context[T]) => any) {
     this.func = callback;
     return this;
   }

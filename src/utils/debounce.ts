@@ -53,7 +53,7 @@ export function debounce<T extends (...args: any) => any>(func: T, wait: number,
     return result;
   }
 
-  function startTimer(pendingFunc: Function, wait: number): number {
+  function startTimer(pendingFunc: (...args: any) => void, wait: number): any {
     return setTimeout(pendingFunc, wait);
   }
 

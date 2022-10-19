@@ -7,8 +7,9 @@ const plugin = new Plugin().version(VERSION);
 plugin
   .command('print <message>')
   .description('打印输出信息，一般用作测试')
-  .sugar(/^(打印|输出)\s?(?<message>.+)$/)
-  .action((event) => {
-    // event.reply(event.query.message);
+  // .sugar(/^(打印|输出)\s?(?<message>.+)$/)
+  .action((ctx) => {
+    console.log(ctx);
+    // ctx.reply(event.query.message);
   });
 //#endregion
