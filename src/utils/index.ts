@@ -35,8 +35,8 @@ export function getStack(): NodeJS.CallSite[] {
  * @param sources - 源 object
  * @returns 合并后的对象
  */
-export function deepMerge<T, K extends keyof T>(target: T, sources: T): T {
-  const keys = <K[]>Object.keys(sources ?? {});
+export function deepMerge<T, K extends keyof T>(target: T, sources: any = {}): T {
+  const keys = <K[]>Object.keys(sources);
   const keys_length: number = keys.length;
 
   for (let i = 0; i < keys_length; i++) {
