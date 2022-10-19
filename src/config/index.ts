@@ -4,7 +4,7 @@ import '@/kokkoro';
 import { BotConfig } from '@/core';
 
 /** kokkoro 全局配置 */
-export type Profile = {
+export type GlobalConfig = {
   /** 第三方 key */
   api_key: {
     [api: string]: string;
@@ -18,9 +18,11 @@ export type Profile = {
   };
 };
 
-const profile_path = resolve(__workname, 'kokkoro.json');
-const profile = <Profile>require(profile_path);
+const config_path: string = resolve(__workname, 'kokkoro.json');
+const config: GlobalConfig = require(config_path);
 
-export function getProfile<T extends keyof Profile>(key: T): Profile[T] {
-  return profile[key];
+export function getConfig<T extends keyof GlobalConfig>(key: T): GlobalConfig[T] {
+  return config[key];
 }
+
+export { Profile, UpdateSettingEvent } from '@/config/profile';

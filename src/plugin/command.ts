@@ -1,8 +1,9 @@
 import { MessageElem } from 'oicq';
+import minimist from 'minimist';
 
 import { Plugin } from '@/plugin';
 import { UserLevel } from '@/core';
-import { ContextMap } from '@/events';
+import { AllMessage, Context } from '@/events';
 
 /** 指令参数 */
 type CommandArg = {
@@ -14,11 +15,12 @@ type CommandArg = {
   variadic: boolean;
 }
 
-export type CommandEventMap = {
-  'all': ContextMap['message'];
-  'group': ContextMap['message.group'];
-  'private': ContextMap['message.private'];
+export type CommandMap = {
+  'all': Context<'message'>;
+  'group': Context<'message.group'>;
+  'private': Context<'message.private'>;
 }
+type CommandType = keyof CommandMap;
 
 function removeBrackets(name: string): string {
   return name.replace(/[<[].+/, '').trim();
@@ -57,7 +59,7 @@ function findAllBrackets(name: string) {
   return res;
 }
 
-export class Command<T extends keyof CommandEventMap = any> {
+export class Command<K extends CommandType = any> {
   private regex?: RegExp;
   private min_level: UserLevel;
   private max_level: UserLevel;
@@ -65,8 +67,8 @@ export class Command<T extends keyof CommandEventMap = any> {
   public name: string;
   public desc: string;
   public args: CommandArg[];
-  public stop: (event: CommandEventMap[T]) => any;
-  public func?: (event: CommandEventMap[T]) => any;
+  public stop: (ctx: CommandMap[K]) => void;
+  public func?: (ctx: CommandMap[K]) => void;
 
   constructor(
     /** 插件实例 */
@@ -74,7 +76,7 @@ export class Command<T extends keyof CommandEventMap = any> {
     /** 命令 */
     public raw_name: string,
     /** 消息类型 */
-    public message_type: keyof CommandEventMap = 'all',
+    public message_type = 'all',
   ) {
     this.name = removeBrackets(raw_name);
     this.args = findAllBrackets(raw_name);
@@ -86,47 +88,46 @@ export class Command<T extends keyof CommandEventMap = any> {
     }
   }
 
-  run(event: any) {
-    event.reply = (message: string | MessageElem[]) => {
-      const { message_type, user_id, group_id, self_id } = event;
+  run(context: Context<'message'>) {
+    context.reply = (message: string | MessageElem[]) => {
+      const { message_type, user_id, group_id, self_id } = context;
 
       this.reply({
         message_type,
         message, self_id, user_id, group_id,
       });
-    };
-
+    }
     if (!this.func) {
       return;
-    } else if (this.isLimit(event.permission_level)) {
-      event.reply(`越权，该指令 level 范围：${this.min_level} ~ ${this.max_level}，你当前的 level 为：${event.permission_level}`);
-    } else if (event.plugin_name === 'kokkoro') {
-      this.func(event);
-    } else if (event.message_type === 'group' && !event.option.apply) {
-      this.stop(event);
-    } else if (event.message_type === 'group' && event.option.apply) {
-      this.func(event);
-    } else if (event.message_type === 'private') {
-      this.func(event);
+    } else if (this.isLimit(context.permission_level)) {
+      context.reply(`越权，该指令 level 范围：${this.min_level} ~ ${this.max_level}，你当前的 level 为：${context.permission_level}`);
+    } else if (this.plugin._name === 'kokkoro') {
+      this.func(context);
+    } else if (context.message_type === 'group' && !context.option.apply) {
+      this.stop(context);
+    } else if (context.message_type === 'group' && context.option.apply) {
+      this.func(context);
+    } else if (context.message_type === 'private') {
+      this.func(context);
     }
   }
 
-  description(desc: string): Command<T> {
+  description(desc: string): Command<K> {
     this.desc = desc;
     return this;
   }
 
-  sugar(regex: RegExp): Command<T> {
+  sugar(regex: RegExp): Command<K> {
     this.regex = regex;
     return this;
   }
 
-  action(callback: (event: CommandEventMap[T]) => any): Command<T> {
+  action(callback: (event: CommandMap[K]) => any): Command<K> {
     this.func = callback;
     return this;
   }
 
-  prevent(callback: (event: CommandEventMap[T]) => any): Command<T> {
+  prevent(callback: (event: CommandMap[K]) => any): Command<K> {
     this.stop = callback;
     return this;
   }
@@ -158,26 +159,31 @@ export class Command<T extends keyof CommandEventMap = any> {
     return level < this.min_level || level > this.max_level;
   }
 
-  isMatched(event: any) {
-    const { raw_message, message_type } = event;
+  isMatched(context: Context<'message'>) {
+    const { raw_message, message_type } = context;
 
     // 匹配事件类型
     if (this.message_type !== 'all' && this.message_type !== message_type) {
       return false;
     }
-    const raw_name = raw_message.trim().split(' ');
+    const query = minimist(raw_message.split(' '));
+    // const raw_name = raw_message.trim().split(' ');
+    // const prefix = this.plugin.prefix !== '' ? argv._[0] : '';
 
     // 空字段指令匹配
     if (this.plugin.prefix === '') {
-      raw_name.unshift('');
+      query._.unshift('');
     }
-    let [prefix, command_name] = raw_name;
+
+    let [prefix, command_name] = query._;
 
     // 语法糖解析
-    if (this.regex && this.regex.test(raw_message)) {
-      command_name = this.name;
-      prefix = this.plugin.prefix;
-    }
+    // if (this.regex && this.regex.test(raw_message)) {
+    //   command_name = this.name;
+    //   prefix = this.plugin.prefix;
+    // }
+    context.query = query;
+
     return this.plugin.prefix === prefix && this.name === command_name;
   }
 

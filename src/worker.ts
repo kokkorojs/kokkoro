@@ -1,234 +1,250 @@
 import { join } from 'path';
-import { Client } from 'oicq';
-import { EventEmitter } from 'events';
 import { Logger, getLogger } from 'log4js';
-import { MessagePort } from 'worker_threads';
-import { Worker, MessageChannel, isMainThread, parentPort, WorkerOptions } from 'worker_threads';
+import { Worker, MessageChannel, WorkerOptions, MessagePort, TransferListItem } from 'worker_threads';
 
 import { logger } from '@/utils';
 import { BotConfig } from '@/core';
-import { getProfile } from '@/profile';
+import { getConfig } from '@/config';
+import { ThreadEventMap } from '@/events';
 import { CHANGELOGS, UPDAY, VERSION } from '@/kokkoro';
-import { Option, PluginInfo, retrievalPlugins } from '@/plugin';
+import { PluginSetting, PluginInfo, retrievalPlugins } from '@/plugin';
 
-interface BotApiEvent {
-  method: keyof Client;
-  params: unknown[];
-}
+/** bot api 事件 */
+// interface BotApiEvent {
+//   method: keyof Client;
+//   params: unknown[];
+// }
 
-interface BindBotEvent {
+interface BotWorkerData {
+  type: 'bot';
   uin: number;
-  port: MessagePort;
+  config?: BotConfig;
 }
 
-interface BindPluginEvent {
-  name: string;
-  port: MessagePort;
+interface PluginWorkerData extends PluginInfo {
+  type: 'plugin';
 }
 
-interface BindListenEvent {
-  name: string;
-  listen: string;
-}
-export interface BindSettingEvent {
-  name: string;
-  option: Option;
+type WorkerData = BotWorkerData | PluginWorkerData;
+
+interface ThreadOptions extends WorkerOptions {
+  workerData: WorkerData;
 }
 
-declare module 'worker_threads' {
-  interface Worker extends EventEmitter {
-    addListener(event: 'input.start', listener: () => void): this;
-
-    emit(event: 'input.start'): boolean;
-
-    on(event: 'input.start', listener: () => void): this;
-
-    once(event: 'input.start', listener: () => void): this;
-
-    prependListener(event: 'input.start', listener: () => void): this;
-
-    prependOnceListener(event: 'input.start', listener: () => void): this;
-
-    removeListener(event: 'input.start', listener: () => void): this;
-
-    off(event: 'input.start', listener: () => void): this;
-  }
-
-  interface MessagePort extends EventEmitter {
-    addListener(event: 'bot.api', listener: (event: BotApiEvent) => void): this;
-    addListener(event: 'input.end', listener: (text: string) => void): this;
-    addListener(event: 'bind.bot.port', listener: (event: BindBotEvent) => void): this;
-    addListener(event: 'bind.plugin.port', listener: (event: BindPluginEvent) => void): this;
-    addListener(event: 'bind.plugin.event', listener: (event: BindListenEvent) => void): this;
-    addListener(event: 'bind.setting', listener: (event: BindSettingEvent) => void): this;
-
-    emit(event: 'bot.api'): boolean;
-    emit(event: 'input.end'): boolean;
-    emit(event: 'bind.bot.port'): boolean;
-    emit(event: 'bind.plugin.port'): boolean;
-    emit(event: 'bind.plugin.event'): boolean;
-    emit(event: 'bind.setting'): boolean;
-
-    on(event: 'bot.api', listener: (event: BotApiEvent) => void): this;
-    on(event: 'input.end', listener: (text: string) => void): this;
-    on(event: 'bind.bot.port', listener: (event: BindBotEvent) => void): this;
-    on(event: 'bind.plugin.port', listener: (event: BindPluginEvent) => void): this;
-    on(event: 'bind.plugin.event', listener: (event: BindListenEvent) => void): this;
-    on(event: 'bind.setting', listener: (event: BindSettingEvent) => void): this;
-
-    once(event: 'bot.api', listener: (event: BotApiEvent) => void): this;
-    once(event: 'input.end', listener: (text: string) => void): this;
-    once(event: 'bind.bot.port', listener: (event: BindBotEvent) => void): this;
-    once(event: 'bind.plugin.port', listener: (event: BindPluginEvent) => void): this;
-    once(event: 'bind.plugin.event', listener: (event: BindListenEvent) => void): this;
-    once(event: 'bind.setting', listener: (event: BindSettingEvent) => void): this;
-
-    prependListener(event: 'bot.api', listener: (event: BotApiEvent) => void): this;
-    prependListener(event: 'input.end', listener: (text: string) => void): this;
-    prependListener(event: 'bind.bot.port', listener: (event: BindBotEvent) => void): this;
-    prependListener(event: 'bind.plugin.port', listener: (event: BindPluginEvent) => void): this;
-    prependListener(event: 'bind.plugin.event', listener: (event: BindListenEvent) => void): this;
-    prependListener(event: 'bind.setting', listener: (event: BindSettingEvent) => void): this;
-
-    prependOnceListener(event: 'bot.api', listener: (event: BotApiEvent) => void): this;
-    prependOnceListener(event: 'input.end', listener: (text: string) => void): this;
-    prependOnceListener(event: 'bind.bot.port', listener: (event: BindBotEvent) => void): this;
-    prependOnceListener(event: 'bind.plugin.port', listener: (event: BindPluginEvent) => void): this;
-    prependOnceListener(event: 'bind.plugin.event', listener: (event: BindListenEvent) => void): this;
-    prependOnceListener(event: 'bind.setting', listener: (event: BindSettingEvent) => void): this;
-
-    removeListener(event: 'bot.api', listener: (event: BotApiEvent) => void): this;
-    removeListener(event: 'input.end', listener: (text: string) => void): this;
-    removeListener(event: 'bind.bot.port', listener: (event: BindBotEvent) => void): this;
-    removeListener(event: 'bind.plugin.port', listener: (event: BindPluginEvent) => void): this;
-    removeListener(event: 'bind.plugin.event', listener: (event: BindListenEvent) => void): this;
-    removeListener(event: 'bind.setting', listener: (event: BindSettingEvent) => void): this;
-
-    off(event: 'bot.api', listener: (event: BotApiEvent) => void): this;
-    off(event: 'input.end', listener: (text: string) => void): this;
-    off(event: 'bind.bot.port', listener: (event: BindBotEvent) => void): this;
-    off(event: 'bind.plugin.port', listener: (event: BindPluginEvent) => void): this;
-    off(event: 'bind.plugin.event', listener: (event: BindListenEvent) => void): this;
-    off(event: 'bind.setting', listener: (event: BindSettingEvent) => void): this;
-  }
-}
-
+/** 线程消息 */
 export interface ThreadMessage {
-  name: string;
-  event: {
-    [key: string]: any;
-  }
+  name: keyof ThreadEventMap;
+  event: any;
 }
 
-interface WorkerData {
-  type: 'bot' | 'plugin';
-  data: { uin?: number; config?: BotConfig; } | PluginInfo;
+export interface BotMessagePort extends MessagePort {
+  // TODO ⎛⎝≥⏝⏝≤⎛⎝
+  // on(event: 'bot.port.message', listener: (message: ThreadMessage) => void): this;
+}
+
+export interface PluginMessagePort extends MessagePort {
+  // TODO ⎛⎝≥⏝⏝≤⎛⎝
+  // on(event: 'plugin.port.message', listener: (message: ThreadMessage) => void): this;
+}
+
+export interface BotLinkChannelEvent {
+  name: string;
+  port: PluginMessagePort;
+}
+
+export interface PluginLinkChannelEvent {
+  uin: number;
+  port: BotMessagePort;
+}
+
+export type ThreadPostMessage =
+  {
+    name: 'thread.process.stdout';
+    content: string;
+  } |
+  {
+    name: 'bot.link.channel';
+    event: BotLinkChannelEvent;
+  } |
+  {
+    name: 'plugin.link.channel';
+    event: PluginLinkChannelEvent;
+  }
+
+/** 事件接口 */
+export interface Thread extends Worker {
+  postMessage(message: ThreadPostMessage, transferList?: ReadonlyArray<TransferListItem>): void;
+
+  addListener<T extends keyof ThreadEventMap>(event: T, listener: ThreadEventMap<this>[T]): this;
+  emit<T extends keyof ThreadEventMap>(event: T, ...args: Parameters<ThreadEventMap<this>[T]>): boolean;
+  on<T extends keyof ThreadEventMap>(event: T, listener: ThreadEventMap<this>[T]): this
+  once<T extends keyof ThreadEventMap>(event: T, listener: ThreadEventMap<this>[T]): this
+  prependListener<T extends keyof ThreadEventMap>(event: T, listener: ThreadEventMap<this>[T]): this
+  prependOnceListener<T extends keyof ThreadEventMap>(event: T, listener: ThreadEventMap<this>[T]): this
+  removeListener<T extends keyof ThreadEventMap>(event: T, listener: ThreadEventMap<this>[T]): this
+  off<T extends keyof ThreadEventMap>(event: T, listener: ThreadEventMap<this>[T]): this
 }
 
 const bot_filename = join(__dirname, 'bot');
 // bot 池
-const botPool: Map<number, BotWorker> = new Map();
+const botPool: Map<number, BotThread> = new Map();
 // 插件池
-const pluginPool: Map<string, PluginWorker> = new Map();
+const pluginPool: Map<string, PluginThread> = new Map();
 
-class Thread extends Worker {
+export class Thread extends Worker {
+  /** 日志 */
   logger: Logger;
 
-  constructor(filename: string, options: WorkerOptions) {
+  constructor(
+    private filename: string,
+    private options: ThreadOptions,
+  ) {
     super(filename, options);
 
-    const { workerData } = options;
-    const { type, data } = <WorkerData>workerData;
-    const category = `[${type}:${type === 'plugin' ? (<PluginInfo>data).name : (<any>data).uin}]`;
+    const workerData = options.workerData;
+    const category = `[${workerData.type}:${workerData.type === 'plugin' ? workerData.name : workerData.uin}]`;
 
     this.logger = getLogger(category);
     // TODO ⎛⎝≥⏝⏝≤⎛⎝ 日志等级
     this.logger.level = 'all';
 
-    this
-      .once('online', () => {
-        this.logger.debug(`线程已创建`);
-      })
-      .on('error', (error: Error) => {
-        this.logger.error(error);
-      })
-      .on('message', (message: ThreadMessage) => {
-        if (message.name) {
-          this.emit(message.name, message.event);
-        }
-        this.logger.debug(`主线程收到消息:`, message);
-      })
-      .on('exit', (code: number) => {
-        this.logger.debug(`线程已退出，代码:`, code);
+    this.initEvents();
+    this.bindEvents();
+  }
 
-        if (code) {
-          this.logger.info('正在重启...');
+  private initEvents() {
+    this.on('error', (err) => {
+      this.emit('thread.error', err);
+    });
+    this.on('exit', (exitCode) => {
+      this.emit('thread.exit', exitCode);
+    });
+    this.on('message', (value) => {
+      this.emit('thread.message', value);
+    });
+    this.on('messageerror', (error) => {
+      this.emit('thread.messageerror', error);
+    });
+    this.on('online', () => {
+      this.emit('thread.online');
+    })
+  }
 
-          setTimeout(async () => {
-            type === 'plugin'
-              ? await rebindBotChannel(<PluginInfo>data)
-              : await rebindPluginChannel((<any>data).uin, (<any>data).config);
-          }, 3000);
-        }
-      })
-      .on('input.start', terminalInput)
+  private bindEvents() {
+    this.on('thread.error', this.onError);
+    this.on('thread.exit', this.onExit);
+    this.on('thread.message', this.onMessage);
+    this.on('thread.messageerror', this.onMessageError);
+    this.on('thread.online', this.onOnline);
+    this.on('thread.process.stdin', this.onInput);
+  }
+
+  private onOnline() {
+    this.logger.debug(`线程已创建，开始执行代码`);
+  }
+
+  private onError(error: Error) {
+    this.logger.error(error);
+  }
+
+  private onExit(code: number) {
+    this.logger.debug(`线程已退出，代码:`, code);
+
+    if (code) {
+      this.logger.info('正在重启...');
+
+      setTimeout(async () => {
+        const workerData = this.options.workerData;
+
+        workerData.type === 'plugin'
+          ? await rebindBotChannel(workerData)
+          : await rebindPluginChannel(workerData.uin, workerData.config);
+      }, 3000);
+    }
+  }
+
+  private onMessage(message: ThreadMessage) {
+    if (!message.name) {
+      throw new Error('message error');
+    }
+    this.emit(message.name, message.event);
+    this.logger.debug(`主线程收到消息:`, message);
+  }
+
+  private onMessageError(error: Error) {
+    this.logger.error('反序列化消息失败:', error.message);
+  }
+
+  private onInput(prefix?: string) {
+    logger.info('监听到 thread.process.stdin 事件，已停止 log 打印');
+    logger.level = 'off';
+
+    prefix && process.stdout.write(prefix);
+    process.stdin.once('data', (event) => {
+      this.postMessage({
+        name: 'thread.process.stdout',
+        content: event.toString().trim(),
+      });
+
+      logger.level = 'all';
+      logger.info('输入完毕，启用 log 打印');
+    });
   }
 }
 
-class BotWorker extends Thread {
+class BotThread extends Thread {
   constructor(uin: number, config?: BotConfig) {
-    super(bot_filename, {
-      workerData: <WorkerData>{
-        type: 'bot',
-        data: {
-          uin, config
-        }
-      },
-    });
+    const options: ThreadOptions = {
+      workerData: {
+        type: 'bot', uin, config,
+      }
+    }
+
+    super(bot_filename, options);
     botPool.set(uin, this);
   }
 }
 
-class PluginWorker extends Thread {
+class PluginThread extends Thread {
   constructor(info: PluginInfo) {
     const { name, path } = info;
+    const options: ThreadOptions = {
+      workerData: {
+        type: 'plugin', ...info,
+      }
+    }
 
-    super(path, {
-      workerData: <WorkerData>{
-        type: 'plugin',
-        data: info,
-      },
-    });
+    super(path, options);
     pluginPool.set(name, this);
   }
 }
 
 /**
- * 创建机器人线程实例
+ * 创建机器人线程
  *
  * @param uin - qq 账号
  * @param config - 机器人配置项
  * @returns 机器人线程实例
  */
-function createBotWorker(uin: number, config?: BotConfig) {
-  return new BotWorker(uin, config);
+function createBotThread(uin: number, config?: BotConfig) {
+  return new BotThread(uin, config);
 }
 
 /**
- * 创建插件线程实例
+ * 创建插件线程
  *
  * @param info - 插件信息
  * @returns 插件线程实例
  */
-function createPluginWorker(info: PluginInfo) {
-  return new PluginWorker(info);
+function createPluginThread(info: PluginInfo) {
+  return new PluginThread(info);
 }
 
 /**
  * 创建机器人多线程服务
  */
 function createBotThreads() {
-  const bots = getProfile('bots');
+  const bots = getConfig('bots');
   const uins = Object.keys(bots).map(Number);
 
   if (uins.length > 1) {
@@ -240,7 +256,7 @@ function createBotThreads() {
     const uin: number = uins[i];
     const config: BotConfig = bots[uin];
 
-    createBotWorker(uin, config);
+    createBotThread(uin, config);
   }
 }
 
@@ -251,12 +267,13 @@ async function createPluginThreads() {
   const plugins = await retrievalPlugins();
   const extension: PluginInfo = {
     name: 'kokkoro',
-    path: join(__dirname, 'plugin/extension'),
+    folder: 'core',
+    path: join(__dirname, 'plugin/extension.js'),
     local: true,
   };
 
   [extension, ...plugins].forEach((info) => {
-    createPluginWorker(info);
+    createPluginThread(info);
   });
 }
 
@@ -266,7 +283,7 @@ async function createPluginThreads() {
  * @param info 
  */
 async function rebindBotChannel(info: PluginInfo) {
-  createPluginWorker(info);
+  createPluginThread(info);
   const unis = [...botPool.keys()];
 
   unis.forEach((uin: number) => {
@@ -280,8 +297,8 @@ async function rebindBotChannel(info: PluginInfo) {
  * @param uin 
  * @param config 
  */
-async function rebindPluginChannel(uin: number, config: BotConfig) {
-  createBotWorker(uin, config);
+async function rebindPluginChannel(uin: number, config?: BotConfig) {
+  createBotThread(uin, config);
   const plugins = [...pluginPool.keys()];
 
   plugins.forEach((name: string) => {
@@ -332,53 +349,20 @@ function linkMessageChannel(uin: number, name: string): void {
   if (!botPool.has(uin) || !pluginPool.has(name)) {
     throw new Error('thread is not defined');
   }
-  const { port1: botPort, port2: pluginPort } = new MessageChannel();
-  const bot_worker = botPool.get(uin)!;
-  const plugin_worker = pluginPool.get(name)!;
+  const { port1: botMessagePort, port2: pluginMessagePort } = new MessageChannel();
 
-  const bindPluginEvent = {
-    name: 'bind.plugin.port',
-    event: { name, port: pluginPort },
+  const botThread = botPool.get(uin)!;
+  const pluginThread = pluginPool.get(name)!;
+
+  const botLinkChannelEvent: ThreadPostMessage = {
+    name: 'bot.link.channel',
+    event: { name, port: pluginMessagePort },
   };
-  const bindBotEvent = {
-    name: 'bind.bot.port',
-    event: { uin, port: botPort },
+  const pluginLinkChannelEvent: ThreadPostMessage = {
+    name: 'plugin.link.channel',
+    event: { uin, port: botMessagePort },
   };
 
-  bot_worker.postMessage(bindPluginEvent, [pluginPort]);
-  plugin_worker.postMessage(bindBotEvent, [botPort]);
-}
-
-/**
- * 代理主线程通信
- */
-export function proxyParentPort() {
-  if (isMainThread) {
-    throw new Error('当前已在主线程');
-  }
-  parentPort!.on('message', (message: ThreadMessage) => {
-    if (message.name) {
-      parentPort!.emit(message.name, message.event);
-    }
-  });
-}
-
-/**
- * 监听控制台输入
- * 
- * @param this - 机器人线程实例
- */
-function terminalInput(this: BotWorker, write?: string) {
-  logger.info('检测到 input.start 事件，已停止 log 打印');
-  logger.level = 'off';
-
-  write && process.stdout.write(write);
-  process.stdin.once('data', (event) => {
-    this.postMessage({
-      name: 'input.end', event: event.toString().trim(),
-    });
-
-    logger.level = 'all';
-    logger.info('输入完毕，启用 log 打印');
-  });
+  botThread.postMessage(botLinkChannelEvent, [pluginMessagePort]);
+  pluginThread.postMessage(pluginLinkChannelEvent, [botMessagePort]);
 }
