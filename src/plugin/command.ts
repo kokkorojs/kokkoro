@@ -67,8 +67,8 @@ export class Command<K extends CommandType = any> {
   public name: string;
   public desc: string;
   public args: CommandArg[];
-  public stop: (ctx: CommandMap[K]) => void;
-  public func?: (ctx: CommandMap[K]) => void;
+  public stop: (ctx: Context<'message'>) => void;
+  public func?: (ctx: Context<'message'>) => void;
 
   constructor(
     /** 插件实例 */
@@ -83,29 +83,26 @@ export class Command<K extends CommandType = any> {
     this.desc = '';
     this.min_level = 0;
     this.max_level = 6;
-    this.stop = event => {
-      // event.reply(`插件 ${plugin.name} 在当前群聊已被禁用`);
+    this.stop = ctx => {
+      ctx.reply!(`插件 ${plugin.name} 在当前群聊已被禁用`);
     }
   }
 
-  run(context: Context<'message'>) {
-    context.reply = (message: string | MessageElem[]) => {
-      const { message_type, user_id, group_id, self_id } = context;
-
-      this.reply({
-        message_type,
-        message, self_id, user_id, group_id,
-      });
-    }
+  run(context: Context<'message.group' | 'message.private'>) {
     if (!this.func) {
       return;
-    } else if (this.isLimit(context.permission_level)) {
+    }
+    context.reply = (message: string | MessageElem[]) => {
+      this.reply(context, message);
+    }
+
+    if (this.isLimit(context.permission_level)) {
       context.reply(`越权，该指令 level 范围：${this.min_level} ~ ${this.max_level}，你当前的 level 为：${context.permission_level}`);
     } else if (this.plugin._name === 'kokkoro') {
       this.func(context);
-    } else if (context.message_type === 'group' && !context.option.apply) {
+    } else if (context.message_type === 'group' && !context.setting!.apply) {
       this.stop(context);
-    } else if (context.message_type === 'group' && context.option.apply) {
+    } else if (context.message_type === 'group' && context.setting!.apply) {
       this.func(context);
     } else if (context.message_type === 'private') {
       this.func(context);
@@ -122,26 +119,23 @@ export class Command<K extends CommandType = any> {
     return this;
   }
 
-  action(callback: (event: CommandMap[K]) => any): Command<K> {
+  action(callback: (ctx: Context<'message'>) => any): Command<K> {
     this.func = callback;
     return this;
   }
 
-  prevent(callback: (event: CommandMap[K]) => any): Command<K> {
+  prevent(callback: (ctx: Context<'message'>) => any): Command<K> {
     this.stop = callback;
     return this;
   }
 
-  reply(event: any): void {
-    const { self_id, message_type, user_id, group_id, message } = event;
+  reply(context: Context<'message.group' | 'message.private'>, message: string | MessageElem[]): void {
+    const { message_type, self_id } = context;
 
-    switch (message_type) {
-      case 'private':
-        this.plugin.botApi(self_id, 'sendPrivateMsg', user_id, message);
-        break;
-      case 'group':
-        this.plugin.botApi(self_id, 'sendGroupMsg', group_id, message);
-        break;
+    if (message_type === 'private') {
+      this.plugin.botApi(self_id, 'sendPrivateMsg', context.user_id, message);
+    } else {
+      this.plugin.botApi(self_id, 'sendGroupMsg', context.group_id, message);
     }
   }
 

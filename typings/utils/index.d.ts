@@ -39,5 +39,5 @@ export declare function deepClone<T>(object: T): T;
 export declare function deepProxy<T extends {
     [key: string]: any;
 }>(target: T, handler: ProxyHandler<T>): T;
-export { debounce } from '@/utils/debounce';
-export { throttle } from '@/utils/throttle';
+export { debounce } from '../utils/debounce';
+export { throttle } from '../utils/throttle';

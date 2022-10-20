@@ -1,7 +1,7 @@
-import '@/kokkoro';
-import { Bot } from '@/core';
-import { UpdateSettingEvent } from '@/config';
-import { PluginEventMap } from '@/events';
+import '../index';
+import { Bot } from '../core';
+import { UpdateSettingEvent } from '../config';
+import { PluginEventMap } from '../events';
 import { Command, CommandMap } from './command';
 /** 插件消息 */
 export interface PluginMessage {
