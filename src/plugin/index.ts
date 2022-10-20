@@ -207,10 +207,14 @@ export class Plugin {
           }
         })
         .on(name, (event) => {
+          if (name === 'message' && !event.message_id) {
+            return;
+          }
+          this.listener.get(name)?.run(event);
+
           if (name.startsWith('message')) {
             this.parse(event);
           }
-          this.listener.get(name)?.run(event);
         })
     });
   }
@@ -303,18 +307,22 @@ export class Plugin {
     const command = new Command(this, raw_name, message_type ?? 'all');
 
     this.commands.push(command);
-    this.events.add('message.all');
+    this.events.add('message');
     return command;
   }
 
-  // 事件监听
+  /**
+   * 事件监听
+   * 
+   * @param event_name - 事件名
+   * @returns Listen 实例
+   */
   listen<K extends EventName>(name: K): Listen<K> {
-    const event_name = name !== 'message' ? name : 'message.all';
-    const listen = new Listen(event_name, this);
+    const listen = new Listen(name, this);
 
     // 单个插件单项事件不应该重复监听
-    this.events.add(event_name);
-    this.listener.set(event_name, listen);
+    this.events.add(name);
+    this.listener.set(name, listen);
     return listen;
   }
 
