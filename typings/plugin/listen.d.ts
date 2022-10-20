@@ -1,5 +1,5 @@
-import { Plugin } from '@/plugin';
-import { Context } from '@/events';
+import { Plugin } from '../plugin';
+import { Context } from '../events';
 export declare class Listen<T extends keyof Context = any> {
     private event_name;
     plugin: Plugin;

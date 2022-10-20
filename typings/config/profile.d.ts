@@ -1,5 +1,5 @@
-import { Bot } from '@/core';
-import { PluginSetting } from '@/plugin';
+import { Bot } from '../core';
+import { PluginSetting } from '../plugin';
 /** 群聊 */
 export declare type Group = {
     /** 群名称 */

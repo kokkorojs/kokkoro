@@ -1,5 +1,5 @@
 import { Client, Config as Protocol, MessageRet } from 'oicq';
-import { BotEventMap } from '@/events';
+import { BotEventMap } from '../events';
 /** bot 消息 */
 export interface BotMessage {
     name: keyof BotEventMap;

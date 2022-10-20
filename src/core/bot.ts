@@ -341,7 +341,7 @@ export class Bot extends Client {
         e.permission_level = this.getUserLevel(e);
       }
       if (e.message_type === 'group') {
-        e.option = this.profile.getSetting(e.group_id, name);
+        e.setting = this.profile.getSetting(e.group_id, name);
       }
 
       port.postMessage({

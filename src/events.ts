@@ -2,7 +2,7 @@ import { ParsedArgs } from 'minimist';
 import { DiscussMessage, EventMap, GroupMessage, PrivateMessage } from 'oicq';
 
 import { BotMessage, UserLevel } from '@/core';
-import { PluginMessage } from '@/plugin';
+import { PluginMessage, PluginSetting } from '@/plugin';
 import { BotLinkChannelEvent, PluginLinkChannelEvent, ThreadMessage } from '@/worker';
 
 /** 展开对象 value 类型 */
@@ -31,8 +31,10 @@ type PostMessageMap = {
 // export type ThreadEvent<T extends ThreadEventMap[EventName]> = T extends (event: infer E) => void ? E : never;
 
 /** 获取上下文 */
-type getContext<Key extends EventName> = PostMessageMap[Key] & {
+type getContext<Key extends EventName> = Event<PostMessageMap[Key]> & {
+  self_id: number;
   query?: ParsedArgs;
+  setting?: PluginSetting;
   /** 权限等级 */
   permission_level: UserLevel;
   /** 快捷回复 */

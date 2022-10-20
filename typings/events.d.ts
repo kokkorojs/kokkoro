@@ -1,8 +1,8 @@
 import { ParsedArgs } from 'minimist';
 import { DiscussMessage, EventMap, GroupMessage, PrivateMessage } from 'oicq';
-import { BotMessage, UserLevel } from '@/core';
-import { PluginMessage } from '@/plugin';
-import { BotLinkChannelEvent, PluginLinkChannelEvent, ThreadMessage } from '@/worker';
+import { BotMessage, UserLevel } from './core';
+import { PluginMessage, PluginSetting } from './plugin';
+import { BotLinkChannelEvent, PluginLinkChannelEvent, ThreadMessage } from './worker';
 /** 移除对象指定类型 */
 declare type OmitType<T, P> = Omit<T, {
     [K in keyof T]: T[K] extends P ? K : never;
@@ -16,8 +16,10 @@ declare type PostMessageMap = {
     [Key in EventName]: (event: OmitType<Event<EventMap[Key]>, Function>) => void;
 };
 /** 获取上下文 */
-declare type getContext<Key extends EventName> = PostMessageMap[Key] & {
+declare type getContext<Key extends EventName> = Event<PostMessageMap[Key]> & {
+    self_id: number;
     query?: ParsedArgs;
+    setting?: PluginSetting;
     /** 权限等级 */
     permission_level: UserLevel;
     /** 快捷回复 */

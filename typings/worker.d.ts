@@ -1,9 +1,9 @@
 /// <reference types="node" />
 import { Logger } from 'log4js';
 import { Worker, WorkerOptions, MessagePort, TransferListItem } from 'worker_threads';
-import { BotConfig } from '@/core';
-import { ThreadEventMap } from '@/events';
-import { PluginInfo } from '@/plugin';
+import { BotConfig } from './core';
+import { ThreadEventMap } from './events';
+import { PluginInfo } from './plugin';
 /** bot api 事件 */
 interface BotWorkerData {
     type: 'bot';
