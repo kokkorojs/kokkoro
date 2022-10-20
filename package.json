@@ -35,12 +35,10 @@
   "changelogs": "https://github.com/kokkorojs/kokkoro/releases",
   "dependencies": {
     "cron": "^2.1.0",
-    "minimist": "^1.2.7",
     "oicq": "^2.3.1"
   },
   "devDependencies": {
     "@types/cron": "^2.0.0",
-    "@types/minimist": "^1.2.2",
     "@types/node": "^18.8.5",
     "log4js": "^6.7.0",
     "tsc-alias": "^1.7.0"
