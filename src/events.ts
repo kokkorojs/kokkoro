@@ -1,4 +1,3 @@
-import { ParsedArgs } from 'minimist';
 import { DiscussMessage, EventMap, GroupMessage, PrivateMessage } from 'oicq';
 
 import { BotMessage, UserLevel } from '@/core';
@@ -20,51 +19,38 @@ type OmitType<T, P> = Omit<
 export type EventName = keyof EventMap;
 
 /** 获取事件回调 event 参数 */
-export type Event<T> = T extends (event: infer E) => void ? E : never;
+export type Parameter<T> = T extends (event: infer P) => void ? P : never;
 
 /** bot 线程消息地图 */
 type PostMessageMap = {
-  [Key in EventName]: (event: OmitType<Event<EventMap[Key]>, Function>) => void;
+  [Key in EventName]: (event: OmitType<Parameter<EventMap[Key]>, Function>) => void;
 };
 
 // /** 线程事件 */
 // export type ThreadEvent<T extends ThreadEventMap[EventName]> = T extends (event: infer E) => void ? E : never;
 
-/** 获取上下文 */
-type getContext<Key extends EventName> = Event<PostMessageMap[Key]> & {
+export type ContextName = 'message' | 'message.group' | 'message.private';
+
+/** 指令上下文 */
+export type Context<Key extends ContextName> = Parameter<PostMessageMap[Key]> & {
   self_id: number;
-  query?: ParsedArgs;
-  setting?: PluginSetting;
+  query: {
+    [key: string]: any;
+  };
+  setting: PluginSetting;
   /** 权限等级 */
   permission_level: UserLevel;
   /** 快捷回复 */
-  reply?(message: string): void;
+  reply(message: string): void;
 };
 
-// /** 插件上下文 */
-// export type Context<Key extends EventName> = getContext<Key>;
-
-// type getContext<K extends keyof EventName> = Parameters
-
-
-//   ? OmitType<P, Function> & { query: ParsedArgs }
-//   : never;
-
-// export type ThreadEvent<Key extends EventName = EventName> = ThreadEventMap[Key] extends (arg: infer P) => void
-//   ? P
-//   : never;
-
-/** 获取线程事件 */
-// type getThreadEvent<T> = T extends (arg: infer P) => void
-//   ? OmitType<P, Function>
-//   : never;
-
-//  = T extends (arg: infer P) => void
-//   ? OmitType<P, Function> & { query: ParsedArgs }
-//   : never;
-
-/** 插件上下文 */
-export type Context<Key extends EventName = EventName> = getContext<Key>;
+/** 指令事件 */
+export type Event<Key extends EventName> = Parameter<PostMessageMap[Key]> & {
+  self_id: number;
+  setting: PluginSetting;
+  /** 快捷回复 */
+  // reply?(message: string): void;
+};
 
 export type AllMessage = PrivateMessage | GroupMessage | DiscussMessage;
 

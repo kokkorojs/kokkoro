@@ -9,11 +9,9 @@ import { Bot } from '@/core';
 import { deepClone } from '@/utils';
 import { UpdateSettingEvent } from '@/config';
 import { PluginLinkChannelEvent } from '@/worker';
-import { AllMessage, PluginEventMap } from '@/events';
-import { Listen } from './listen';
-// import { Command, CommandEventMap } from './command';
-import { Client } from 'oicq';
-import { Command, CommandMap } from './command';
+import { AllMessage, EventName, PluginEventMap } from '@/events';
+import { Listen } from '@/plugin/listen';
+import { Command, CommandMap, CommandType } from '@/plugin/command';
 
 /** 插件消息 */
 export interface PluginMessage {
@@ -87,8 +85,7 @@ export class Plugin {
   private commands: Command[];
   // bot 通信端口
   private botPort: Map<number, MessagePort>;
-  // private listeners: Listen[];
-  // private _shortcut?: string | RegExp;
+  private listener: Map<string, Listen>;
   private info: PluginInfo;
 
   constructor(
@@ -108,8 +105,38 @@ export class Plugin {
     this.events = new Set();
     this.botPort = new Map();
     this.commands = [];
-    // // this.listeners = [];
-    // this.exitOverride();
+    this.listener = new Map();
+
+    //#region 帮助指令
+    const helpCommand = new Command(this, 'help')
+      .description('帮助信息')
+      .action((ctx) => {
+        const message = ['Commands: '];
+        const commands_length = this.commands.length;
+
+        for (let i = 0; i < commands_length; i++) {
+          const command = this.commands[i];
+          const { raw_name, desc } = command;
+
+          message.push(`  ${raw_name}  ${desc}`);
+        }
+        ctx.reply(message.join('\n'));
+      });
+    //#endregion
+
+    // #region 版本指令
+    const versionCommand = new Command(this, 'version')
+      .description('版本信息')
+      .action((ctx) => {
+        ctx.reply(`${this._name} v${this._version}`);
+      });
+    //#endregion
+
+    // 任何插件实例化后都将自带 version 及 help 指令
+    setTimeout(() => {
+      this.commands.push(helpCommand);
+      this.commands.push(versionCommand);
+    });
 
     this.proxyPluginPortEvents();
     this.bindPluginPortEvents();
@@ -182,9 +209,8 @@ export class Plugin {
         .on(name, (event) => {
           if (name.startsWith('message')) {
             this.parse(event);
-          } else {
-            // this.listenerList.get(name)!.run(event);
           }
+          this.listener.get(name)?.run(event);
         })
     });
   }
@@ -198,11 +224,6 @@ export class Plugin {
     this._version = version;
     return this;
   }
-
-  // event(name: string) {
-  //   this.events.add(name)
-  //   return this;
-  // }
 
   // runMatchedCommand() {
   //   // const {args, options, matchedCommand: command} = super;
@@ -228,17 +249,6 @@ export class Plugin {
   //   return command.commandAction.apply(this, actionArgs);
   // }
 
-  // /**
-  //  * 语法糖
-  //  * 
-  //  * @param shortcut - 快截指令
-  //  * @returns 
-  //  */
-  // sugar(shortcut: string | RegExp) {
-  //   this._shortcut = shortcut;
-  //   return this;
-  // }
-
   botApi<K extends keyof Bot>(uin: number, method: K, ...params: Bot[K] extends (...args: infer P) => any ? P : []) {
     return new Promise((resolve, reject) => {
       const event = {
@@ -259,7 +269,6 @@ export class Plugin {
   //   this.jobs.push(job);
   //   return this;
   // }
-
 
   // sendPrivateMsg(event: any) {
   //   const { self_id } = event;
@@ -290,8 +299,8 @@ export class Plugin {
    * @param message_type - 消息类型
    * @returns Command 实例
    */
-  command<T extends keyof CommandMap>(raw_name: string, message_type: T | 'all' = 'all'): Command<T | 'all'> {
-    const command = new Command(this, raw_name, message_type);
+  command<T extends CommandType>(raw_name: string, message_type?: T): Command<T> {
+    const command = new Command(this, raw_name, message_type ?? 'all');
 
     this.commands.push(command);
     this.events.add('message.all');
@@ -299,21 +308,17 @@ export class Plugin {
   }
 
   // 事件监听
-  // listen<T extends keyof ContextMap>(name: T): Listen<T> {
-  //   const listen = new Listen(name, this);
+  listen<K extends EventName>(name: K): Listen<K> {
+    const listen = new Listen(name, this);
 
-  //   // 单个插件单项事件不应该重复监听
-  //   this.events.add(name);
-  //   this.listenerList.set(name, listen);
-  //   return listen;
-  // }
+    // 单个插件单项事件不应该重复监听
+    this.events.add(name);
+    this.listener.set(name, listen);
+    return listen;
+  }
 
   // 指令解析器
   private parse(event: any) {
-    // const argv = minimist(event.raw_message);
-
-    // console.log(event)
-
     const argv: string[] = event.raw_message.trim().split(' ');
     const prefix: string = argv[0] ?? '';
 
@@ -324,7 +329,6 @@ export class Plugin {
       if (!command.isMatched(event)) {
         return;
       }
-      //   event.query = command.parseQuery(event.raw_message);
       command.run(event);
     });
   }

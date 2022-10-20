@@ -1,8 +1,9 @@
 import '../index';
 import { Bot } from '../core';
 import { UpdateSettingEvent } from '../config';
-import { PluginEventMap } from '../events';
-import { Command, CommandMap } from './command';
+import { EventName, PluginEventMap } from '../events';
+import { Listen } from '../plugin/listen';
+import { Command, CommandType } from '../plugin/command';
 /** 插件消息 */
 export interface PluginMessage {
     name: keyof PluginEventMap;
@@ -49,6 +50,7 @@ export declare class Plugin {
     private events;
     private commands;
     private botPort;
+    private listener;
     private info;
     constructor(
     /** 指令前缀 */
@@ -71,7 +73,8 @@ export declare class Plugin {
      * @param message_type - 消息类型
      * @returns Command 实例
      */
-    command<T extends keyof CommandMap>(raw_name: string, message_type?: T | 'all'): Command<T | 'all'>;
+    command<T extends CommandType>(raw_name: string, message_type?: T): Command<T>;
+    listen<K extends EventName>(name: K): Listen<K>;
     private parse;
 }
 /**
