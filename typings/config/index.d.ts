@@ -1,5 +1,5 @@
-import '@/kokkoro';
-import { BotConfig } from '@/core';
+import '../index';
+import { BotConfig } from '../core';
 /** kokkoro 全局配置 */
 export declare type GlobalConfig = {
     /** 第三方 key */
@@ -15,4 +15,4 @@ export declare type GlobalConfig = {
     };
 };
 export declare function getConfig<T extends keyof GlobalConfig>(key: T): GlobalConfig[T];
-export { Profile, UpdateSettingEvent } from '@/config/profile';
+export { Profile, UpdateSettingEvent } from '../config/profile';
