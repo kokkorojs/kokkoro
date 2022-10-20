@@ -74,6 +74,12 @@ export declare class Plugin {
      * @returns Command 实例
      */
     command<T extends CommandType>(raw_name: string, message_type?: T): Command<T>;
+    /**
+     * 事件监听
+     *
+     * @param event_name - 事件名
+     * @returns Listen 实例
+     */
     listen<K extends EventName>(name: K): Listen<K>;
     private parse;
 }

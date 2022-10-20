@@ -332,7 +332,7 @@ export class Bot extends Client {
   private onBindEvent(event: BindListenEvent, port: PluginMessagePort) {
     const { name, listen } = event;
 
-    this.on(listen !== 'message.all' ? listen : 'message', (e: any) => {
+    this.on(listen, (e: any) => {
       for (const key in e) {
         if (typeof e[key] === 'function') delete e[key];
       }
