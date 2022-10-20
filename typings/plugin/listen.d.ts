@@ -1,10 +1,10 @@
 import { Plugin } from '../plugin';
-import { Context } from '../events';
-export declare class Listen<T extends keyof Context = any> {
+import { Event, EventName } from '../events';
+export declare class Listen<K extends EventName = any> {
     private event_name;
     plugin: Plugin;
-    func?: (event: Context[T]) => any;
+    func?: (event: Event<K>) => any;
     constructor(event_name: string, plugin: Plugin);
-    run(event: any): void;
-    trigger(callback: (event: Context[T]) => any): this;
+    run(event: Event<K>): void;
+    trigger(callback: (event: Event<K>) => any): this;
 }

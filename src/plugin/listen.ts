@@ -1,10 +1,8 @@
-import { MessageElem } from 'oicq';
-
 import { Plugin } from '@/plugin';
-import { Context } from '@/events';
+import { Event, EventName } from '@/events';
 
-export class Listen<T extends keyof Context = any>  {
-  public func?: (event: Context[T]) => any;
+export class Listen<K extends EventName = any>  {
+  public func?: (event: Event<K>) => any;
 
   constructor(
     private event_name: string,
@@ -12,27 +10,18 @@ export class Listen<T extends keyof Context = any>  {
   ) {
   }
 
-  run(event: any) {
-    event.reply = (message: string | MessageElem[]) => {
-      const { message_type, user_id, group_id, self_id } = event;
+  run(event: Event<K>) {
+    // if (['message', 'message.group', 'message.private'].includes(this.event_name)) {
+    // }
 
-      // this.reply({
-      //   type: message_type,
-      //   message, self_id, user_id, group_id,
-      // });
-    };
-
-    if (this.func) {
-      this.func(event);
+    if (!this.func) {
+      return;
     }
+    this.func(event);
   }
 
-  trigger(callback: (event: Context[T]) => any) {
+  trigger(callback: (event: Event<K>) => any) {
     this.func = callback;
     return this;
   }
-
-  // reply(event: PortEventMap['message.send']) {
-  //   this.plugin.sendMessage(event);
-  // }
 }

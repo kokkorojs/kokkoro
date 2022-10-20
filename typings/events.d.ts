@@ -1,4 +1,3 @@
-import { ParsedArgs } from 'minimist';
 import { DiscussMessage, EventMap, GroupMessage, PrivateMessage } from 'oicq';
 import { BotMessage, UserLevel } from './core';
 import { PluginMessage, PluginSetting } from './plugin';
@@ -10,24 +9,29 @@ declare type OmitType<T, P> = Omit<T, {
 /** 消息事件名 */
 export declare type EventName = keyof EventMap;
 /** 获取事件回调 event 参数 */
-export declare type Event<T> = T extends (event: infer E) => void ? E : never;
+export declare type Parameter<T> = T extends (event: infer P) => void ? P : never;
 /** bot 线程消息地图 */
 declare type PostMessageMap = {
-    [Key in EventName]: (event: OmitType<Event<EventMap[Key]>, Function>) => void;
+    [Key in EventName]: (event: OmitType<Parameter<EventMap[Key]>, Function>) => void;
 };
-/** 获取上下文 */
-declare type getContext<Key extends EventName> = Event<PostMessageMap[Key]> & {
+export declare type ContextName = 'message' | 'message.group' | 'message.private';
+/** 指令上下文 */
+export declare type Context<Key extends ContextName> = Parameter<PostMessageMap[Key]> & {
     self_id: number;
-    query?: ParsedArgs;
-    setting?: PluginSetting;
+    query: {
+        [key: string]: any;
+    };
+    setting: PluginSetting;
     /** 权限等级 */
     permission_level: UserLevel;
     /** 快捷回复 */
-    reply?(message: string): void;
+    reply(message: string): void;
 };
-/** 获取线程事件 */
-/** 插件上下文 */
-export declare type Context<Key extends EventName = EventName> = getContext<Key>;
+/** 指令事件 */
+export declare type Event<Key extends EventName> = Parameter<PostMessageMap[Key]> & {
+    self_id: number;
+    setting: PluginSetting;
+};
 export declare type AllMessage = PrivateMessage | GroupMessage | DiscussMessage;
 /** 工作线程事件地图 */
 export interface ThreadEventMap<T = any> {
