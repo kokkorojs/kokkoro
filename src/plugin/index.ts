@@ -309,11 +309,12 @@ export class Plugin {
 
   // 事件监听
   listen<K extends EventName>(name: K): Listen<K> {
-    const listen = new Listen(name, this);
+    const event_name = name !== 'message' ? name : 'message.all';
+    const listen = new Listen(event_name, this);
 
     // 单个插件单项事件不应该重复监听
-    this.events.add(name);
-    this.listener.set(name, listen);
+    this.events.add(event_name);
+    this.listener.set(event_name, listen);
     return listen;
   }
 

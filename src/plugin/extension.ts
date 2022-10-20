@@ -15,9 +15,3 @@ plugin
     ctx.reply(ctx.query.message);
   });
 //#endregion
-
-// plugin
-//   .listen('message')
-//   .trigger((event) => {
-//     console.log('收到消息', event)
-//   })
