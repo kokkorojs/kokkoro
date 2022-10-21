@@ -1,7 +1,7 @@
 import { DiscussMessage, EventMap, GroupMessage, PrivateMessage } from 'oicq';
 
-import { BotMessage, UserLevel } from '@/core';
-import { PluginMessage, PluginSetting } from '@/plugin';
+import { Bot, BotMessage, UserLevel } from '@/core';
+import { BotApiParams, PluginMessage, PluginSetting } from '@/plugin';
 import { BotLinkChannelEvent, PluginLinkChannelEvent, ThreadMessage } from '@/worker';
 
 /** 展开对象 value 类型 */
@@ -42,6 +42,7 @@ export type Context<Key extends ContextName> = Parameter<PostMessageMap[Key]> & 
   permission_level: UserLevel;
   /** 快捷回复 */
   reply(message: string): void;
+  botApi: <K extends keyof Bot>(method: K, ...params: BotApiParams<Bot[K]>) => Promise<Bot[K]>;
 };
 
 /** 指令事件 */
