@@ -13,7 +13,8 @@ import { Profile, UpdateSettingEvent } from '@/config';
 import { BotLinkChannelEvent, PluginMessagePort } from '@/worker';
 import { BindListenEvent } from '@/plugin';
 
-interface ApiTriggerEvent {
+interface ApiTaskEvent {
+  id: string;
   method: keyof Client;
   params: unknown[];
 }
@@ -90,7 +91,7 @@ export class Bot extends Client {
 
     super(uin, config.protocol);
 
-    this.masters = [];
+    this.masters = config.masters!;
     this.mode = config.mode;
     this.profile = new Profile(this);
     this.pluginPort = new Map();
@@ -226,7 +227,7 @@ export class Bot extends Client {
         this.logger.error(`你他喵的 "login_mode" 改错了 (ㅍ_ㅍ)`);
         throw new Error('invalid mode');
     }
-    await new Promise(resolve => this.once('system.online', resolve));
+    return new Promise(resolve => this.once('system.online', resolve));
   }
 
   private inputTicket(): void {
@@ -316,7 +317,7 @@ export class Bot extends Client {
   private listenPortEvents(port: PluginMessagePort) {
     port.on('bot.bind.setting', (event) => this.onBindSetting(event));
     port.on('bot.bind.event', (event) => this.onBindEvent(event, port));
-    port.on('bot.api.trigger', (event) => this.onApiTrigger(event, port));
+    port.on('bot.api.task', (event) => this.onApiTask(event, port));
   }
 
   // 绑定插件配置
@@ -352,8 +353,9 @@ export class Bot extends Client {
   }
 
   // 执行 client 实例方法
-  private async onApiTrigger(event: ApiTriggerEvent, port: PluginMessagePort) {
-    const { method, params } = event;
+  private async onApiTask(event: ApiTaskEvent, port: PluginMessagePort) {
+
+    const { id, method, params } = event;
 
     let value;
     if (typeof this[method] === 'function') {
@@ -361,9 +363,8 @@ export class Bot extends Client {
     } else {
       value = this[method];
     }
-
     port.postMessage({
-      name: 'bot.api.callback',
+      name: `bot.api.${id}`,
       event: value,
     });
   }

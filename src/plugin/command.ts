@@ -1,8 +1,8 @@
 import { MessageElem } from 'oicq';
 
-import { Plugin } from '@/plugin';
+import { BotApiParams, Plugin } from '@/plugin';
 import { Context } from '@/events';
-import { UserLevel } from '@/core';
+import { Bot, UserLevel } from '@/core';
 
 /** 指令参数 */
 type CommandArg = {
@@ -95,8 +95,16 @@ export class Command<K extends CommandType = any> {
       this.reply(context, message);
     }
 
+    context.botApi = <K extends keyof Bot>(method: K, ...params: BotApiParams<Bot[K]>) => {
+      return this.plugin.botApi(context.self_id, method, ...params);
+    }
+
     if (this.isLimit(context.permission_level)) {
-      context.reply(`越权，该指令 level 范围：${this.min_level} ~ ${this.max_level}，你当前的 level 为：${context.permission_level}`);
+      const scope = this.min_level !== this.max_level
+        ? `范围：${this.min_level} ~ ${this.max_level}`
+        : `要求：${this.max_level}`;
+
+      context.reply(`越权，指令 ${this.name} 的 level ${scope}，你当前的 level 为：${context.permission_level}`);
     } else if (this.plugin._name === 'kokkoro') {
       this.func(context);
     } else if (context.message_type === 'group' && !context.setting.apply) {
