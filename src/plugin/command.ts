@@ -176,8 +176,8 @@ export class Command<K extends CommandType = any> {
     const raw_name = raw_message.trim().split(' ');
 
     // 空字段指令匹配
-    if (this.plugin.prefix === '') {
-      raw_name.unshift('');
+    if (!this.plugin.prefix) {
+      raw_name.unshift(this.plugin.prefix);
     }
     let [prefix, command_name] = raw_name;
 

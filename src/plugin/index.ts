@@ -95,7 +95,7 @@ export class Plugin {
 
   constructor(
     /** 指令前缀 */
-    public prefix: string = '',
+    public prefix: string,
     /** 插件配置项 */
     public setting: PluginSetting = { apply: true, lock: false },
   ) {
@@ -337,7 +337,7 @@ export class Plugin {
   // 指令解析器
   private parse(event: any) {
     const argv: string[] = event.raw_message.trim().split(' ');
-    const prefix: string = argv[0] ?? '';
+    const prefix: string = argv[0];
 
     if (this.prefix && prefix !== this.prefix) {
       return;
