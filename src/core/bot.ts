@@ -1,4 +1,5 @@
 import { join } from 'path';
+import { v4 as uuidv4 } from 'uuid';
 import { createHash } from 'crypto';
 import { readFile, writeFile } from 'fs/promises';
 import { parentPort, MessagePort, TransferListItem } from 'worker_threads';
@@ -8,10 +9,10 @@ import { Client, Config as Protocol, GroupRole, MessageRet } from 'oicq';
 // import { getSetting, Setting, writeSetting } from '../profile/setting';
 
 import { deepMerge } from '@/utils';
+import { BindListenEvent } from '@/plugin';
 import { AllMessage, BotEventMap } from '@/events';
 import { Profile, UpdateSettingEvent } from '@/config';
 import { BotLinkChannelEvent, PluginMessagePort } from '@/worker';
-import { BindListenEvent } from '@/plugin';
 
 interface ApiTaskEvent {
   id: string;
@@ -150,6 +151,16 @@ export class Bot extends Client {
 
     this.listenPortEvents(port);
     this.pluginPort.set(name, port);
+  }
+
+  disablePlugin(name: string) {
+    const id = uuidv4();
+    const event = {
+      name, id,
+    };
+
+    this.emit('config.update.disable', event);
+    return new Promise((resolve) => this.once(`config.disable.${id}`, (result, error) => resolve(error)));
   }
 
   async linkStart(): Promise<void> {
