@@ -1,5 +1,5 @@
 <div align="center">
-    <img src="https://kokkoro.js.org/assets/images/pixiv/74237509.jpg" width="200" alt="id: 74237509" />
+    <img src="https://kokkoro.js.org/74237509.jpg" width="200" alt="id: 74237509" />
     <h3>kokkoro</h3>
     <small> &gt; とある咕咕の QQ 机器人框架 &lt; </small>
 </div>
@@ -24,11 +24,11 @@
 
 原项目 [yumemi_bot](https://github.com/rumicchi/yumemi_bot) 最初为个人自用 bot，主要围绕 [公主连结☆Re:Dive](https://priconne-redive.jp/) 开发相关功能，因代码严重耦合不利于维护，使用 ts 分离重构为插件一对多形式的框架
 
-- [x] 基于 Observable 设计模式，让事件处理更加强大
 - [x] 多群插件管理，所有插件针对不同群聊均支持参数自定义
-- [x] 默认扫码登录，能有效避免因操作不当导致账号风控、掉线等问题
-- [x] 友好的脚手架，无需手动修改配置文件，全由命令自动构建，能防止因修改文件导致占用或缓存而产生的异常
-- [x] 支持同步登录，可添加多个账号自由管理（避免在项目启动瞬间登录 **过多账号** ，可能会出现被封号的风险）
+- [x] 支持扫码登录，能有效避免因操作不当导致账号风控、掉线等问题
+- [x] 友好的脚手架，无需手动修改配置文件，全由命令自动构建
+- [x] 账号同步登录，可添加多个 bot 自由管理（避免在项目启动瞬间登录 **过多账号** ，可能会出现被封号的风险）
+- [x] 高性能多线程，使用 worker_threads 分离 bot 与 plugin 线程，密集运算性能更佳
 - [ ] web 可扩展性，每个插件均支持独立的 web 页面及路由服务 ~~咕咕咕~~
 
 ## 构建
@@ -74,7 +74,7 @@ npx kokkoro init
 ├─ data               资源目录
 ├─ plugins            插件目录
 ├─ main.js            程序入口
-└─ kokkoro.yml        配置文件
+└─ kokkoro.json       配置文件
 ```
 
 > 项目 **启动后** 尽量避免编辑器直接修改配置文件，你改了也不会生效的，使用指令修改可以立即生效
@@ -89,55 +89,60 @@ kokkoro start
 
 如果你是使用的本地安装，就要使用 `npx kokkoro start` 启动项目
 
-## 参数
+## 配置参数
 
-在初始化项目后，会在根目录下生成 `kokkoro.yml` 文件，你可以在此修改相关配置
+> 在 kokkoro v1.0 前，所使用的的配置文件为 YAML 而非 JSON。  
+> 因考虑到后续 web 间的数据传输，所以替换了方案，后续可能会使用 TOML，不会向下兼容
 
-#### 什么是 YAML
+在初始化项目后，会在根目录下生成 `kokkoro.json` 文件，你可以在此修改相关配置
 
-YAML 是一种专攻配置的语言，可读性高（JSON 有时确实让人眼花缭乱不是么？）  
-kokkoro 所有的配置文件均使用 YAML 编写，你也可以 [查看 YAML 入门教程](https://www.runoob.com/w3cnote/yaml-intro.html) 获取相关信息
-
-```yaml
-# 第三方服务 api key
-api_key: 
-  # 例如 saucenao 搜图
-  "saucenao": 3d14159265358979323846264338327950288419
-# web 服务端口号，为 0 则不启用
-port: 0
-# bot 信息，可添加多个
-bots:
-  # bot 账号
-  "1145141919":
-    # 项目启动时自动登录，默认 true
-    auto_login: true
-    # 登录模式，默认扫码登录
-    mode: qrcode
-    # bot 主人，可添加多个
-    masters:
-      - 2225151531
-    # 协议配置，不要随意修改，除非你知道自己在做什么
-    protocol:
-      # 日志等级，默认 info
-      # 打印日志会降低性能，若消息量巨大建议修改此参数
-      log_level: info
-      # 1:安卓手机(默认) 2:aPad 3:安卓手表 4:MacOS 5:iPad
-      platform: 1
-      # 忽略自己的消息，默认 true
-      ignore_self: true
-      # 被风控时是否尝试用分片发送，默认 true
-      resend: true
-      # 数据存储文件夹
-      data_dir: ../data/bot
-      # 重新登录间隔，默认5(秒)
-      reconn_interval: 5
-      # 是否缓存群员列表，默认 true，
-      # 群多的时候 (500~1000) 会多占据约 100MB+ 内存
-      # 关闭后进程只需不到 20MB 内存
-      cache_group_member: true
-      # 自动选择最优服务器
-      # 关闭后会一直使用 `msfwifi.3g.qq.com:8080` 进行连接
-      auto_server: true
+```json
+{
+  // 第三方服务 api key
+  "api_key": {
+    // 例如 saucenao 搜图
+    "saucenao": "3d14159265358979323846264338327950288419"
+  },
+  // web 服务端口号
+  "port": 2333,
+  // bot 信息，可添加多个
+  "bots": {
+    // bot 账号
+    "1145141919": {
+      // 项目启动时自动登录，默认 true
+      "auto_login": true,
+      // 登录模式，默认扫码登录
+      "mode": "qrcode",
+      // bot 主人，可添加多个
+      "masters": [
+        2225151531
+      ],
+      // 协议配置，不要随意修改，除非你知道自己在做什么
+      "protocol": {
+        // 日志等级，默认 info
+        // 打印日志会降低性能，若消息量巨大建议修改此参数
+        "log_level": "info",
+        // 1:安卓手机(默认) 2:aPad 3:安卓手表 4:MacOS 5:iPad
+        "platform": 1,
+        // 忽略自己的消息，默认 true
+        "ignore_self": true,
+        // 被风控时是否尝试用分片发送，默认 true
+        "resend": true,
+        // 数据存储文件夹
+        "data_dir": "data/bot",
+        // 重新登录间隔，默认5(秒)
+        "reconn_interval": 5,
+        // 是否缓存群员列表，默认 true，
+        // 群多的时候 (500~1000) 会多占据约 100MB+ 内存
+        // 关闭后进程只需不到 20MB 内存
+        "cache_group_member": true,
+        // 自动选择最优服务器
+        // 关闭后会一直使用 `msfwifi.3g.qq.com:8080` 进行连接
+        "auto_server": true
+      }
+    }
+  }
+}
 ```
 
 ## 补充
