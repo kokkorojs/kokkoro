@@ -193,6 +193,7 @@ export class Command<K extends CommandType = any> {
   }
 
   parseQuery(raw_message: string): object {
+    // TODO ⎛⎝≥⏝⏝≤⎛⎝ 多参数 <...params> 解析
     if (this.regex && this.regex.test(raw_message)) {
       const { groups } = this.regex.exec(raw_message)!;
       const query = groups ? { ...groups } : {};

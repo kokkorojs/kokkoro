@@ -7,12 +7,11 @@ import { isMainThread, parentPort, MessagePort, workerData, TransferListItem } f
 
 import '@/kokkoro';
 import { Bot } from '@/core';
-import { deepClone } from '@/utils';
+import { Listen } from '@/plugin/listen';
 import { UpdateSettingEvent } from '@/config';
 import { PluginLinkChannelEvent } from '@/worker';
-import { AllMessage, EventName, PluginEventMap } from '@/events';
-import { Listen } from '@/plugin/listen';
-import { Command, CommandMap, CommandType } from '@/plugin/command';
+import { EventName, PluginEventMap } from '@/events';
+import { Command, CommandType } from '@/plugin/command';
 
 /** 插件消息 */
 export interface PluginMessage {
@@ -264,7 +263,6 @@ export class Plugin {
       throw new Error(`bot(${uin}) 线程未创建`);
     }
     const port = this.botPort.get(uin)!;
-    // 唯一标识符
     const id = uuidv4();
     const event = {
       name: 'bot.api.task',
@@ -339,9 +337,6 @@ export class Plugin {
     const argv: string[] = event.raw_message.trim().split(' ');
     const prefix: string = argv[0];
 
-    if (this.prefix && prefix !== this.prefix) {
-      return;
-    }
     this.commands.forEach((command) => {
       if (!command.isMatched(event)) {
         return;

@@ -24,7 +24,7 @@ export interface UpdateSettingEvent {
 }
 
 export class Profile {
-  plugins: string[];
+  disable: string[];
   group: {
     [group_id: number]: Group;
   };
@@ -43,10 +43,10 @@ export class Profile {
       const profile: Profile = require(this.file);
 
       this.group = profile.group;
-      this.plugins = profile.plugins;
+      this.disable = profile.disable;
     } catch (error) {
       this.group = {};
-      this.plugins = [];
+      this.disable = [];
 
       writeFileSync(this.file, '{}');
       this.bot.logger.mark("创建了新的配置文件：" + this.file);
@@ -58,6 +58,7 @@ export class Profile {
    * 绑定事件监听
    */
   private bindEvents(): void {
+    this.bot.on('config.update.disable', (event) => this.onUpdateDisable(event));
     this.bot.on('config.update.setting', (event) => this.onUpdateSetting(event));
     this.bot.on('notice.group.increase', (event) => this.onGroupIncrease(event));
     this.bot.on('notice.group.decrease', (event) => this.onGroupDecrease(event));
@@ -67,7 +68,7 @@ export class Profile {
   private async write() {
     const data = {
       group: this.group,
-      plugins: this.plugins,
+      disable: this.disable,
     };
 
     // TODO ⎛⎝≥⏝⏝≤⎛⎝ 数据校验，避免重复调用 writeFile
@@ -85,6 +86,26 @@ export class Profile {
     }
     this.defaultSetting[name] = setting;
     this.refresh(name, setting);
+  }
+
+  private onUpdateDisable(event: { name: string, id: string, }) {
+    const { name, id } = event;
+
+    if (this.disable.includes(name)) {
+      this.bot.logger.error(`插件 ${name} 已在禁用列表`);
+      this.bot.emit(`config.disable.${id}`, false, `插件 ${name} 已在禁用列表`);
+      return;
+    }
+    this.disable.push(name);
+    this.write()
+      .then(() => {
+        this.bot.logger.info(`更新了禁用列表，新增了插件：${name}`);
+        this.bot.emit(`config.disable.${id}`, true);
+      })
+      .catch((error) => {
+        this.bot.logger.error(`更新禁用列表失败，${error.message}`);
+        this.bot.emit(`config.disable.${id}`, false, `更新禁用列表失败，${error.message}`);
+      })
   }
 
   private onGroupIncrease(event: MemberIncreaseEvent): void {
