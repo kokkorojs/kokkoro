@@ -4,7 +4,7 @@
   "upday": "2022/10/19",
   "description": "とある咕咕の QQ 机器人框架",
   "main": "lib/index.js",
-  "types": "typings/index.d.ts",
+  "types": "lib/index.d.ts",
   "engines": {
     "node": ">= v15"
   },
@@ -35,11 +35,13 @@
   "changelogs": "https://github.com/kokkorojs/kokkoro/releases",
   "dependencies": {
     "cron": "^2.1.0",
-    "oicq": "^2.3.1"
+    "oicq": "^2.3.1",
+    "uuid": "^9.0.0"
   },
   "devDependencies": {
     "@types/cron": "^2.0.0",
     "@types/node": "^18.8.5",
+    "@types/uuid": "^8.3.4",
     "log4js": "^6.7.0",
     "tsc-alias": "^1.7.0"
   },

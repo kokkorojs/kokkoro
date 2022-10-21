@@ -1,4 +1,5 @@
 import { join } from 'path';
+import { v4 as uuidv4 } from 'uuid';
 import { Dirent } from 'fs';
 import { mkdir, readdir } from 'fs/promises';
 import { CronCommand, CronJob } from 'cron';
@@ -33,6 +34,10 @@ export type PluginPostMessage =
     name: 'bot.bind.setting';
     event: UpdateSettingEvent;
   }
+
+export type BotApiParams<T extends Bot[keyof Bot]> = T extends (...args: any) => any
+  ? Parameters<T>
+  : [];
 
 interface PluginPort extends MessagePort {
   postMessage(message: PluginPostMessage, transferList?: ReadonlyArray<TransferListItem>): void;
@@ -79,7 +84,7 @@ export class Plugin {
   // 版本号
   private _version: string;
   // 定时任务
-  // private jobs: CronJob[];
+  private jobs: CronJob[];
   // 事件名
   private events: Set<string>;
   private commands: Command[];
@@ -101,7 +106,7 @@ export class Plugin {
     this._name = this.info.name;
     this._version = '0.0.0';
 
-    // this.jobs = [];
+    this.jobs = [];
     this.events = new Set();
     this.botPort = new Map();
     this.commands = [];
@@ -207,6 +212,7 @@ export class Plugin {
           }
         })
         .on(name, (event) => {
+          // MessagePort 事件会与 oicq 事件冲突
           if (name === 'message' && !event.message_id) {
             return;
           }
@@ -253,26 +259,28 @@ export class Plugin {
   //   return command.commandAction.apply(this, actionArgs);
   // }
 
-  botApi<K extends keyof Bot>(uin: number, method: K, ...params: Bot[K] extends (...args: infer P) => any ? P : []) {
-    return new Promise((resolve, reject) => {
-      const event = {
-        name: 'bot.api.trigger',
-        event: { method, params },
-      };
+  async botApi<K extends keyof Bot>(uin: number, method: K, ...params: BotApiParams<Bot[K]>): Promise<Bot[K]> {
+    if (!this.botPort.has(uin)) {
+      throw new Error(`bot(${uin}) 线程未创建`);
+    }
+    const port = this.botPort.get(uin)!;
+    // 唯一标识符
+    const id = uuidv4();
+    const event = {
+      name: 'bot.api.task',
+      event: { method, params, id },
+    };
 
-      this.botPort.get(uin)?.postMessage(event);
-      this.botPort.get(uin)?.once('bot.api.callback', e => {
-        resolve(e);
-      })
-    });
+    port.postMessage(event);
+    return new Promise((resolve) => port.once(`bot.api.${id}`, resolve));
   }
 
-  // schedule(cron: string, command: CronCommand) {
-  //   const job = new CronJob(cron, command, null, true);
+  schedule(cron: string, command: CronCommand) {
+    const job = new CronJob(cron, command, null, true);
 
-  //   this.jobs.push(job);
-  //   return this;
-  // }
+    this.jobs.push(job);
+    return this;
+  }
 
   // sendPrivateMsg(event: any) {
   //   const { self_id } = event;
