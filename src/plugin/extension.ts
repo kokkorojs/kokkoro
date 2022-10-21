@@ -1,7 +1,7 @@
 import { Plugin } from '@/plugin';
 import { VERSION } from '@/kokkoro';
 
-const plugin = new Plugin();
+const plugin = new Plugin('');
 
 plugin
   .version(VERSION);
