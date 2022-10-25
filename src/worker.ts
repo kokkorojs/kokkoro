@@ -57,10 +57,16 @@ export interface PluginLinkChannelEvent {
   port: BotMessagePort;
 }
 
-// export interface PluginDisableEvent {
-//   uin: number;
-//   name: string;
-// }
+export interface PluginMountEvent {
+  id: string;
+  info: PluginInfo;
+  uin: number;
+}
+export interface PluginUnmountEvent {
+  id: string;
+  name: string;
+  uin: number;
+}
 
 export type ThreadPostMessage =
   {
@@ -78,6 +84,10 @@ export type ThreadPostMessage =
   {
     name: 'bot.plugin.disable';
     event: string;
+  } |
+  {
+    name: string;
+    event: any;
   }
 
 /** 事件接口 */
@@ -146,7 +156,9 @@ export class Thread extends Worker {
     this.on('thread.messageerror', this.onMessageError);
     this.on('thread.online', this.onOnline);
     this.on('thread.process.stdin', this.onInput);
-    // this.on('thread.plugin.disable', this.onPluginDisable);
+    this.on('thread.plugin.mount', this.onPluginMount);
+    this.on('thread.plugin.unmount', this.onPluginUnmount);
+    this.on('thread.plugin.reload', this.onPluginReload);
   }
 
   private onOnline() {
@@ -201,23 +213,74 @@ export class Thread extends Worker {
     });
   }
 
-  // private onPluginDisable(event: PluginDisableEvent) {
-  //   const { uin, name } = event;
+  private async onPluginMount(event: PluginMountEvent) {
+    let error;
 
-  //   if (!botPool.has(uin)) {
-  //     throw new Error(`bot(${uin}) 线程未创建`);
-  //   }
-  //   if (!pluginPool.has(name)) {
-  //     throw new Error(`插件 ${name} 线程未创建`);
-  //   }
-  //   const thread = botPool.get(uin)!;
+    const { id, info, uin } = event;
+    const { name } = info;
 
-  //   // TODO ⎛⎝≥⏝⏝≤⎛⎝ 待优化 async
-  //   thread.postMessage({
-  //     name: 'bot.plugin.disable',
-  //     event: name,
-  //   })
-  // }
+    if (pluginPool.has(name)) {
+      error = `插件 ${name} 已被挂载`;
+    } else {
+      try {
+        await rebindBotChannel(info);
+      } catch (e) {
+        if (e instanceof Error) error = e.message;
+      }
+    }
+    const thread = botPool.get(uin)!;
+
+    thread.postMessage({
+      name: `thread.task.${id}`,
+      event: error,
+    });
+  }
+
+  private async onPluginUnmount(event: PluginUnmountEvent) {
+    let error;
+
+    const { id, name, uin } = event;
+
+    if (!pluginPool.has(name)) {
+      error = `插件 ${name} 未挂载`;
+    } else {
+      const thread = pluginPool.get(name)!;
+
+      thread.postMessage({
+        name: `plugin.destroy`,
+        event: 0,
+      });
+    }
+    const thread = botPool.get(uin)!;
+
+    thread.postMessage({
+      name: `thread.task.${id}`,
+      event: error,
+    });
+  }
+
+  private async onPluginReload(event: PluginUnmountEvent) {
+    let error;
+
+    const { id, name, uin } = event;
+
+    if (!pluginPool.has(name)) {
+      error = `插件 ${name} 未挂载`;
+    } else {
+      const thread = pluginPool.get(name)!;
+
+      thread.postMessage({
+        name: `plugin.destroy`,
+        event: 1,
+      });
+    }
+    const thread = botPool.get(uin)!;
+
+    thread.postMessage({
+      name: `thread.task.${id}`,
+      event: error,
+    });
+  }
 }
 
 class BotThread extends Thread {
@@ -393,17 +456,4 @@ function linkMessageChannel(uin: number, name: string): void {
 
   botThread.postMessage(botLinkChannelEvent, [pluginMessagePort]);
   pluginThread.postMessage(pluginLinkChannelEvent, [botMessagePort]);
-}
-
-/**
- * TODO ⎛⎝≥⏝⏝≤⎛⎝ 销毁插件线程
- *
- * @param name - 插件名
- */
-function destroyPlugin(name: string) {
-  if (!pluginPool.has(name)) {
-    throw new Error(`插件 ${name} 线程未创建`);
-  }
-  const thread = pluginPool.get(name)!;
-  thread.terminate();
 }
