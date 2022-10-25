@@ -1,4 +1,4 @@
-import { join } from 'path';
+import { join, resolve } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { createHash } from 'crypto';
 import { readFile, writeFile } from 'fs/promises';
@@ -11,7 +11,7 @@ import { Client, Config as Protocol, GroupRole, MessageRet } from 'oicq';
 import { deepMerge } from '@/utils';
 import { BindListenEvent } from '@/plugin';
 import { AllMessage, BotEventMap } from '@/events';
-import { Profile, UpdateSettingEvent } from '@/config';
+import { Profile, BindSettingEvent } from '@/config';
 import { BotLinkChannelEvent, PluginMessagePort } from '@/worker';
 
 interface ApiTaskEvent {
@@ -153,14 +153,56 @@ export class Bot extends Client {
     this.pluginPort.set(name, port);
   }
 
-  disablePlugin(name: string) {
-    const id = uuidv4();
-    const event = {
-      name, id,
-    };
+  async enablePlugin(name: string): Promise<void> {
+    let error;
 
-    this.emit('config.update.disable', event);
-    return new Promise((resolve) => this.once(`config.disable.${id}`, (result, error) => resolve(error)));
+    if (!this.profile.defaultSetting[name]) {
+      error = `插件 ${name} 未挂载`;
+    } else if (!this.profile.disable.has(name)) {
+      error = `插件 ${name} 不在禁用列表`;
+    } else {
+      this.profile.disable.delete(name);
+
+      try {
+        await this.profile.write();
+        this.logger.info(`更新了禁用列表，移除了插件：${name}`);
+      } catch (e) {
+        if (e instanceof Error) {
+          error = `更新禁用列表失败，${e.message}`;
+        }
+        this.profile.disable.add(name);
+      }
+    }
+    if (error) {
+      this.logger.error(error);
+      throw new Error(error);
+    }
+  }
+
+  async disablePlugin(name: string): Promise<void> {
+    let error;
+
+    if (!this.profile.defaultSetting[name]) {
+      error = `插件 ${name} 未挂载`;
+    } else if (this.profile.disable.has(name)) {
+      error = `插件 ${name} 已在禁用列表`;
+    } else {
+      this.profile.disable.add(name);
+
+      try {
+        await this.profile.write();
+        this.logger.info(`更新了禁用列表，新增了插件：${name}`);
+      } catch (e) {
+        if (e instanceof Error) {
+          error = `更新禁用列表失败，${e.message}`;
+        }
+        this.profile.disable.delete(name);
+      }
+    }
+    if (error) {
+      this.logger.error(error);
+      throw new Error(error);
+    }
   }
 
   async linkStart(): Promise<void> {
@@ -332,10 +374,10 @@ export class Bot extends Client {
   }
 
   // 绑定插件配置
-  private onBindSetting(event: UpdateSettingEvent) {
+  private onBindSetting(event: BindSettingEvent) {
     if (!this.isOnline()) {
       this.once('system.online', () => {
-        this.emit('config.update.setting', event);
+        this.emit('profile.bind.setting', event);
       })
     }
   }
@@ -345,6 +387,12 @@ export class Bot extends Client {
     const { name, listen } = event;
 
     this.on(listen, (e: any) => {
+      const disable = this.profile.disable.has(name);
+
+      if (disable) {
+        return;
+      }
+
       for (const key in e) {
         if (typeof e[key] === 'function') delete e[key];
       }
@@ -365,18 +413,23 @@ export class Bot extends Client {
 
   // 执行 client 实例方法
   private async onApiTask(event: ApiTaskEvent, port: PluginMessagePort) {
-
+    let result: any, error: any;
     const { id, method, params } = event;
 
-    let value;
     if (typeof this[method] === 'function') {
-      value = await (<Function>this[method])(...params);
+      try {
+        result = await (<Function>this[method])(...params);
+      } catch (e) {
+        error = e;
+      }
     } else {
-      value = this[method];
+      result = this[method];
     }
     port.postMessage({
-      name: `bot.api.${id}`,
-      event: value,
+      name: `task.${id}`,
+      event: {
+        result, error,
+      },
     });
   }
 

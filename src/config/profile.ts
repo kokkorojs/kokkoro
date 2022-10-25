@@ -18,13 +18,13 @@ export type Group = {
   }
 }
 
-export interface UpdateSettingEvent {
+export interface BindSettingEvent {
   name: string;
   setting: PluginSetting;
 }
 
 export class Profile {
-  disable: string[];
+  disable: Set<string>;
   group: {
     [group_id: number]: Group;
   };
@@ -36,20 +36,23 @@ export class Profile {
   constructor(
     private bot: Bot,
   ) {
+    const dir = join(this.bot.dir, `profile-${this.bot.uin}.json`);
+    const file = join(__workname, dir);
+
+    this.file = file;
     this.defaultSetting = {};
-    this.file = join(this.bot.dir, `profile-${this.bot.uin}.json`);
 
     try {
-      const profile: Profile = require(this.file);
+      const profile: Profile = require(file);
 
       this.group = profile.group;
-      this.disable = profile.disable;
+      this.disable = new Set(profile.disable);
     } catch (error) {
       this.group = {};
-      this.disable = [];
+      this.disable = new Set();
 
-      writeFileSync(this.file, '{}');
-      this.bot.logger.mark("创建了新的配置文件：" + this.file);
+      writeFileSync(file, '{}');
+      this.bot.logger.mark("创建了新的配置文件：" + dir);
     }
     this.bindEvents();
   }
@@ -58,17 +61,16 @@ export class Profile {
    * 绑定事件监听
    */
   private bindEvents(): void {
-    this.bot.on('config.update.disable', (event) => this.onUpdateDisable(event));
-    this.bot.on('config.update.setting', (event) => this.onUpdateSetting(event));
+    this.bot.on('profile.bind.setting', (event) => this.onBindSetting(event));
     this.bot.on('notice.group.increase', (event) => this.onGroupIncrease(event));
     this.bot.on('notice.group.decrease', (event) => this.onGroupDecrease(event));
   }
 
   // TODO ⎛⎝≥⏝⏝≤⎛⎝ 使用 proxy 重构
-  private async write() {
+  async write() {
     const data = {
       group: this.group,
-      disable: this.disable,
+      disable: [...this.disable],
     };
 
     // TODO ⎛⎝≥⏝⏝≤⎛⎝ 数据校验，避免重复调用 writeFile
@@ -77,7 +79,7 @@ export class Profile {
     return writeFile(this.file, JSON.stringify(data, null, 2));
   }
 
-  private onUpdateSetting(event: UpdateSettingEvent) {
+  private async onBindSetting(event: BindSettingEvent) {
     const { name, setting } = event;
 
     // 内置插件不用初始化配置
@@ -85,27 +87,28 @@ export class Profile {
       return;
     }
     this.defaultSetting[name] = setting;
-    this.refresh(name, setting);
-  }
 
-  private onUpdateDisable(event: { name: string, id: string, }) {
-    const { name, id } = event;
+    for (const [, info] of this.bot.gl) {
+      const { group_id, group_name } = info;
 
-    if (this.disable.includes(name)) {
-      this.bot.logger.error(`插件 ${name} 已在禁用列表`);
-      this.bot.emit(`config.disable.${id}`, false, `插件 ${name} 已在禁用列表`);
-      return;
+      this.group[group_id] ??= {
+        name: group_name, plugin: {},
+      };
+      this.group[group_id].name = group_name;
+      this.group[group_id].plugin[name] = deepMerge(
+        deepClone(setting),
+        this.group[group_id].plugin[name]
+      );
     }
-    this.disable.push(name);
-    this.write()
-      .then(() => {
-        this.bot.logger.info(`更新了禁用列表，新增了插件：${name}`);
-        this.bot.emit(`config.disable.${id}`, true);
-      })
-      .catch((error) => {
-        this.bot.logger.error(`更新禁用列表失败，${error.message}`);
-        this.bot.emit(`config.disable.${id}`, false, `更新禁用列表失败，${error.message}`);
-      })
+
+    try {
+      await this.write();
+      this.bot.logger.info(`更新了群 ${name} 配置`);
+    } catch (error) {
+      if (error instanceof Error) {
+        this.bot.logger.error(`更新群 ${name} 配置失败，${error.message}`);
+      }
+    }
   }
 
   private onGroupIncrease(event: MemberIncreaseEvent): void {
@@ -159,30 +162,30 @@ export class Profile {
       })
   }
 
-  private refresh = debounce(async (name: string, setting: PluginSetting) => {
-    for (const [, info] of this.bot.gl) {
-      const { group_id, group_name } = info;
+  // private refresh = debounce(async (name: string, setting: PluginSetting) => {
+  //   for (const [, info] of this.bot.gl) {
+  //     const { group_id, group_name } = info;
 
-      this.group[group_id] ??= {
-        name: group_name, plugin: {},
-      };
-      this.group[group_id].name = group_name;
-      // 刷新指定插件配置项
-      this.group[group_id].plugin[name] = deepMerge(
-        deepClone(setting),
-        this.group[group_id].plugin[name]
-      )
-    }
+  //     this.group[group_id] ??= {
+  //       name: group_name, plugin: {},
+  //     };
+  //     this.group[group_id].name = group_name;
+  //     // 刷新指定插件配置项
+  //     this.group[group_id].plugin[name] = deepMerge(
+  //       deepClone(setting),
+  //       this.group[group_id].plugin[name]
+  //     )
+  //   }
 
-    try {
-      await this.write();
-      this.bot.logger.info(`更新了群配置`);
-    } catch (error) {
-      if (error instanceof Error) {
-        this.bot.logger.error(`更新群配置失败，${(error).message}`);
-      }
-    }
-  }, 10)
+  //   try {
+  //     await this.write();
+  //     this.bot.logger.info(`更新了群配置`);
+  //   } catch (error) {
+  //     if (error instanceof Error) {
+  //       this.bot.logger.error(`更新群配置失败，${(error).message}`);
+  //     }
+  //   }
+  // }, 10)
 
   getDefaultSetting(name: string): PluginSetting {
     return deepClone(this.defaultSetting[name]);
