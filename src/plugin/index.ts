@@ -1,4 +1,4 @@
-import { join } from 'path';
+import { join, resolve } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { Dirent } from 'fs';
 import { mkdir, readdir } from 'fs/promises';
@@ -8,7 +8,7 @@ import { isMainThread, parentPort, MessagePort, workerData, TransferListItem } f
 import '@/kokkoro';
 import { Bot } from '@/core';
 import { Listen } from '@/plugin/listen';
-import { UpdateSettingEvent } from '@/config';
+import { BindSettingEvent } from '@/config';
 import { PluginLinkChannelEvent } from '@/worker';
 import { EventName, PluginEventMap } from '@/events';
 import { Command, CommandType } from '@/plugin/command';
@@ -31,7 +31,7 @@ export type PluginPostMessage =
   } |
   {
     name: 'bot.bind.setting';
-    event: UpdateSettingEvent;
+    event: BindSettingEvent;
   }
 
 export type BotApiParams<T extends Bot[keyof Bot]> = T extends (...args: any) => any
@@ -210,7 +210,7 @@ export class Plugin {
             port.emit(value.name, value.event);
           }
         })
-        .on(name, (event) => {
+        .on(name, async (event) => {
           // MessagePort 事件会与 oicq 事件冲突
           if (name === 'message' && !event.message_id) {
             return;
@@ -258,7 +258,9 @@ export class Plugin {
   //   return command.commandAction.apply(this, actionArgs);
   // }
 
-  async botApi<K extends keyof Bot>(uin: number, method: K, ...params: BotApiParams<Bot[K]>): Promise<Bot[K]> {
+  async botApi<K extends keyof Bot>(uin: number, method: K, ...params: BotApiParams<Bot[K]>): Promise<
+    Bot[K] extends (...args: any) => any ? ReturnType<Bot[K]> : Bot[K]
+  > {
     if (!this.botPort.has(uin)) {
       throw new Error(`bot(${uin}) 线程未创建`);
     }
@@ -270,7 +272,16 @@ export class Plugin {
     };
 
     port.postMessage(event);
-    return new Promise((resolve) => port.once(`bot.api.${id}`, resolve));
+
+    return new Promise((resolve, reject) =>
+      port.once(`task.${id}`, (task: { result: any, error: Error }) => {
+        if (task.error) {
+          reject(task.error);
+        } else {
+          resolve(task.result);
+        }
+      })
+    );
   }
 
   schedule(cron: string, command: CronCommand) {

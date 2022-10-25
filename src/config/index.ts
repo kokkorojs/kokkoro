@@ -25,4 +25,4 @@ export function getConfig<T extends keyof GlobalConfig>(key: T): GlobalConfig[T]
   return config[key];
 }
 
-export { Profile, UpdateSettingEvent } from '@/config/profile';
+export { Profile, BindSettingEvent } from '@/config/profile';

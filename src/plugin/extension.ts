@@ -83,6 +83,26 @@ plugin
 //   });
 //#endregion
 
+//#region 启用
+plugin
+  .command('enable <name>')
+  .description('启用插件')
+  .limit(5)
+  .sugar(/^(启用)\s?(?<name>([a-z]|\s)+)$/)
+  .action(async (ctx) => {
+    const { name } = ctx.query;
+
+    try {
+      await ctx.botApi('enablePlugin', name);
+      ctx.reply(`已将 ${name} 从禁用列表移除`);
+    } catch (error) {
+      if (error instanceof Error) {
+        ctx.reply(error.message);
+      }
+    }
+  });
+//#endregion
+
 //#region 禁用
 plugin
   .command('disable <name>')
@@ -92,13 +112,14 @@ plugin
   .action(async (ctx) => {
     const { name } = ctx.query;
 
-    // TODO ⎛⎝≥⏝⏝≤⎛⎝
-    const error: any = await ctx.botApi('disablePlugin', name);
-
-    if (!error) {
+    try {
+      await ctx.botApi('disablePlugin', name);
       ctx.reply(`已将 ${name} 添加至禁用列表`);
-    } else {
-      ctx.reply(error);
+    } catch (error) {
+      if (error instanceof Error) {
+        ctx.reply(error.message);
+      }
     }
+
   });
 //#endregion
