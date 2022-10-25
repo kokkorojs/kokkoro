@@ -12,7 +12,7 @@ plugin
 //#region 打印
 plugin
   .command('print <message>')
-  .description('打印输出信息，一般用作测试')
+  .description('打印测试')
   .sugar(/^(打印|输出)\s?(?<message>.+)$/)
   .action((ctx) => {
     ctx.reply(ctx.query.message);
@@ -23,7 +23,6 @@ plugin
 plugin
   .command('state')
   .description('查看 bot 运行信息')
-  .limit(5)
   .sugar(/^(状态)$/)
   .action(async (ctx) => {
     const resul = await Promise.all([
@@ -71,23 +70,71 @@ plugin
   });
 //#endregion
 
-//#region 重载
-// plugin
-//   .command('reload <name>')
-//   .description('重载插件')
-//   .limit(5)
-//   .sugar(/^(重载)\s?(?<name>([a-z]|\s)+)$/)
-//   .action(async (ctx) => {
-//     const { name } = ctx.query;
+//#region 挂载
+plugin
+  .command('mount <name>')
+  .description('挂载插件')
+  .limit(5)
+  .sugar(/^(挂载)\s?(?<name>([a-z]|\s)+)$/)
+  .action(async (ctx) => {
+    const { name } = ctx.query;
 
-//   });
+    try {
+      await ctx.botApi('mountPlugin', name);
+      ctx.reply(`已创建 ${name} 线程`);
+    } catch (error) {
+      if (error instanceof Error) {
+        ctx.reply(error.message);
+      }
+    }
+  });
+//#endregion
+
+//#region 卸载
+plugin
+  .command('unmount <name>')
+  .description('卸载插件')
+  .limit(5)
+  .sugar(/^(卸载)\s?(?<name>([a-z]|\s)+)$/)
+  .action(async (ctx) => {
+    const { name } = ctx.query;
+
+    try {
+      await ctx.botApi('unmountPlugin', name);
+      ctx.reply(`已销毁 ${name} 线程`);
+    } catch (error) {
+      if (error instanceof Error) {
+        ctx.reply(error.message);
+      }
+    }
+  });
+//#endregion
+
+//#region 重载
+plugin
+  .command('reload <name>')
+  .description('重载插件')
+  .limit(5)
+  .sugar(/^(重载)\s?(?<name>([a-z]|\s)+)$/)
+  .action(async (ctx) => {
+    const { name } = ctx.query;
+
+    try {
+      await ctx.botApi('reloadPlugin', name);
+      ctx.reply(`已重载 ${name} 线程`);
+    } catch (error) {
+      if (error instanceof Error) {
+        ctx.reply(error.message);
+      }
+    }
+  });
 //#endregion
 
 //#region 启用
 plugin
   .command('enable <name>')
   .description('启用插件')
-  .limit(5)
+  .limit(4)
   .sugar(/^(启用)\s?(?<name>([a-z]|\s)+)$/)
   .action(async (ctx) => {
     const { name } = ctx.query;
@@ -107,7 +154,7 @@ plugin
 plugin
   .command('disable <name>')
   .description('禁用插件')
-  .limit(5)
+  .limit(4)
   .sugar(/^(禁用)\s?(?<name>([a-z]|\s)+)$/)
   .action(async (ctx) => {
     const { name } = ctx.query;
@@ -121,5 +168,35 @@ plugin
       }
     }
 
+  });
+//#endregion
+
+//#region 帮助
+plugin
+  .command('help')
+  .description('帮助信息')
+  .sugar(/^(帮助)$/)
+  .action((ctx) => {
+    const message = ['Commands: '];
+    const commands_length = plugin.commands.length;
+
+    for (let i = 0; i < commands_length; i++) {
+      const command = plugin.commands[i];
+      const { raw_name, desc } = command;
+
+      message.push(`  ${raw_name}  ${desc}`);
+    }
+    message.push('\nMore: https://kokkoro.js.org/');
+    ctx.reply(message.join('\n'));
+  });
+//#endregion
+
+//#region 版本
+plugin
+  .command('version')
+  .description('版本信息')
+  .sugar(/^(版本)$/)
+  .action((ctx) => {
+    ctx.reply(`kokkoro v${VERSION}`);
   });
 //#endregion

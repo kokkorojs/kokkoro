@@ -142,13 +142,13 @@ export class Command<K extends CommandType = any> {
     return this;
   }
 
-  reply(context: CommandMap[K], message: string | MessageElem[]): void {
+  reply(context: CommandMap[K], message: string | MessageElem[]) {
     const { message_type, self_id } = context;
 
     if (message_type === 'private') {
-      this.plugin.botApi(self_id, 'sendPrivateMsg', context.user_id, message);
+      return this.plugin.botApi(self_id, 'sendPrivateMsg', context.user_id, message);
     } else {
-      this.plugin.botApi(self_id, 'sendGroupMsg', (<any>context).group_id, message);
+      return this.plugin.botApi(self_id, 'sendGroupMsg', (<any>context).group_id, message);
     }
   }
 
