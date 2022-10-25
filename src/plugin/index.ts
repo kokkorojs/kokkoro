@@ -86,7 +86,7 @@ export class Plugin {
   private jobs: CronJob[];
   // 事件名
   private events: Set<string>;
-  private commands: Command[];
+  public commands: Command[];
   // bot 通信端口
   private botPort: Map<number, MessagePort>;
   private listener: Map<string, Listen>;
@@ -136,11 +136,13 @@ export class Plugin {
       });
     //#endregion
 
-    // 任何插件实例化后都将自带 version 及 help 指令
-    setTimeout(() => {
-      this.commands.push(helpCommand);
-      this.commands.push(versionCommand);
-    });
+    // 有 prefix 的插件，实例化后都将自带 version 及 help 指令
+    if (this.prefix) {
+      setTimeout(() => {
+        this.commands.push(helpCommand);
+        this.commands.push(versionCommand);
+      });
+    }
 
     this.proxyPluginPortEvents();
     this.bindPluginPortEvents();
@@ -163,6 +165,7 @@ export class Plugin {
     pluginPort.on('plugin.message', (event) => this.onMessage(event));
     pluginPort.on('plugin.messageerror', (event) => this.onMessageError(event));
     pluginPort.on('plugin.link.channel', (event) => this.onLinkChannel(event));
+    pluginPort.on('plugin.destroy', (code) => this.onDestroy(code));
   }
 
   private onClose() {
@@ -222,6 +225,10 @@ export class Plugin {
           }
         })
     });
+  }
+
+  private onDestroy(code: number = 0) {
+    process.exit(code);
   }
 
   name(name: string) {

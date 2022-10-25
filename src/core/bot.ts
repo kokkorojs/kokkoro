@@ -9,10 +9,10 @@ import { Client, Config as Protocol, GroupRole, MessageRet } from 'oicq';
 // import { getSetting, Setting, writeSetting } from '../profile/setting';
 
 import { deepMerge } from '@/utils';
-import { BindListenEvent } from '@/plugin';
+import { BindListenEvent, PluginInfo, retrievalPlugins } from '@/plugin';
 import { AllMessage, BotEventMap } from '@/events';
 import { Profile, BindSettingEvent } from '@/config';
-import { BotLinkChannelEvent, PluginMessagePort } from '@/worker';
+import { BotLinkChannelEvent, PluginMountEvent, PluginMessagePort, PluginUnmountEvent } from '@/worker';
 
 interface ApiTaskEvent {
   id: string;
@@ -38,6 +38,18 @@ export type BotPostMessage =
   {
     name: 'thread.process.stdin';
     event?: string;
+  } |
+  {
+    name: 'thread.plugin.mount';
+    event: PluginMountEvent;
+  } |
+  {
+    name: 'thread.plugin.unmount';
+    event: PluginUnmountEvent;
+  } |
+  {
+    name: 'thread.plugin.reload';
+    event: PluginUnmountEvent;
   }
 
 interface BotPort extends MessagePort {
@@ -45,12 +57,13 @@ interface BotPort extends MessagePort {
 
   addListener<T extends keyof BotEventMap>(event: T, listener: BotEventMap<this>[T]): this;
   emit<T extends keyof BotEventMap>(event: T, ...args: Parameters<BotEventMap<this>[T]>): boolean;
-  on<T extends keyof BotEventMap>(event: T, listener: BotEventMap<this>[T]): this
-  once<T extends keyof BotEventMap>(event: T, listener: BotEventMap<this>[T]): this
-  prependListener<T extends keyof BotEventMap>(event: T, listener: BotEventMap<this>[T]): this
-  prependOnceListener<T extends keyof BotEventMap>(event: T, listener: BotEventMap<this>[T]): this
-  removeListener<T extends keyof BotEventMap>(event: T, listener: BotEventMap<this>[T]): this
-  off<T extends keyof BotEventMap>(event: T, listener: BotEventMap<this>[T]): this
+  on<T extends keyof BotEventMap>(event: T, listener: BotEventMap<this>[T]): this;
+  once<T extends keyof BotEventMap>(event: T, listener: BotEventMap<this>[T]): this;
+  once<S extends string | symbol>(event: S & Exclude<S, keyof BotEventMap>, listener: (this: this, ...args: any[]) => void): this
+  prependListener<T extends keyof BotEventMap>(event: T, listener: BotEventMap<this>[T]): this;
+  prependOnceListener<T extends keyof BotEventMap>(event: T, listener: BotEventMap<this>[T]): this;
+  removeListener<T extends keyof BotEventMap>(event: T, listener: BotEventMap<this>[T]): this;
+  off<T extends keyof BotEventMap>(event: T, listener: BotEventMap<this>[T]): this;
 }
 
 export type UserLevel = 0 | 1 | 2 | 3 | 4 | 5 | 6;
@@ -151,6 +164,77 @@ export class Bot extends Client {
 
     this.listenPortEvents(port);
     this.pluginPort.set(name, port);
+  }
+
+  async mountPlugin(name: string): Promise<void> {
+    let info;
+
+    const plugins = await retrievalPlugins();
+    const plugins_length = plugins.length;
+
+    for (let i = 0; i < plugins_length; i++) {
+      const plugin = plugins[i];
+
+      if (plugin.name === name) {
+        info = plugin;
+        break;
+      }
+    }
+
+    if (!info) {
+      throw new Error(`plugins 与 node_modules 目录均为检索到 ${name} 和 kokkoro-plugin-${name} 插件`);
+    }
+    const id = uuidv4();
+
+    botPort.postMessage({
+      name: 'thread.plugin.mount',
+      event: {
+        id, info,
+        uin: this.uin,
+      },
+    });
+
+    return new Promise((resolve, reject) =>
+      botPort.once(`thread.task.${id}`, (error) => {
+        error ? reject(new Error(error)) : resolve();
+      })
+    );
+  }
+
+  async unmountPlugin(name: string): Promise<void> {
+    const id = uuidv4();
+
+    botPort.postMessage({
+      name: 'thread.plugin.unmount',
+      event: {
+        id, name,
+        uin: this.uin,
+      },
+    });
+
+    return new Promise((resolve, reject) =>
+      botPort.once(`thread.task.${id}`, (error) => {
+        error ? reject(new Error(error)) : resolve();
+      })
+    );
+  }
+
+  async reloadPlugin(name: string): Promise<void> {
+    const id = uuidv4();
+
+    botPort.postMessage({
+      name: 'thread.plugin.reload',
+      event: {
+        id, name,
+        uin: this.uin,
+      },
+    });
+
+    return new Promise((resolve, reject) =>
+      botPort.once(`thread.task.${id}`, (error) => {
+        error ? reject(new Error(error)) : resolve();
+      })
+    );
   }
 
   async enablePlugin(name: string): Promise<void> {
@@ -378,7 +462,9 @@ export class Bot extends Client {
     if (!this.isOnline()) {
       this.once('system.online', () => {
         this.emit('profile.bind.setting', event);
-      })
+      });
+    } else {
+      this.emit('profile.bind.setting', event);
     }
   }
 

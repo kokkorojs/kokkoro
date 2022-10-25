@@ -1,8 +1,8 @@
 import { DiscussMessage, EventMap, GroupMessage, PrivateMessage } from 'oicq';
 
 import { Bot, BotMessage, UserLevel } from '@/core';
-import { BotApiParams, PluginMessage, PluginSetting } from '@/plugin';
-import { BotLinkChannelEvent, PluginLinkChannelEvent, ThreadMessage } from '@/worker';
+import { BotApiParams, PluginInfo, PluginMessage, PluginSetting } from '@/plugin';
+import { BotLinkChannelEvent, PluginMountEvent, PluginLinkChannelEvent, ThreadMessage, PluginUnmountEvent } from '@/worker';
 
 /** 展开对象 value 类型 */
 type ValueOf<T> = T[keyof T];
@@ -76,6 +76,11 @@ export interface ThreadEventMap<T = any> {
   "thread.online": (this: T) => void;
   /** 控制台输入流 */
   "thread.process.stdin": (this: T, prefix?: string) => void;
+  /** 挂载插件 */
+  "thread.plugin.mount": (this: T, event: PluginMountEvent) => void;
+  /** 卸载插件 */
+  "thread.plugin.unmount": (this: T, event: PluginUnmountEvent) => void;
+  "thread.plugin.reload": (this: T, event: PluginUnmountEvent) => void;
 }
 
 /** bot 事件地图 */
@@ -111,4 +116,5 @@ export interface PluginEventMap<T = any> {
   "plugin.messageerror": (this: T, error: Error) => void;
   /** 绑定 bot 线程通信 */
   "plugin.link.channel": (this: T, event: PluginLinkChannelEvent) => void;
+  "plugin.destroy": (this: T, code: number) => void;
 }
