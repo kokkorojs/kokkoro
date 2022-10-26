@@ -42,6 +42,7 @@ export type Context<Key extends ContextName> = Parameter<PostMessageMap[Key]> & 
   permission_level: UserLevel;
   /** 快捷回复 */
   reply(message: string): void;
+  /** bot api */
   botApi: <K extends keyof Bot>(method: K, ...params: BotApiParams<Bot[K]>) => Promise<Bot[K]>;
 };
 
@@ -51,6 +52,8 @@ export type Event<Key extends EventName> = Parameter<PostMessageMap[Key]> & {
   setting: PluginSetting;
   /** 快捷回复 */
   // reply?(message: string): void;
+  /** bot api */
+  botApi: <K extends keyof Bot>(method: K, ...params: BotApiParams<Bot[K]>) => Promise<Bot[K]>;
 };
 
 export type AllMessage = PrivateMessage | GroupMessage | DiscussMessage;
