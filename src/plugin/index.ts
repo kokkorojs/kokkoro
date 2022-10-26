@@ -188,6 +188,12 @@ export class Plugin {
   private onLinkChannel(event: PluginLinkChannelEvent) {
     const { uin, port } = event;
 
+    port.on('message', (value: any) => {
+      if (value.name) {
+        port.emit(value.name, value.event);
+      }
+    });
+
     this.botPort.set(uin, port);
     this.events.forEach((name) => {
       const bindPluginEvent: PluginPostMessage = {
@@ -207,23 +213,17 @@ export class Plugin {
 
       port.postMessage(bindPluginEvent);
       port.postMessage(bindSettingEvent);
-      port
-        .on('message', (value: any) => {
-          if (value.name) {
-            port.emit(value.name, value.event);
-          }
-        })
-        .on(name, async (event) => {
-          // MessagePort 事件会与 oicq 事件冲突
-          if (name === 'message' && !event.message_id) {
-            return;
-          }
-          this.listener.get(name)?.run(event);
+      port.on(name, async (event) => {
+        // MessagePort 事件会与 oicq 事件冲突
+        if (name === 'message' && !event.message_id) {
+          return;
+        }
+        this.listener.get(name)?.run(event);
 
-          if (name.startsWith('message')) {
-            this.parse(event);
-          }
-        })
+        if (name.startsWith('message')) {
+          this.parse(event);
+        }
+      })
     });
   }
 
@@ -240,30 +240,6 @@ export class Plugin {
     this._version = version;
     return this;
   }
-
-  // runMatchedCommand() {
-  //   // const {args, options, matchedCommand: command} = super;
-
-  //   const args = super.args;
-  //   const options = super.options;
-  //   const command = super.matchedCommand;
-
-  //   if (!command || !command.commandAction)
-  //     return;
-  //   command.checkUnknownOptions();
-  //   command.checkOptionValue();
-  //   command.checkRequiredArgs();
-  //   const actionArgs = [];
-  //   command.args.forEach((arg, index) => {
-  //     if (arg.variadic) {
-  //       actionArgs.push(args.slice(index));
-  //     } else {
-  //       actionArgs.push(args[index]);
-  //     }
-  //   });
-  //   actionArgs.push(options);
-  //   return command.commandAction.apply(this, actionArgs);
-  // }
 
   async botApi<K extends keyof Bot>(uin: number, method: K, ...params: BotApiParams<Bot[K]>): Promise<
     Bot[K] extends (...args: any) => any ? ReturnType<Bot[K]> : Bot[K]
@@ -297,28 +273,6 @@ export class Plugin {
     this.jobs.push(job);
     return this;
   }
-
-  // sendPrivateMsg(event: any) {
-  //   const { self_id } = event;
-  //   const port_event = {
-  //     name: 'message.send', event,
-  //   };
-  //   this.botPort.get(self_id)?.postMessage(port_event);
-  // }
-
-  // sendAllMessage(event: PortEventMap['message.send']) {
-  //   const port_event = {
-  //     name: 'message.send', event,
-  //   };
-  //   this.botPort.forEach((port) => {
-  //     port.postMessage(port_event);
-  //   })
-  // }
-
-  // recallMessage(event: any) {
-  //   const { self_id } = event;
-  //   this.botPort.get(self_id)?.postMessage(event);
-  // }
 
   /**
    * 指令监听
