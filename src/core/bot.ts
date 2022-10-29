@@ -182,7 +182,7 @@ export class Bot extends Client {
     }
 
     if (!info) {
-      throw new Error(`plugins 与 node_modules 目录均为检索到 ${name} 和 kokkoro-plugin-${name} 插件`);
+      throw new Error(`plugins 与 node_modules 目录均未检索到 ${name} 和 kokkoro-plugin-${name} 插件`);
     }
     const id = uuidv4();
 
