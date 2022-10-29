@@ -434,7 +434,7 @@ export class Bot extends Client {
 
   private inputPassword(): void {
     botPort.once('thread.process.stdout', (content) => {
-      if (!content.length) {
+      if (!content?.length) {
         return this.inputPassword();
       }
       const password = createHash('md5').update(content).digest();
