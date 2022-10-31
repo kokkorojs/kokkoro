@@ -579,4 +579,8 @@ export class Bot extends Client {
   isAdmin(user_id: number): boolean {
     return admins.includes(user_id);
   }
+
+  getSetting(group_id: number, name: string) {
+    return this.profile.getSetting(group_id, name);
+  }
 }
