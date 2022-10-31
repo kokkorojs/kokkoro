@@ -182,7 +182,7 @@ export class Bot extends Client {
     }
 
     if (!info) {
-      throw new Error(`plugins 与 node_modules 目录均为检索到 ${name} 和 kokkoro-plugin-${name} 插件`);
+      throw new Error(`plugins 与 node_modules 目录均未检索到 ${name} 和 kokkoro-plugin-${name} 插件`);
     }
     const id = uuidv4();
 
@@ -434,7 +434,7 @@ export class Bot extends Client {
 
   private inputPassword(): void {
     botPort.once('thread.process.stdout', (content) => {
-      if (!content.length) {
+      if (!content?.length) {
         return this.inputPassword();
       }
       const password = createHash('md5').update(content).digest();
@@ -578,5 +578,9 @@ export class Bot extends Client {
    */
   isAdmin(user_id: number): boolean {
     return admins.includes(user_id);
+  }
+
+  getSetting(group_id: number, name: string) {
+    return this.profile.getSetting(group_id, name);
   }
 }
