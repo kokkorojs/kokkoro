@@ -1,4 +1,4 @@
-import { join, resolve } from 'path';
+import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { Dirent } from 'fs';
 import { mkdir, readdir } from 'fs/promises';
@@ -316,6 +316,10 @@ export class Plugin {
       command.run(event);
     });
   }
+
+  getBotUins(): number[] {
+    return [...this.botPort.keys()];
+  }
 }
 
 /**
@@ -339,10 +343,9 @@ export async function retrievalPlugins(): Promise<PluginInfo[]> {
     if (dir.isDirectory() || dir.isSymbolicLink()) {
       const folder = dir.name;
       const name = folder.replace('kokkoro-plugin-', '');
-      const path = join(plugins_path, name);
 
       try {
-        require.resolve(path);
+        const path = require.resolve(join(plugins_path, folder));
         const info: PluginInfo = {
           name, folder, path, local: true,
         };
@@ -363,10 +366,9 @@ export async function retrievalPlugins(): Promise<PluginInfo[]> {
     if (dir.isDirectory() && dir.name.startsWith('kokkoro-plugin-')) {
       const folder = dir.name;
       const name = folder.replace('kokkoro-plugin-', '');
-      const path = join(modules_path, name);
 
       try {
-        require.resolve(path);
+        const path = require.resolve(join(modules_path, folder));
         const info: PluginInfo = {
           name, folder, path, local: false,
         };
@@ -375,6 +377,5 @@ export async function retrievalPlugins(): Promise<PluginInfo[]> {
       }
     }
   }
-
   return plugins;
 }
