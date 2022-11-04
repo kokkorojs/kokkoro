@@ -21,7 +21,7 @@ export interface PluginMessage {
 
 export interface BindListenEvent {
   name: string;
-  listen: string;
+  listen: EventName;
 }
 
 export type PluginPostMessage =
@@ -85,7 +85,7 @@ export class Plugin {
   // 定时任务
   private jobs: CronJob[];
   // 事件名
-  private events: Set<string>;
+  private events: Set<EventName>;
   public commands: Command[];
   // bot 通信端口
   private botPort: Map<number, MessagePort>;
