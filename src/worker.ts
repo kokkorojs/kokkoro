@@ -209,7 +209,7 @@ export class Thread extends Worker {
       });
 
       logger.level = 'all';
-      logger.info('输入完毕，启用 log 打印');
+      logger.info('输入完毕，恢复 log 打印');
     });
   }
 
@@ -400,11 +400,11 @@ async function rebindPluginChannel(uin: number, config?: BotConfig) {
 /**
  * 润
  */
-export async function runWorkerThreads() {
+export async function setup() {
   const logo = `
     |   _  |  |   _  ._ _    ._ _   _. o o   _|_  _  ._  ._   _ |_  o   |
     |< (_) |< |< (_) | (_)   | | | (_| | |    |_ (/_ | | | |  > | | |   |
-                                      ╯                                o
+                                       ╯                                o
   `;
   process.title = 'kokkoro';
   console.log(`\u001b[32m${logo}\u001b[0m`);

@@ -1,9 +1,10 @@
+import { first } from 'rxjs';
 import { join, resolve } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { createHash } from 'crypto';
 import { readFile, writeFile } from 'fs/promises';
 import { parentPort, MessagePort, TransferListItem } from 'worker_threads';
-import { Client, Config as Protocol, GroupRole, MessageRet } from 'oicq';
+import { ClientObserver, Config as Protocol, GroupRole, MessageRet, event } from 'amesu';
 
 // import { PortEventMap } from '../events';
 // import { getSetting, Setting, writeSetting } from '../profile/setting';
@@ -16,7 +17,7 @@ import { BotLinkChannelEvent, PluginMountEvent, PluginMessagePort, PluginUnmount
 
 interface ApiTaskEvent {
   id: string;
-  method: keyof Client;
+  method: keyof ClientObserver;
   params: unknown[];
 }
 
@@ -85,7 +86,7 @@ const admins: number[] = [
 const data_dir: string = join(__dataname, 'bot');
 const botPort: BotPort = parentPort as BotPort;
 
-export class Bot extends Client {
+export class Bot extends ClientObserver {
   private masters: number[];
   private profile: Profile;
   private pluginPort: Map<string, PluginMessagePort>;
@@ -113,7 +114,14 @@ export class Bot extends Client {
 
     this.proxyBotPortEvents();
     this.bindBotPortEvents();
-    this.once('system.online', this.onFirstOnline);
+    this
+      .pipe(
+        event('system.online'),
+        first(),
+      )
+      .subscribe(() => {
+        this.onFirstOnline()
+      })
   }
 
   private proxyBotPortEvents() {
@@ -299,7 +307,10 @@ export class Bot extends Client {
        */
       case 'qrcode':
         this
-          .on('system.login.qrcode', (event) => {
+          .pipe(
+            event('system.login.qrcode')
+          )
+          .subscribe(event => {
             // 扫码轮询
             const interval_id = setInterval(async () => {
               const { retcode } = await this.queryQrcodeResult();
@@ -311,14 +322,20 @@ export class Bot extends Client {
               }
             }, 2000);
           })
-          .once('system.login.error', (event) => {
+        this
+          .pipe(
+            event('system.login.error'),
+            first(),
+          )
+          .subscribe(event => {
             const { message } = event;
 
             this.terminate();
             this.logger.error(`当前账号无法登录，${message}`);
             throw new Error(message);
           })
-          .login();
+
+        this.login();
         break;
       /**
        * 密码登录
@@ -328,8 +345,15 @@ export class Bot extends Client {
        */
       case 'password':
         this
-          .on('system.login.slider', (event) => this.inputTicket())
-          .on('system.login.device', () => {
+          .pipe(
+            event('system.login.slider')
+          )
+          .subscribe(event => this.inputTicket())
+        this
+          .pipe(
+            event('system.login.device')
+          )
+          .subscribe(() => {
             // TODO ⎛⎝≥⏝⏝≤⎛⎝ 设备锁轮询，oicq 暂无相关 func
             this.logger.mark('验证完成后按回车键继续...');
 
@@ -340,7 +364,12 @@ export class Bot extends Client {
               name: 'thread.process.stdin',
             });
           })
-          .once('system.login.error', (event) => {
+        this
+          .pipe(
+            event('system.login.error'),
+            first(),
+          )
+          .subscribe(event => {
             const { message } = event;
 
             if (message.includes('密码错误')) {
@@ -364,7 +393,14 @@ export class Bot extends Client {
         this.logger.error(`你他喵的 "login_mode" 改错了 (ㅍ_ㅍ)`);
         throw new Error('invalid mode');
     }
-    return new Promise(resolve => this.once('system.online', resolve));
+    return new Promise(resolve => {
+      this
+        .pipe(
+          event('system.online'),
+          first(),
+        )
+        .subscribe(resolve)
+    });
   }
 
   private inputTicket(): void {
@@ -458,42 +494,57 @@ export class Bot extends Client {
   }
 
   // 绑定插件配置
-  private onBindSetting(event: BindSettingEvent) {
+  private onBindSetting(e: BindSettingEvent) {
     if (!this.isOnline()) {
-      this.once('system.online', () => {
-        this.emit('profile.bind.setting', event);
-      });
+      this
+        .pipe(
+          event('system.online'),
+          first(),
+        )
+        .subscribe(() => {
+          this.next({
+            name: 'profile.bind.setting',
+            event: e,
+          });
+        });
     } else {
-      this.emit('profile.bind.setting', event);
+      this.next({
+        name: 'profile.bind.setting',
+        event: e,
+      })
     }
   }
 
   // 绑定插件事件
-  private onBindEvent(event: BindListenEvent, port: PluginMessagePort) {
-    const { name, listen } = event;
+  private onBindEvent(e: BindListenEvent, port: PluginMessagePort) {
+    const { name, listen } = e;
 
-    this.on(listen, (e: any) => {
-      const disable = this.profile.disable.has(name);
+    this
+      .pipe(
+        event(listen)
+      )
+      .subscribe((event: any) => {
+        const disable = this.profile.disable.has(name);
 
-      if (disable) {
-        return;
-      }
+        if (disable) {
+          return;
+        }
 
-      for (const key in e) {
-        if (typeof e[key] === 'function') delete e[key];
-      }
+        for (const key in event) {
+          if (typeof event[key] === 'function') delete event[key];
+        }
 
-      if (listen.startsWith('message')) {
-        e.permission_level = this.getUserLevel(e);
-      }
-      if (e.message_type === 'group') {
-        e.setting = this.profile.getSetting(e.group_id, name);
-      }
+        if (listen.startsWith('message')) {
+          event.permission_level = this.getUserLevel(event);
+        }
+        if (event.message_type === 'group') {
+          event.setting = this.profile.getSetting(event.group_id, name);
+        }
 
-      port.postMessage({
-        name: listen, event: e,
+        port.postMessage({
+          name: listen, event,
+        });
       });
-    });
     this.logger.info(`绑定 ${name} 插件 ${listen} 事件`);
   }
 
@@ -552,12 +603,21 @@ export class Bot extends Client {
    * 绑定事件监听
    */
   private bindEvents(): void {
-    this.removeAllListeners('system.login.slider');
-    this.removeAllListeners('system.login.device');
-    this.removeAllListeners('system.login.qrcode');
+    // TODO ⎛⎝≥⏝⏝≤⎛⎝ unsubscribe subject
+    // this.removeAllListeners('system.login.slider');
+    // this.removeAllListeners('system.login.device');
+    // this.removeAllListeners('system.login.qrcode');
 
-    this.on('system.online', this.onOnline);
-    this.on('system.offline', this.onOffline);
+    this
+      .pipe(
+        event('system.online'),
+      )
+      .subscribe(() => this.onOnline)
+    this
+      .pipe(
+        event('system.offline')
+      )
+      .subscribe(() => this.onOffline)
   }
 
   /**

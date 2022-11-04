@@ -1,7 +1,7 @@
 import { join } from 'path';
 import { writeFileSync } from 'fs';
 import { writeFile } from 'fs/promises';
-import { MemberDecreaseEvent, MemberIncreaseEvent } from 'oicq';
+import { MemberDecreaseEvent, MemberIncreaseEvent, event } from 'amesu';
 
 import { Bot } from '@/core';
 import { PluginSetting } from '@/plugin';
@@ -61,9 +61,21 @@ export class Profile {
    * 绑定事件监听
    */
   private bindEvents(): void {
-    this.bot.on('profile.bind.setting', (event) => this.onBindSetting(event));
-    this.bot.on('notice.group.increase', (event) => this.onGroupIncrease(event));
-    this.bot.on('notice.group.decrease', (event) => this.onGroupDecrease(event));
+    this.bot
+      .pipe(
+        event<any>('profile.bind.setting')
+      )
+      .subscribe(event => this.onBindSetting(event))
+    this.bot
+      .pipe(
+        event<any>('notice.group.increase')
+      )
+      .subscribe(event => this.onGroupIncrease(event))
+    this.bot
+      .pipe(
+        event<any>('notice.group.decrease')
+      )
+      .subscribe(event => this.onGroupDecrease(event))
   }
 
   // TODO ⎛⎝≥⏝⏝≤⎛⎝ 使用 proxy 重构
