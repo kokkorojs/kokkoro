@@ -16,6 +16,6 @@ export const UPDAY: string = upday;
 export const VERSION: string = version;
 export const CHANGELOGS: string = changelogs;
 
+export { setup } from '@/worker';
 export { Profile } from '@/config';
-export { runWorkerThreads } from '@/worker';
 export { Plugin, PluginSetting } from '@/plugin';

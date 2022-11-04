@@ -1,4 +1,4 @@
-import { MessageElem } from 'oicq';
+import { MessageElem } from 'amesu';
 
 import { BotApiParams, Plugin } from '@/plugin';
 import { Context } from '@/events';

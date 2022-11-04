@@ -1,4 +1,4 @@
-import { DiscussMessage, EventMap, GroupMessage, PrivateMessage } from 'oicq';
+import { DiscussMessage, ClientEventMap, GroupMessage, PrivateMessage, ClientEvent } from 'amesu';
 
 import { Bot, BotMessage, UserLevel } from '@/core';
 import { BotApiParams, PluginInfo, PluginMessage, PluginSetting } from '@/plugin';
@@ -16,14 +16,14 @@ type OmitType<T, P> = Omit<
 >;
 
 /** 消息事件名 */
-export type EventName = keyof EventMap;
+export type EventName = keyof ClientEventMap;
 
 /** 获取事件回调 event 参数 */
 export type Parameter<T> = T extends (event: infer P) => void ? P : never;
 
 /** bot 线程消息地图 */
 type PostMessageMap = {
-  [Key in EventName]: (event: OmitType<Parameter<EventMap[Key]>, Function>) => void;
+  [Key in EventName]: (event: OmitType<ClientEventMap[Key], Function>) => void;
 };
 
 // /** 线程事件 */
