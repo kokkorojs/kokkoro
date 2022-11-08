@@ -1,7 +1,7 @@
 {
   "name": "kokkoro",
   "version": "1.1.0",
-  "upday": "2022/11/7",
+  "upday": "2022/11/8",
   "description": "とある咕咕の QQ 机器人框架",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -11,8 +11,7 @@
   "scripts": {
     "build": "tsc && tsc-alias",
     "build:watch": "tsc && (concurrently \"tsc -w\" \"tsc-alias -w\")",
-    "test": "node test/main.js",
-    "start": "npm run build && node lib/index.js"
+    "test": "node test/main.js"
   },
   "repository": {
     "type": "git",
@@ -33,7 +32,7 @@
   "homepage": "https://github.com/kokkorojs/kokkoro#readme",
   "changelogs": "https://github.com/kokkorojs/kokkoro/releases",
   "dependencies": {
-    "amesu": "^1.0.1",
+    "amesu": "^1.1.3",
     "cron": "^2.1.0",
     "uuid": "^9.0.0"
   },
@@ -43,7 +42,7 @@
     "@types/uuid": "^8.3.4",
     "log4js": "^6.7.0",
     "rxjs": "^7.5.7",
-    "tsc-alias": "^1.7.0"
+    "tsc-alias": "^1.7.1"
   },
   "files": [
     "lib"
