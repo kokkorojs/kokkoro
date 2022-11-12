@@ -1,2 +1,2 @@
 import '@/kokkoro';
-export { Bot, BotConfig, BotMessage, BotPostMessage, UserLevel } from '@/core/bot';
+export * from '@/core/bot';

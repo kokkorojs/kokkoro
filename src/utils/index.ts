@@ -82,9 +82,6 @@ export function deepProxy<T extends { [key: string]: any }>(target: T, handler: 
   return new Proxy(target, handler);
 }
 
-// export { debounce } from '@/utils/debounce';
-// export { throttle } from '@/utils/throttle';
-
 /**
  * 防抖函数
  * 
