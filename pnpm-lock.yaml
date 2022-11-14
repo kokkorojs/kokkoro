@@ -4,7 +4,7 @@ specifiers:
   '@types/cron': ^2.0.0
   '@types/node': ^18.11.9
   '@types/uuid': ^8.3.4
-  amesu: ^1.1.3
+  amesu: ^1.2.0
   cron: ^2.1.0
   log4js: ^6.7.0
   rxjs: ^7.5.7
@@ -12,7 +12,7 @@ specifiers:
   uuid: ^9.0.0
 
 dependencies:
-  amesu: 1.1.3
+  amesu: 1.2.0
   cron: 2.1.0
   uuid: 9.0.0
 
@@ -66,8 +66,8 @@ packages:
     resolution: {integrity: sha512-c/I8ZRb51j+pYGAu5CrFMRxqZ2ke4y2grEBO5AUjgSkSk+qT2Ea+OdWElz/OiMf5MNpn2b17kuVBwZLQJXzihw==}
     dev: true
 
-  /amesu/1.1.3:
-    resolution: {integrity: sha512-5tknGw1bg9Vn47TbzBERw8AoMiHF/2Fu1blFKHC1eOQRdVoHbk5wlMpO5vt1Uz+QbmuafVDG8FM/7WZbK4QTOw==}
+  /amesu/1.2.0:
+    resolution: {integrity: sha512-i+KC2HnnuTGf9pq90FQsYS0U2wy0roAXA15eZLDo9L2H57nVdVC1D776GWW0ZjsPTo9glcBaCK1vJKwMh2Pn9A==}
     engines: {node: '>=14', pnpm: '>=3'}
     dependencies:
       axios: 1.1.3
@@ -419,8 +419,8 @@ packages:
     engines: {node: '>=8.6'}
     dev: true
 
-  /plimit-lit/1.4.1:
-    resolution: {integrity: sha512-bK14ePAod0XWhXwjT6XvYfjcQ9PbCUkZXnDCAKRMZTJCaDIV9VFya1S/I+3WSbpdR8uBhCDh8TS4lQ/JQvhNFA==}
+  /plimit-lit/1.5.0:
+    resolution: {integrity: sha512-Eb/MqCb1Iv/ok4m1FqIXqvUKPISufcjZ605hl3KM/n8GaX8zfhtgdLwZU3vKjuHGh2O9Rjog/bHTq8ofIShdng==}
     dependencies:
       queue-lit: 1.5.0
     dev: true
@@ -525,7 +525,7 @@ packages:
       globby: 11.1.0
       mylas: 2.1.13
       normalize-path: 3.0.0
-      plimit-lit: 1.4.1
+      plimit-lit: 1.5.0
     dev: true
 
   /tslib/2.4.1:

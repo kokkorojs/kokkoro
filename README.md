@@ -152,8 +152,8 @@ kokkoro start
 | 子线程逻辑优化（自启，热更...） | 🟢 |
 | 群聊权限适配 | 🟢 |
 | example 完善 | 🔵 |
-| web 路由服务 | 🔴 |
-| 多 bot 管理 | 🔴 |
+| web 路由服务 | 🟡 |
+| 多 bot 管理 | 🟡 |
 | QQ 频道支持 | 🔴 |
 
 ### 插件适配
@@ -165,8 +165,8 @@ kokkoro start
 | group | 🟡 |
 | setu | 🟡 |
 | pcr | 🟡 |
+| saucenao | 🟡 |
 | rss | 🔴 |
-| saucenao | 🔴 |
 | sandbox | 🔴 |
 | aircon | 🔴 |
 | chess | 🔴 |
@@ -174,12 +174,6 @@ kokkoro start
 | lifeRestart | 🔴 |
 | qa | 🔴 |
 | galgame | 🔴 |
-
-### 核心库拆分
-
-- @kokkoro/core
-- @kokkoro/utils
-- @kokkoro/jsondb
 
 ## 补充
 
