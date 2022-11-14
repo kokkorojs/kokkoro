@@ -36,6 +36,10 @@ export type BotApiParams<T extends Bot[keyof Bot]> = T extends (...args: any) =>
   ? Parameters<T>
   : [];
 
+export type BotApiReturnType<K extends keyof Bot> = Promise<
+  Bot[K] extends (...args: any) => any ? ReturnType<Bot[K]> : Bot[K]
+>;
+
 interface PluginParentPort extends MessagePort {
   //   postMessage(message: PluginPostMessage, transferList?: ReadonlyArray<TransferListItem>): void;
 
@@ -229,9 +233,7 @@ export class Plugin {
     return this._version;
   }
 
-  async botApi<K extends keyof Bot>(uin: number, method: K, ...params: BotApiParams<Bot[K]>): Promise<
-    Bot[K] extends (...args: any) => any ? ReturnType<Bot[K]> : Bot[K]
-  > {
+  async botApi<K extends keyof Bot>(uin: number, method: K, ...params: BotApiParams<Bot[K]>): BotApiReturnType<K> {
     if (!this.broadcasts.has(uin)) {
       throw new Error(`未与 broadcast(${uin}) 连接通信`);
     }
