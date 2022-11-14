@@ -3,9 +3,9 @@ import { Subscription, take } from 'rxjs';
 import { parentPort, MessagePort, TransferListItem, isMainThread } from 'worker_threads';
 import { ClientEvent, ClientEventMap, ClientObserver, Config as Protocol, event, GroupRole, MessageRet } from 'amesu';
 
-import { Profile } from '@/config';
 import { deepMerge } from '@/utils';
 import { BotEventMap } from '@/events';
+import { Profile, Setting } from '@/config';
 import { Option, retrievalPlugins } from '@/plugin';
 import { Broadcast, BroadcastLinkEvent } from '@/worker';
 
@@ -118,16 +118,18 @@ export class Bot extends ClientObserver {
 
     this
       .subscribe(event => {
+        const { name, group_id } = event;
+
         for (const key in event) {
           if (typeof event[key] === 'function') delete event[key];
         }
         // message 事件才会有 permission_level
-        if (event.name.startsWith('message')) {
+        if (name.startsWith('message')) {
           event.permission_level = this.getPermissionLevel(event);
         }
         // 所有 group 相关事件都会有 setting
-        if (event.group_id) {
-          event.setting = this.getSetting(event.group_id);
+        if (group_id) {
+          event.setting = this.getSetting(group_id);
         }
         event.disable = this.profile.disable;
 
@@ -276,8 +278,19 @@ export class Bot extends ClientObserver {
    * @param group_id - 群号
    * @returns 群插件设置
    */
-  private getSetting(group_id: number) {
+  getSetting(group_id: number): Setting {
     return this.profile.group[group_id].setting;
+  }
+
+  /**
+   * 获取群插件配置项
+   * 
+   * @param group_id - 群号
+   * @param name - 插件名
+   * @returns 群插件配置项
+   */
+  getOption(group_id: number, name: string): Option {
+    return this.profile.group[group_id].setting[name];
   }
 
   /**
