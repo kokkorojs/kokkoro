@@ -1,27 +1,34 @@
-import { Bot } from '@/core';
-import { Event, EventName } from '@/events';
+import { Event } from '@/events';
+import { Bot, BotEventName } from "@/core";
 import { BotApiParams, Plugin } from '@/plugin';
+import { MessageElem } from 'amesu';
 
-export class Listen<K extends EventName = any>  {
-  public func?: (event: Event<K>) => any;
+export class Listen<K extends BotEventName = any>  {
+  private func?: (event: Event<K>) => any;
 
   constructor(
-    private event_name: string,
-    public plugin: Plugin,
+    private plugin: Plugin,
   ) {
+
   }
 
   run(event: Event<K>) {
-    // if (['message', 'message.group', 'message.private'].includes(this.event_name)) {
-    // }
-
-    event.botApi = <K extends keyof Bot>(method: K, ...params: BotApiParams<Bot[K]>) => {
-      return this.plugin.botApi(event.self_id, method, ...params);
-    }
-
     if (!this.func) {
       return;
     }
+    event.botApi = <K extends keyof Bot>(method: K, ...params: BotApiParams<Bot[K]>) => {
+      return this.plugin.botApi(event.self_id, method, ...params);
+    }
+    event.reply = (message: string | MessageElem[]) => {
+      const { self_id, group_id, user_id } = event;
+
+      if (group_id) {
+        return this.plugin.botApi(self_id, 'sendGroupMsg', group_id, message);
+      } else if (user_id) {
+        return this.plugin.botApi(self_id, 'sendPrivateMsg', user_id, message);
+      }
+    }
+
     this.func(event);
   }
 

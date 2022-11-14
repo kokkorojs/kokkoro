@@ -2,6 +2,7 @@ import { resolve } from 'path';
 
 import '@/kokkoro';
 import { BotConfig } from '@/core';
+import { deepClone } from '@/utils';
 
 /** kokkoro 全局配置 */
 export type GlobalConfig = {
@@ -22,7 +23,7 @@ const config_path: string = resolve(__workname, 'kokkoro.json');
 const config: GlobalConfig = require(config_path);
 
 export function getConfig<T extends keyof GlobalConfig>(key: T): GlobalConfig[T] {
-  return config[key];
+  return deepClone(config[key]);
 }
 
-export { Profile, BindSettingEvent } from '@/config/profile';
+export * from '@/config/profile';

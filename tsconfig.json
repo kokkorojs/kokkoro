@@ -15,9 +15,6 @@
       "@/kokkoro": [
         "src/index"
       ],
-      "@/types": [
-        "types"
-      ],
     },
     "declaration": true,
     "outDir": "lib",
@@ -28,5 +25,12 @@
   },
   "include": [
     "src"
-  ]
+  ],
+  "tsc-alias": {
+    "replacers": {
+      "base-url": {
+        "enabled": false
+      }
+    }
+  }
 }
