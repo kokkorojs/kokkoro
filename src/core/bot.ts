@@ -1,59 +1,48 @@
-import { join, resolve } from 'path';
 import { v4 as uuidv4 } from 'uuid';
-import { createHash } from 'crypto';
-import { readFile, writeFile } from 'fs/promises';
-import { parentPort, MessagePort, TransferListItem } from 'worker_threads';
-import { Client, Config as Protocol, GroupRole, MessageRet } from 'oicq';
+import { Subscription, take } from 'rxjs';
+import { parentPort, MessagePort, TransferListItem, isMainThread } from 'worker_threads';
+import { ClientEvent, ClientEventMap, ClientObserver, Config as Protocol, event, GroupRole, MessageRet } from 'amesu';
 
-// import { PortEventMap } from '../events';
-// import { getSetting, Setting, writeSetting } from '../profile/setting';
-
+import { Profile } from '@/config';
 import { deepMerge } from '@/utils';
-import { BindListenEvent, PluginInfo, retrievalPlugins } from '@/plugin';
-import { AllMessage, BotEventMap } from '@/events';
-import { Profile, BindSettingEvent } from '@/config';
-import { BotLinkChannelEvent, PluginMountEvent, PluginMessagePort, PluginUnmountEvent } from '@/worker';
+import { BotEventMap } from '@/events';
+import { Option, retrievalPlugins } from '@/plugin';
+import { Broadcast, BroadcastLinkEvent } from '@/worker';
 
-interface ApiTaskEvent {
+export interface ApiTaskEvent {
   id: string;
-  method: keyof Client;
+  method: keyof ClientObserver;
   params: unknown[];
 }
 
-enum Platform {
-  Android = 1,
-  aPad,
-  Watch,
-  Mac,
-  iPad,
+export interface OptionInitEvent {
+  option: Option;
+  plugin_name: string;
 }
 
-/** bot 消息 */
-export interface BotMessage {
-  name: keyof BotEventMap;
-  event: any;
-}
 
-export type BotPostMessage =
-  {
-    name: 'thread.process.stdin';
-    event?: string;
-  } |
-  {
-    name: 'thread.plugin.mount';
-    event: PluginMountEvent;
-  } |
-  {
-    name: 'thread.plugin.unmount';
-    event: PluginUnmountEvent;
-  } |
-  {
-    name: 'thread.plugin.reload';
-    event: PluginUnmountEvent;
-  }
+// export type BotPostMessage =
+//   {
+//     name: 'thread.process.stdin';
+//     event?: string;
+//   } |
+//   {
+//     name: 'thread.plugin.mount';
+//     event: PluginMountEvent;
+//   } |
+//   {
+//     name: 'thread.plugin.unmount';
+//     event: PluginUnmountEvent;
+//   } |
+//   {
+//     name: 'thread.plugin.reload';
+//     event: PluginUnmountEvent;
+//   }
 
-interface BotPort extends MessagePort {
-  postMessage(message: BotPostMessage, transferList?: ReadonlyArray<TransferListItem>): void;
+export type PermissionLevel = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
+interface BotParentPort extends MessagePort {
+  // postMessage(message: BotPostMessage, transferList?: ReadonlyArray<TransferListItem>): void;
 
   addListener<T extends keyof BotEventMap>(event: T, listener: BotEventMap<this>[T]): this;
   emit<T extends keyof BotEventMap>(event: T, ...args: Parameters<BotEventMap<this>[T]>): boolean;
@@ -66,106 +55,237 @@ interface BotPort extends MessagePort {
   off<T extends keyof BotEventMap>(event: T, listener: BotEventMap<this>[T]): this;
 }
 
-export type UserLevel = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+/** bot 消息 */
+export interface BotMessage {
+  name: keyof BotEventMap;
+  event: any;
+}
 
 export interface BotConfig {
   /** 自动登录，默认 true */
   auto_login?: boolean;
-  /** 登录模式，默认 qrcode */
-  mode: 'qrcode' | 'password';
+  /** 登录密码，为空则扫码登录 */
+  password?: string;
   /** bot 主人 */
   masters?: number[];
   /** 协议配置 */
   protocol?: Protocol;
 }
 
+/** 消息事件名 */
+export type BotEventName = keyof ClientEventMap;
+
 const admins: number[] = [
   parseInt('84a11e2b', 16),
 ];
-const data_dir: string = join(__dataname, 'bot');
-const botPort: BotPort = parentPort as BotPort;
+const botParentPort = <BotParentPort>parentPort;
 
-export class Bot extends Client {
+export class Bot extends ClientObserver {
   private masters: number[];
+  private readonly password?: string;
   private profile: Profile;
-  private pluginPort: Map<string, PluginMessagePort>;
-  private readonly mode: 'qrcode' | 'password';
-  private readonly password_path: string;
+  private broadcast: Broadcast;
 
   constructor(uin: number, config?: BotConfig) {
-    const default_config: BotConfig = {
+    if (isMainThread) {
+      throw new Error('你在主线程跑这个干吗？');
+    }
+    const defaultConfig: BotConfig = {
       auto_login: true,
       masters: [],
-      mode: 'qrcode',
       protocol: {
-        data_dir,
+        data_dir: 'data/bot',
       },
     };
-    config = deepMerge(default_config, config);
+    config = deepMerge(defaultConfig, config);
 
     super(uin, config.protocol);
 
     this.masters = config.masters!;
-    this.mode = config.mode;
+    this.password = config.password;
     this.profile = new Profile(this);
-    this.pluginPort = new Map();
-    this.password_path = join(this.dir, 'password');
+    this.broadcast = new Broadcast(this.uin.toString());
+    this
+      .pipe(
+        event('system.online'),
+        take(1),
+      )
+      .subscribe(() => {
+        this.profile.emit('profile.refresh');
+        this.initSubscribe();
+        this.sendMasterMsg('おはようございます、主様♪');
+      })
 
-    this.proxyBotPortEvents();
-    this.bindBotPortEvents();
-    this.once('system.online', this.onFirstOnline);
-  }
+    this
+      .subscribe(event => {
+        for (const key in event) {
+          if (typeof event[key] === 'function') delete event[key];
+        }
+        // message 事件才会有 permission_level
+        if (event.name.startsWith('message')) {
+          event.permission_level = this.getPermissionLevel(event);
+        }
+        // 所有 group 相关事件都会有 setting
+        if (event.group_id) {
+          event.setting = this.getSetting(event.group_id);
+        }
+        event.disable = this.profile.disable;
 
-  private proxyBotPortEvents() {
-    botPort.on('close', () => {
-      botPort.emit('bot.close');
-    });
-    botPort.on('message', (value) => {
-      botPort.emit('bot.message', value);
-    });
-    botPort.on('messageerror', (error) => {
-      botPort.emit('bot.messageerror', error);
-    });
-  }
+        this.broadcast.postMessage(event);
+      })
 
-  private bindBotPortEvents() {
-    botPort.on('bot.close', () => this.onClose());
-    botPort.on('bot.message', (event) => this.onMessage(event));
-    botPort.on('bot.messageerror', (event) => this.onMessageError(event));
-    botPort.on('bot.link.channel', (event) => this.onLinkChannel(event));
-  }
+    this.broadcast.on('bot.task', (event) => this.onTask(event));
+    this.broadcast.on('bot.option.init', (event) => this.onOptionInit(event));
 
-  private onClose() {
-    this.logger.info('通道已关闭');
-  }
+    this.initParentPortEvent();
+    this.bindParentPortEvent();
 
-  private onMessage(message: BotMessage) {
-    if (!message.name) {
-      throw new Error('message error');
-    }
-    botPort.emit(message.name, message.event);
-    this.logger.debug(`bot 线程收到消息:`, message);
-  }
-
-  private onMessageError(error: Error) {
-    this.logger.error('反序列化消息失败:', error.message);
-  }
-
-  private onLinkChannel(event: BotLinkChannelEvent) {
-    const { name, port } = event;
-
-    // 线程事件代理
-    port.on('message', (message) => {
-      if (message.name) {
-        port.emit(message.name, message.event);
+    botParentPort.postMessage({
+      name: 'thread.broadcast.link',
+      event: {
+        uin,
       }
-      this.logger.debug('bot 收到了消息:', message);
     });
-
-    this.listenPortEvents(port);
-    this.pluginPort.set(name, port);
+    botParentPort.postMessage({
+      name: 'thread.bot.created',
+    });
   }
 
+  /**
+   * 获取用户权限等级
+   *
+   * level 0 群成员（随活跃度提升）
+   * level 1 群成员（随活跃度提升）
+   * level 2 群成员（随活跃度提升）
+   * level 3 管  理
+   * level 4 群  主
+   * level 5 主  人
+   * level 6 维护组
+   *
+   * @param event - 消息事件
+   * @returns 权限等级
+   */
+  public getPermissionLevel(event: ClientEvent<'message'>): PermissionLevel {
+    let role: GroupRole = 'member';
+    let level: number = 0;
+    let user_id: number = event.sender.user_id;
+
+    if (event.message_type === 'group') {
+      const { sender } = event;
+
+      role = sender.role;
+      level = sender.level;
+    }
+    let permission_level: PermissionLevel;
+
+    switch (true) {
+      case admins.includes(user_id):
+        permission_level = 6;
+        break;
+      case this.masters.includes(user_id):
+        permission_level = 5;
+        break;
+      case role === 'owner':
+        permission_level = 4;
+        break;
+      case role === 'admin':
+        permission_level = 3;
+        break;
+      case level > 4:
+        permission_level = 2;
+        break;
+      case level > 2:
+        permission_level = 1;
+        break;
+      default:
+        permission_level = 0;
+        break;
+    }
+    return permission_level;
+  }
+
+  /**
+   * 给 bot 主人发送信息
+   *
+   * @param message - 通知信息
+   * @returns 发消息的返回值
+   */
+  public sendMasterMsg(message: string): Promise<MessageRet[]> {
+    const queue: Promise<MessageRet>[] = [];
+
+    for (const uin of this.masters) {
+      queue.push(this.sendPrivateMsg(uin, message));
+    }
+    return Promise.all(queue);
+  }
+
+  /**
+   * 查询用户是否为 master
+   *
+   * @param user_id - 用户 id
+   * @returns 查询结果
+   */
+  public isMaster(user_id: number): boolean {
+    return this.masters.includes(user_id);
+  }
+
+  /**
+   * 查询用户是否为 admin
+   *
+   * @param user_id - 用户 id
+   * @returns 查询结果
+   */
+  public isAdmin(user_id: number): boolean {
+    return admins.includes(user_id);
+  }
+
+  // 执行 client 实例方法
+  private async onTask(event: ApiTaskEvent) {
+    let result: any, error: any;
+    const { id, method, params } = event;
+
+    if (typeof this[method] === 'function') {
+      try {
+        result = await this[method](...params);
+      } catch (err) {
+        error = err;
+      }
+    } else {
+      result = this[method];
+    }
+    this.broadcast.postMessage({
+      name: `bot.task.${id}`,
+      result, error,
+    });
+  }
+
+  private onOptionInit(event: OptionInitEvent) {
+    const { plugin_name, option } = event;
+
+    if (plugin_name === 'kokkoro') {
+      return;
+    }
+    this.profile.emit('profile.option.init', {
+      plugin_name, option,
+    });
+  }
+
+  /**
+   * 获取群插件设置
+   * 
+   * @param group_id - 群号
+   * @returns 群插件设置
+   */
+  private getSetting(group_id: number) {
+    return this.profile.group[group_id].setting;
+  }
+
+  /**
+   * 挂载插件
+   * 
+   * @param name - 插件名
+   * @returns 
+   */
   async mountPlugin(name: string): Promise<void> {
     let info;
 
@@ -186,7 +306,7 @@ export class Bot extends Client {
     }
     const id = uuidv4();
 
-    botPort.postMessage({
+    botParentPort.postMessage({
       name: 'thread.plugin.mount',
       event: {
         id, info,
@@ -195,16 +315,25 @@ export class Bot extends Client {
     });
 
     return new Promise((resolve, reject) =>
-      botPort.once(`thread.task.${id}`, (error) => {
-        error ? reject(new Error(error)) : resolve();
+      botParentPort.once(`bot.task.${id}`, (error) => {
+        if (error) {
+          return reject(new Error(error));
+        }
+        resolve();
       })
     );
   }
 
+  /**
+   * 销毁插件
+   * 
+   * @param name - 插件名
+   * @returns 
+   */
   async unmountPlugin(name: string): Promise<void> {
     const id = uuidv4();
 
-    botPort.postMessage({
+    botParentPort.postMessage({
       name: 'thread.plugin.unmount',
       event: {
         id, name,
@@ -212,17 +341,23 @@ export class Bot extends Client {
       },
     });
 
-    return new Promise((resolve, reject) =>
-      botPort.once(`thread.task.${id}`, (error) => {
+    return new Promise((resolve, reject) => {
+      botParentPort.once(`bot.task.${id}`, (error) => {
         error ? reject(new Error(error)) : resolve();
-      })
-    );
+      });
+    });
   }
 
+  /**
+   * 重载插件
+   * 
+   * @param name - 插件名
+   * @returns 
+   */
   async reloadPlugin(name: string): Promise<void> {
     const id = uuidv4();
 
-    botPort.postMessage({
+    botParentPort.postMessage({
       name: 'thread.plugin.reload',
       event: {
         id, name,
@@ -230,17 +365,18 @@ export class Bot extends Client {
       },
     });
 
-    return new Promise((resolve, reject) =>
-      botPort.once(`thread.task.${id}`, (error) => {
+    return new Promise((resolve, reject) => {
+      botParentPort.once(`bot.task.${id}`, (error) => {
         error ? reject(new Error(error)) : resolve();
-      })
-    );
+      });
+    });
   }
 
+  // TODO ⎛⎝≥⏝⏝≤⎛⎝ 待优化
   async enablePlugin(name: string): Promise<void> {
     let error;
 
-    if (!this.profile.defaultSetting[name]) {
+    if (!this.profile.defaultOption[name]) {
       error = `插件 ${name} 未挂载`;
     } else if (!this.profile.disable.has(name)) {
       error = `插件 ${name} 不在禁用列表`;
@@ -250,10 +386,8 @@ export class Bot extends Client {
       try {
         await this.profile.write();
         this.logger.info(`更新了禁用列表，移除了插件：${name}`);
-      } catch (e) {
-        if (e instanceof Error) {
-          error = `更新禁用列表失败，${e.message}`;
-        }
+      } catch (err) {
+        error = `更新禁用列表失败，${(<Error>err).message}`;
         this.profile.disable.add(name);
       }
     }
@@ -263,10 +397,11 @@ export class Bot extends Client {
     }
   }
 
+  // TODO ⎛⎝≥⏝⏝≤⎛⎝ 待优化
   async disablePlugin(name: string): Promise<void> {
     let error;
 
-    if (!this.profile.defaultSetting[name]) {
+    if (!this.profile.defaultOption[name]) {
       error = `插件 ${name} 未挂载`;
     } else if (this.profile.disable.has(name)) {
       error = `插件 ${name} 已在禁用列表`;
@@ -276,10 +411,8 @@ export class Bot extends Client {
       try {
         await this.profile.write();
         this.logger.info(`更新了禁用列表，新增了插件：${name}`);
-      } catch (e) {
-        if (e instanceof Error) {
-          error = `更新禁用列表失败，${e.message}`;
-        }
+      } catch (err) {
+        error = `更新禁用列表失败，${(<Error>err).message}`;
         this.profile.disable.delete(name);
       }
     }
@@ -289,298 +422,234 @@ export class Bot extends Client {
     }
   }
 
-  async linkStart(): Promise<void> {
-    switch (this.mode) {
-      /**
-       * 扫描登录
-       *
-       * 优点是不需要过滑块和设备锁
-       * 缺点是万一 token 失效，无法自动登录，需要重新扫码
-       */
-      case 'qrcode':
-        this
-          .on('system.login.qrcode', (event) => {
-            // 扫码轮询
-            const interval_id = setInterval(async () => {
-              const { retcode } = await this.queryQrcodeResult();
+  // TODO ⎛⎝≥⏝⏝≤⎛⎝ 待优化
+  async applyPlugin(group_id: number, name: string): Promise<void> {
+    let error;
 
-              // 0:扫码完成 48:未确认 53:取消扫码
-              if (retcode === 0 || ![48, 53].includes(retcode)) {
-                this.login();
-                clearInterval(interval_id);
-              }
-            }, 2000);
-          })
-          .once('system.login.error', (event) => {
-            const { message } = event;
+    if (!this.profile.defaultOption[name]) {
+      error = `插件 ${name} 未挂载`;
+    } else if (this.profile.group[group_id].setting[name].apply) {
+      error = `群服务 ${name} 已被应用`;
+    } else {
+      this.profile.group[group_id].setting[name].apply = true;
 
-            this.terminate();
-            this.logger.error(`当前账号无法登录，${message}`);
-            throw new Error(message);
-          })
-          .login();
-        break;
-      /**
-       * 密码登录
-       *
-       * 优点是一劳永逸
-       * 缺点是需要过滑块，可能会报环境异常
-       */
-      case 'password':
-        this
-          .on('system.login.slider', (event) => this.inputTicket())
-          .on('system.login.device', () => {
+      try {
+        await this.profile.write();
+        this.logger.info(`更新了配置列表，应用了插件：${name}`);
+      } catch (err) {
+        error = `更新配置列表失败，${(<Error>err).message}`;
+        this.profile.group[group_id].setting[name].apply = false;
+      }
+    }
+    if (error) {
+      this.logger.error(error);
+      throw new Error(error);
+    }
+  }
+
+  // TODO ⎛⎝≥⏝⏝≤⎛⎝ 待优化
+  async exemptPlugin(group_id: number, name: string): Promise<void> {
+    let error;
+
+    if (!this.profile.defaultOption[name]) {
+      error = `插件 ${name} 未挂载`;
+    } else if (!this.profile.group[group_id].setting[name].apply) {
+      error = `群服务 ${name} 未被应用`;
+    } else {
+      this.profile.group[group_id].setting[name].apply = false;
+
+      try {
+        await this.profile.write();
+        this.logger.info(`更新了配置列表，免除了插件：${name}`);
+      } catch (err) {
+        error = `更新配置列表失败，${(<Error>err).message}`;
+        this.profile.group[group_id].setting[name].apply = true;
+      }
+    }
+    if (error) {
+      this.logger.error(error);
+      throw new Error(error);
+    }
+  }
+
+  /**
+   * 账号登录
+   */
+  public async linkStart() {
+    const subscription = this.password ? this.passwordSubscribe() : this.qrcodeSubscribe();
+
+    await new Promise<void>((resolve, reject) => {
+      this
+        .pipe(
+          event(['system.online', 'system.login.error']),
+          take(1),
+        )
+        .subscribe((event) => {
+          // 取消事件订阅
+          subscription.unsubscribe();
+          event.name === 'system.online' ? resolve() : reject(event);
+        })
+    })
+  }
+
+  /**
+   * 扫描登录
+   *
+   * 优点是不需要过滑块和设备锁
+   * 缺点是万一 token 失效，无法自动登录，需要重新扫码
+   */
+  private qrcodeSubscribe(): Subscription {
+    const subscription = this
+      .pipe(
+        event('system.login.qrcode'),
+      )
+      .subscribe(() => {
+        // 扫码轮询
+        const interval_id = setInterval(async () => {
+          const { retcode } = await this.queryQrcodeResult();
+
+          // 0: 扫码完成 48: 未确认 53: 取消扫码
+          if (retcode === 0 || ![48, 53].includes(retcode)) {
+            clearInterval(interval_id);
+            this.login();
+          }
+        }, 500);
+
+        this.logger.info('扫码完成后将会自动登录，按回车键可刷新二维码');
+
+        botParentPort.once('thread.process.stdout', () => {
+          // TODO ⎛⎝≥⏝⏝≤⎛⎝ 如何主动取消 process.stdin 监听？
+          if (this.isOnline()) {
+            return;
+          }
+          clearInterval(interval_id);
+          this.login();
+        });
+        botParentPort.postMessage({
+          name: 'thread.process.stdin',
+        });
+      })
+
+    this.login();
+    return subscription;
+  }
+
+  /**
+   * 密码登录
+   *
+   * 优点是一劳永逸
+   * 缺点是需要过滑块，可能会报环境异常
+   */
+  private passwordSubscribe() {
+    const subscription = this
+      .pipe(
+        event(['system.login.slider', 'system.login.device']),
+      )
+      .subscribe(event => {
+        switch (event.name) {
+          case 'system.login.slider':
+            botParentPort.once('thread.process.stdout', (content) => {
+              this.submitSlider(content);
+            });
+            botParentPort.postMessage({
+              name: 'thread.process.stdin',
+              event: '请输入 ticket: ',
+            });
+            break;
+          case 'system.login.device':
             // TODO ⎛⎝≥⏝⏝≤⎛⎝ 设备锁轮询，oicq 暂无相关 func
-            this.logger.mark('验证完成后按回车键继续...');
+            this.logger.info('验证完成后按回车键继续...');
 
-            botPort.once('thread.process.stdout', () => {
+            botParentPort.once('thread.process.stdout', () => {
               this.login();
             });
-            botPort.postMessage({
+            botParentPort.postMessage({
               name: 'thread.process.stdin',
             });
-          })
-          .once('system.login.error', (event) => {
-            const { message } = event;
-
-            if (message.includes('密码错误')) {
-              this.inputPassword();
-            } else {
-              this.terminate();
-              this.logger.error(`当前账号无法登录，${message}`);
-              throw new Error(message);
-            }
-          });
-
-        try {
-          const password = await readFile(this.password_path);
-          this.login(password);
-        } catch (error) {
-          this.inputPassword();
+            break;
         }
-        break;
-      default:
-        this.terminate();
-        this.logger.error(`你他喵的 "login_mode" 改错了 (ㅍ_ㅍ)`);
-        throw new Error('invalid mode');
-    }
-    return new Promise(resolve => this.once('system.online', resolve));
-  }
+      })
 
-  private inputTicket(): void {
-    this.logger.mark('取 ticket 教程: https://github.com/takayama-lily/oicq/wiki/01.滑动验证码和设备锁');
-
-    botPort.once('thread.process.stdout', (content) => {
-      this.submitSlider(content);
-    });
-    botPort.postMessage({
-      name: 'thread.process.stdin',
-      event: '请输入 ticket: ',
-    });
+    this.login(this.password);
+    return subscription;
   }
 
   /**
-   * 获取用户权限等级
-   *
-   * level 0 群成员（随活跃度提升）
-   * level 1 群成员（随活跃度提升）
-   * level 2 群成员（随活跃度提升）
-   * level 3 管  理
-   * level 4 群  主
-   * level 5 主  人
-   * level 6 维护组
-   *
-   * @param event - 群聊/私聊消息
-   * @returns 用户等级
+   * 初始化事件订阅
    */
-  private getUserLevel(event: AllMessage): UserLevel {
-    let level: number = 0;
-    let role: GroupRole = 'member';
-    let user_id: number = event.sender.user_id;
-
-    if (event.message_type === 'group') {
-      const { sender } = event;
-
-      level = sender.level;
-      role = sender.role;
-    }
-    let user_level: UserLevel;
-
-    switch (true) {
-      case admins.includes(user_id):
-        user_level = 6;
-        break;
-      case this.masters.includes(user_id):
-        user_level = 5;
-        break;
-      case role === 'owner':
-        user_level = 4;
-        break;
-      case role === 'admin':
-        user_level = 3;
-        break;
-      case level > 4:
-        user_level = 2;
-        break;
-      case level > 2:
-        user_level = 1;
-        break;
-      default:
-        user_level = 0;
-        break;
-    }
-    return user_level;
-  }
-
-  private inputPassword(): void {
-    botPort.once('thread.process.stdout', (content) => {
-      if (!content?.length) {
-        return this.inputPassword();
-      }
-      const password = createHash('md5').update(content).digest();
-
-      writeFile(this.password_path, password, { mode: 0o600 })
-        .then(() => this.logger.mark('写入 password md5 成功'))
-        .catch(error => this.logger.error(`写入 password md5 失败，${error.message}`))
-        .finally(() => this.login(password));
-    });
-    botPort.postMessage({
-      name: 'thread.process.stdin',
-      event: '首次登录请输入密码: ',
-    });
-  }
-
-  // 监听主线程端口事件
-  private listenPortEvents(port: PluginMessagePort) {
-    port.on('bot.bind.setting', (event) => this.onBindSetting(event));
-    port.on('bot.bind.event', (event) => this.onBindEvent(event, port));
-    port.on('bot.api.task', (event) => this.onApiTask(event, port));
-  }
-
-  // 绑定插件配置
-  private onBindSetting(event: BindSettingEvent) {
-    if (!this.isOnline()) {
-      this.once('system.online', () => {
-        this.emit('profile.bind.setting', event);
-      });
-    } else {
-      this.emit('profile.bind.setting', event);
-    }
-  }
-
-  // 绑定插件事件
-  private onBindEvent(event: BindListenEvent, port: PluginMessagePort) {
-    const { name, listen } = event;
-
-    this.on(listen, (e: any) => {
-      const disable = this.profile.disable.has(name);
-
-      if (disable) {
-        return;
-      }
-
-      for (const key in e) {
-        if (typeof e[key] === 'function') delete e[key];
-      }
-
-      if (listen.startsWith('message')) {
-        e.permission_level = this.getUserLevel(e);
-      }
-      if (e.message_type === 'group') {
-        e.setting = this.profile.getSetting(e.group_id, name);
-      }
-
-      port.postMessage({
-        name: listen, event: e,
-      });
-    });
-    this.logger.info(`绑定 ${name} 插件 ${listen} 事件`);
-  }
-
-  // 执行 client 实例方法
-  private async onApiTask(event: ApiTaskEvent, port: PluginMessagePort) {
-    let result: any, error: any;
-    const { id, method, params } = event;
-
-    if (typeof this[method] === 'function') {
-      try {
-        result = await (<Function>this[method])(...params);
-      } catch (e) {
-        error = e;
-      }
-    } else {
-      result = this[method];
-    }
-    port.postMessage({
-      name: `task.${id}`,
-      event: {
-        result, error,
-      },
-    });
-  }
-
-  /**
-   * 给 bot 主人发送信息
-   *
-   * @param message - 通知信息
-   * @returns 发消息的返回值
-   */
-  sendMasterMsg(message: string): Promise<MessageRet[]> {
-    const queue: Promise<MessageRet>[] = [];
-
-    for (const uin of this.masters) {
-      queue.push(this.sendPrivateMsg(uin, message));
-    }
-    return Promise.all(queue);
-  }
-
-  private onFirstOnline(): void {
-    this.bindEvents();
-    this.sendMasterMsg('おはようございます、主様♪');
+  private initSubscribe(): void {
+    this
+      .pipe(
+        event(['system.online', 'system.offline']),
+      )
+      .subscribe(event => {
+        switch (event.name) {
+          case 'system.online':
+            this.onOnline();
+            break;
+          case 'system.offline':
+            this.onOffline(event as ClientEvent<'system.offline'>);
+            break;
+        }
+      })
   }
 
   private onOnline(): void {
+    this.profile.emit('profile.refresh');
     this.sendMasterMsg('该账号刚刚从离线中恢复，现在一切正常');
     this.logger.mark(`${this.nickname} 刚刚从离线中恢复，现在一切正常`);
   }
 
-  private onOffline(event: { message: string }): void {
+  private onOffline(event: ClientEvent<'system.offline'>): void {
     this.logger.mark(`${this.nickname} 已离线，${event.message}`);
   }
 
-  /**
-   * 绑定事件监听
-   */
-  private bindEvents(): void {
-    this.removeAllListeners('system.login.slider');
-    this.removeAllListeners('system.login.device');
-    this.removeAllListeners('system.login.qrcode');
+  private initParentPortEvent() {
+    botParentPort.on('close', () => botParentPort.emit('bot.close'));
+    botParentPort.on('message', (value) => botParentPort.emit('bot.message', value));
+    botParentPort.on('messageerror', (error) => botParentPort.emit('bot.messageerror', error));
+  }
 
-    this.on('system.online', this.onOnline);
-    this.on('system.offline', this.onOffline);
+  private bindParentPortEvent() {
+    botParentPort.on('bot.close', () => this.onClose());
+    botParentPort.on('bot.message', (event) => this.onMessage(event));
+    botParentPort.on('bot.messageerror', (event) => this.onMessageError(event));
+    botParentPort.on('bot.broadcast.link', (event) => this.onBroadcastLink(event));
+    // pluginParentPort.on('plugin.destroy', (code) => this.onDestroy(code));
+  }
+
+  private onClose() {
+    this.logger.info('通道已关闭');
+  }
+
+  private onMessage(message: BotMessage) {
+    if (!message.name) {
+      throw new Error('message error');
+    }
+    botParentPort.emit(message.name, message.event);
+    this.logger.debug(`bot 线程收到消息:`, message);
+  }
+
+  private onMessageError(error: Error) {
+    this.logger.error('反序列化消息失败:', error.message);
   }
 
   /**
-   * 查询用户是否为 master
-   *
-   * @param user_id - 用户 id
-   * @returns 查询结果
+   * 挂载插件线程时会触发，用于连接广播通信
+   * 
+   * @param event 
    */
-  isMaster(user_id: number): boolean {
-    return this.masters.includes(user_id);
-  }
+  private onBroadcastLink(event: BroadcastLinkEvent) {
+    const { uin } = event;
 
-  /**
-   * 查询用户是否为 admin
-   *
-   * @param user_id - 用户 id
-   * @returns 查询结果
-   */
-  isAdmin(user_id: number): boolean {
-    return admins.includes(user_id);
-  }
-
-  getSetting(group_id: number, name: string) {
-    return this.profile.getSetting(group_id, name);
+    botParentPort.postMessage({
+      name: 'thread.broadcast.link',
+      event: {
+        uin,
+      }
+    });
+    this.profile.once('profile.option.init', () => {
+      this.profile.emit('profile.refresh');
+    });
   }
 }
