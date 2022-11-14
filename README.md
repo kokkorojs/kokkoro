@@ -162,7 +162,7 @@ kokkoro start
 | --- | --- |
 | cherugo | 🟢 |
 | hitokoto | 🟢 |
-| group | 🟡 |
+| group | 🟢 |
 | setu | 🟡 |
 | pcr | 🟡 |
 | saucenao | 🟡 |
