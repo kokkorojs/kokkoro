@@ -1,4 +1,4 @@
-import { MessageElem } from 'amesu';
+import { Sendable } from 'amesu';
 
 import { Context } from '@/events';
 import { Bot, PermissionLevel } from '@/core';
@@ -101,8 +101,8 @@ export class Command<K extends CommandType = any> {
       return;
     }
     context.option = option;
-    context.reply = (message: string | MessageElem[]) => {
-      this.reply(context, message);
+    context.reply = (content: Sendable) => {
+      this.reply(context, content);
     }
     context.botApi = <K extends keyof Bot>(method: K, ...params: BotApiParams<Bot[K]>) => {
       return this.plugin.botApi(context.self_id, method, ...params);
@@ -116,9 +116,9 @@ export class Command<K extends CommandType = any> {
       context.reply(`越权，指令 ${this.name} 的 level ${scope}，你当前的 level 为：${context.permission_level}`);
     } else if (plugin_name === 'kokkoro') {
       this.func(context);
-    } else if (context.message_type === 'group' && !context.option.apply) {
+    } else if (context.message_type === 'group' && !context.option!.apply) {
       this.stop(context);
-    } else if (context.message_type === 'group' && context.option.apply) {
+    } else if (context.message_type === 'group' && context.option!.apply) {
       this.func(context);
     } else if (context.message_type === 'private') {
       this.func(context);
@@ -151,13 +151,13 @@ export class Command<K extends CommandType = any> {
     return this;
   }
 
-  reply(context: CommandMap[K], message: string | MessageElem[]) {
+  reply(context: CommandMap[K], content: Sendable) {
     const { message_type, self_id } = context;
 
     if (message_type === 'private') {
-      return this.plugin.botApi(self_id, 'sendPrivateMsg', context.user_id, message);
+      return this.plugin.botApi(self_id, 'sendPrivateMsg', context.user_id, content);
     } else {
-      return this.plugin.botApi(self_id, 'sendGroupMsg', (<any>context).group_id, message);
+      return this.plugin.botApi(self_id, 'sendGroupMsg', (<any>context).group_id, content);
     }
   }
 

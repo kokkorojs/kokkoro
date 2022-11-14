@@ -171,12 +171,12 @@ plugin
     const { group_id, setting } = ctx;
 
     if (group_id) {
-      const keys = Object.keys(setting);
+      const keys = Object.keys(setting!);
       const keys_length = keys.length;
 
       for (let i = 0; i < keys_length; i++) {
         const name = keys[i];
-        const option = setting[name];
+        const option = setting![name];
 
         server[name] = option.apply;
       }
