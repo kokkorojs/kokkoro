@@ -1,16 +1,18 @@
-import { isMainThread, workerData } from 'worker_threads';
-import { BotConfig, Bot } from '@/core';
+import { workerData } from 'worker_threads';
 
-type BotWorkerData = {
-  uin: number;
-  config: BotConfig;
-};
+import { Bot } from '@/core';
+import { BotWorkerData } from '@/worker';
 
-if (isMainThread) {
-  throw new Error('你在主线程跑这个干吗？');
-} else {
-  const { uin, config } = <BotWorkerData>workerData;
-  const bot = new Bot(uin, config);
+const { uin, config } = <BotWorkerData>workerData;
+const bot = new Bot(uin, config);
 
-  bot.linkStart();
-}
+bot.linkStart()
+  .then(() => {
+    // TODO ⎛⎝≥⏝⏝≤⎛⎝ 干点什么好呢
+  })
+  .catch(() => {
+    bot.terminate();
+    bot.logger.error('登录失败，正在退出...');
+
+    process.exit();
+  })

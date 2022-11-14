@@ -1,10 +1,10 @@
-import { parentPort } from 'worker_threads';
+// import { parentPort } from 'worker_threads';
 
-import { VERSION } from '@/kokkoro';
+import { UPDAY, VERSION } from '@/kokkoro';
 import { Plugin, retrievalPlugins } from '@/plugin';
 // import { disablePlugin } from '@/worker';
 
-const plugin = new Plugin('');
+const plugin = new Plugin();
 
 plugin
   .version(VERSION);
@@ -83,9 +83,7 @@ plugin
       await ctx.botApi('mountPlugin', name);
       ctx.reply(`已创建 ${name} 线程`);
     } catch (error) {
-      if (error instanceof Error) {
-        ctx.reply(error.message);
-      }
+      ctx.reply((<Error>error).message);
     }
   });
 //#endregion
@@ -103,9 +101,7 @@ plugin
       await ctx.botApi('unmountPlugin', name);
       ctx.reply(`已销毁 ${name} 线程`);
     } catch (error) {
-      if (error instanceof Error) {
-        ctx.reply(error.message);
-      }
+      ctx.reply((<Error>error).message);
     }
   });
 //#endregion
@@ -123,9 +119,7 @@ plugin
       await ctx.botApi('reloadPlugin', name);
       ctx.reply(`已重载 ${name} 线程`);
     } catch (error) {
-      if (error instanceof Error) {
-        ctx.reply(error.message);
-      }
+      ctx.reply((<Error>error).message);
     }
   });
 //#endregion
@@ -143,9 +137,7 @@ plugin
       await ctx.botApi('enablePlugin', name);
       ctx.reply(`已将 ${name} 从禁用列表移除`);
     } catch (error) {
-      if (error instanceof Error) {
-        ctx.reply(error.message);
-      }
+      ctx.reply((<Error>error).message);
     }
   });
 //#endregion
@@ -163,11 +155,83 @@ plugin
       await ctx.botApi('disablePlugin', name);
       ctx.reply(`已将 ${name} 添加至禁用列表`);
     } catch (error) {
-      if (error instanceof Error) {
-        ctx.reply(error.message);
-      }
+      ctx.reply((<Error>error).message);
     }
 
+  });
+//#endregion
+
+//#region 群服务
+plugin
+  .command('server')
+  .description('查看当前群服务列表')
+  .sugar(/^(服务|群服务|列表)$/)
+  .action(async (ctx) => {
+    const server: { [key: string]: boolean } = {};
+    const { group_id, setting } = ctx;
+
+    if (group_id) {
+      const keys = Object.keys(setting);
+      const keys_length = keys.length;
+
+      for (let i = 0; i < keys_length; i++) {
+        const name = keys[i];
+        const option = setting[name];
+
+        server[name] = option.apply;
+      }
+      ctx.reply(JSON.stringify(server, null, 2));
+    } else {
+      ctx.reply(`server 指令仅支持群聊，若要查看本地可用插件，可使用 plugin 指令`);
+    }
+  });
+//#endregion
+
+//#region 应用
+plugin
+  .command('apply <name>')
+  .description('应用群服务')
+  .limit(3)
+  .sugar(/^(应用)\s?(?<name>([a-z]|\s)+)$/)
+  .action(async (ctx) => {
+    const { group_id, query } = ctx;
+
+    if (group_id) {
+      const { name } = query;
+
+      try {
+        await ctx.botApi('applyPlugin', group_id, name);
+        ctx.reply(`已将 ${name} 群服务应用`);
+      } catch (error) {
+        ctx.reply((<Error>error).message);
+      }
+    } else {
+      ctx.reply(`apply 指令仅支持群聊，若要为该 bot 启用插件，可使用 enable 指令`);
+    }
+  });
+//#endregion
+
+//#region 禁用
+plugin
+  .command('exempt <name>')
+  .description('免除群服务')
+  .limit(3)
+  .sugar(/^(免除)\s?(?<name>([a-z]|\s)+)$/)
+  .action(async (ctx) => {
+    const { group_id, query } = ctx;
+
+    if (group_id) {
+      const { name } = query;
+
+      try {
+        await ctx.botApi('exemptPlugin', group_id, name);
+        ctx.reply(`已将 ${name} 群服务免除`);
+      } catch (error) {
+        ctx.reply((<Error>error).message);
+      }
+    } else {
+      ctx.reply(`exempt 指令仅支持群聊，若要为该 bot 禁用插件，可使用 disable 指令`);
+    }
   });
 //#endregion
 
@@ -195,8 +259,16 @@ plugin
 plugin
   .command('version')
   .description('版本信息')
-  .sugar(/^(版本)$/)
+  .sugar(/^(版本|ver)$/)
   .action((ctx) => {
-    ctx.reply(`kokkoro v${VERSION}`);
+    const version = {
+      name: 'kokkoro',
+      version: VERSION,
+      upday: UPDAY,
+      author: 'yuki <mail@yuki.sh>',
+      license: 'MPL-2.0',
+      repository: 'https://github.com/kokkorojs/kokkoro/'
+    };
+    ctx.reply(JSON.stringify(version, null, 2));
   });
 //#endregion

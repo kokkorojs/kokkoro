@@ -1,8 +1,8 @@
 import { MessageElem } from 'amesu';
 
-import { BotApiParams, Plugin } from '@/plugin';
 import { Context } from '@/events';
-import { Bot, UserLevel } from '@/core';
+import { Bot, PermissionLevel } from '@/core';
+import { BotApiParams, Plugin } from '@/plugin';
 
 /** 指令参数 */
 type CommandArg = {
@@ -14,7 +14,7 @@ type CommandArg = {
   variadic: boolean;
 }
 
-export type CommandMap = {
+type CommandMap = {
   'all': Context<'message'>;
   'group': Context<'message.group'>;
   'private': Context<'message.private'>;
@@ -60,30 +60,32 @@ function findAllBrackets(name: string) {
 
 export class Command<K extends CommandType = any> {
   private regex?: RegExp;
-  private min_level: UserLevel;
-  private max_level: UserLevel;
+  private min_level: PermissionLevel;
+  private max_level: PermissionLevel;
 
   public name: string;
   public desc: string;
   public args: CommandArg[];
-  public stop: (ctx: CommandMap[K]) => void;
-  public func?: (ctx: CommandMap[K]) => void;
+  private stop: (ctx: CommandMap[K]) => void;
+  private func?: (ctx: CommandMap[K]) => void;
 
   constructor(
     /** 插件实例 */
-    public plugin: Plugin,
+    private plugin: Plugin,
     /** 命令 */
     public raw_name: string,
     /** 消息类型 */
-    public message_type: CommandType = 'all',
+    private message_type: CommandType = 'all',
   ) {
     this.name = removeBrackets(raw_name);
     this.args = findAllBrackets(raw_name);
     this.desc = '';
     this.min_level = 0;
     this.max_level = 6;
-    this.stop = ctx => {
-      ctx.reply(`插件 ${plugin.name} 在当前群聊已被禁用`);
+
+    this.stop = (ctx) => {
+      const plugin_name = plugin.getName();
+      ctx.reply(`插件 ${plugin_name} 在当前群聊已被禁用`);
     }
   }
 
@@ -91,10 +93,17 @@ export class Command<K extends CommandType = any> {
     if (!this.func) {
       return;
     }
+    const plugin_name = this.plugin.getName();
+    const option = context.setting?.[plugin_name];
+    const disable = context.disable;
+
+    if (disable.has(plugin_name)) {
+      return;
+    }
+    context.option = option;
     context.reply = (message: string | MessageElem[]) => {
       this.reply(context, message);
     }
-
     context.botApi = <K extends keyof Bot>(method: K, ...params: BotApiParams<Bot[K]>) => {
       return this.plugin.botApi(context.self_id, method, ...params);
     }
@@ -105,11 +114,11 @@ export class Command<K extends CommandType = any> {
         : `要求：${this.max_level}`;
 
       context.reply(`越权，指令 ${this.name} 的 level ${scope}，你当前的 level 为：${context.permission_level}`);
-    } else if (this.plugin._name === 'kokkoro') {
+    } else if (plugin_name === 'kokkoro') {
       this.func(context);
-    } else if (context.message_type === 'group' && !context.setting.apply) {
+    } else if (context.message_type === 'group' && !context.option.apply) {
       this.stop(context);
-    } else if (context.message_type === 'group' && context.setting.apply) {
+    } else if (context.message_type === 'group' && context.option.apply) {
       this.func(context);
     } else if (context.message_type === 'private') {
       this.func(context);
@@ -121,7 +130,7 @@ export class Command<K extends CommandType = any> {
     return this;
   }
 
-  sugar(shortcut: string | RegExp): Command<K> {
+  public sugar(shortcut: string | RegExp): Command<K> {
     if (shortcut instanceof RegExp) {
       this.regex = shortcut;
     } else {
@@ -152,7 +161,7 @@ export class Command<K extends CommandType = any> {
     }
   }
 
-  limit(min_level: UserLevel, max_level: UserLevel = 6) {
+  limit(min_level: PermissionLevel, max_level: PermissionLevel = 6) {
     if (min_level > max_level) {
       throw new Error('min level be greater than max level');
     }
@@ -162,11 +171,11 @@ export class Command<K extends CommandType = any> {
     return this;
   }
 
-  isLimit(level: UserLevel): boolean {
+  isLimit(level: PermissionLevel): boolean {
     return level < this.min_level || level > this.max_level;
   }
 
-  isMatched(context: Context<'message'>) {
+  public isMatched(context: Context<'message'>) {
     const { raw_message, message_type } = context;
 
     // 匹配事件类型
@@ -192,7 +201,7 @@ export class Command<K extends CommandType = any> {
     return match;
   }
 
-  parseQuery(raw_message: string): object {
+  private parseQuery(raw_message: string): object {
     // TODO ⎛⎝≥⏝⏝≤⎛⎝ 多参数 <...params> 解析
     if (this.regex && this.regex.test(raw_message)) {
       const { groups } = this.regex.exec(raw_message)!;
