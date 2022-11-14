@@ -1,7 +1,6 @@
 import { Event } from '@/events';
 import { Bot, BotEventName } from "@/core";
 import { BotApiParams, Plugin } from '@/plugin';
-import { MessageElem } from 'amesu';
 
 export class Listen<K extends BotEventName = any>  {
   private func?: (event: Event<K>) => any;
@@ -16,17 +15,16 @@ export class Listen<K extends BotEventName = any>  {
     if (!this.func) {
       return;
     }
+    const plugin_name = this.plugin.getName();
+    const option = event.setting?.[plugin_name];
+    const disable = event.disable;
+
+    if (disable.has(plugin_name) || option?.apply === false) {
+      return;
+    }
+    event.option = option;
     event.botApi = <K extends keyof Bot>(method: K, ...params: BotApiParams<Bot[K]>) => {
       return this.plugin.botApi(event.self_id, method, ...params);
-    }
-    event.reply = (message: string | MessageElem[]) => {
-      const { self_id, group_id, user_id } = event;
-
-      if (group_id) {
-        return this.plugin.botApi(self_id, 'sendGroupMsg', group_id, message);
-      } else if (user_id) {
-        return this.plugin.botApi(self_id, 'sendPrivateMsg', user_id, message);
-      }
     }
 
     this.func(event);
