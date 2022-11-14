@@ -1,7 +1,7 @@
-import { ClientEventMap } from 'amesu';
+import { ClientEventMap, Sendable } from 'amesu';
 
 import { Setting } from '@/config';
-import { BotApiParams, Option, PluginMessage } from '@/plugin';
+import { BotApiParams, BotApiReturnType, Option, PluginMessage } from '@/plugin';
 import { ApiTaskEvent, Bot, BotEventName, BotMessage, PermissionLevel } from '@/core';
 import { BroadcastLinkEvent, PluginMountEvent, PluginUnmountEvent, ThreadMessage } from '@/worker';
 
@@ -42,17 +42,17 @@ export type Context<K extends ContextName> = GetContext<K> & {
     [key: string]: any;
   };
   /** 群配置项 */
-  option: Option;
+  option?: Option;
   /** 群插件设置 */
-  setting: Setting;
+  setting?: Setting;
   /** 插件禁用清单 */
   disable: Set<string>;
   /** 权限等级 */
   permission_level: PermissionLevel;
   /** 快捷回复 */
-  reply(message: string): void;
+  reply(content: Sendable): void;
   /** bot api */
-  botApi: <K extends keyof Bot>(method: K, ...params: BotApiParams<Bot[K]>) => Promise<Bot[K]>;
+  botApi: <K extends keyof Bot>(method: K, ...params: BotApiParams<Bot[K]>) => BotApiReturnType<K>;
 };
 
 /** 指令事件 */
@@ -66,10 +66,8 @@ export type Event<K extends BotEventName> = GetContext<K> & {
   setting?: Setting;
   /** 插件禁用清单 */
   disable: Set<string>;
-  /** 快捷回复 */
-  reply?(message: string): void;
   /** bot api */
-  botApi: <K extends keyof Bot>(method: K, ...params: BotApiParams<Bot[K]>) => Promise<Bot[K]>;
+  botApi: <K extends keyof Bot>(method: K, ...params: BotApiParams<Bot[K]>) => BotApiReturnType<K>;
 };
 
 // export type AllMessage = PrivateMessage | GroupMessage | DiscussMessage;
