@@ -11,7 +11,7 @@
 [![npm package](https://img.shields.io/npm/v/kokkoro?color=57B497&label=kokkoro&style=flat-square&labelColor=FAFAFA&logo=npm&logoColor=FCAA00)](https://www.npmjs.com/package/kokkoro)
 [![node engine](https://img.shields.io/node/v/kokkoro?color=339933&style=flat-square&labelColor=FAFAFA&logo=Node.js)](https://nodejs.org)
 
-> 本项目是一个基于 [oicq](https://github.com/takayama-lily/oicq) 协议库，使用 [TypeScript](https://www.typescriptlang.org/) 语言开发的 [QQ](https://im.qq.com/) 机器人框架
+> 本项目是一个基于 [amesu](https://github.com/dcyuki/amesu) 协议库，使用 [TypeScript](https://www.typescriptlang.org/) 语言开发的 [QQ](https://im.qq.com/) 机器人框架
 
 ## 介绍
 
