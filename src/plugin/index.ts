@@ -5,13 +5,11 @@ import { mkdir, readdir } from 'fs/promises';
 import { CronCommand, CronJob } from 'cron';
 import { isMainThread, parentPort, MessagePort, workerData, TransferListItem } from 'worker_threads';
 
-import '@/kokkoro';
-import { Bot } from '@/core';
 import { Listen } from '@/plugin/listen';
-import { BindSettingEvent } from '@/config';
-import { PluginLinkChannelEvent } from '@/worker';
-import { EventName, PluginEventMap } from '@/events';
 import { Command, CommandType } from '@/plugin/command';
+import { PluginEventMap } from '@/events';
+import { Bot, BotEventName } from '@/core';
+import { Broadcast, BroadcastLinkEvent } from '@/worker';
 
 /** 插件消息 */
 export interface PluginMessage {
@@ -19,41 +17,41 @@ export interface PluginMessage {
   event: any;
 }
 
-export interface BindListenEvent {
-  name: string;
-  listen: string;
-}
+// export interface BindListenEvent {
+//   name: string;
+//   listen: EventName;
+// }
 
-export type PluginPostMessage =
-  {
-    name: 'bot.bind.event';
-    event: BindListenEvent;
-  } |
-  {
-    name: 'bot.bind.setting';
-    event: BindSettingEvent;
-  }
+// export type PluginPostMessage =
+//   {
+//     name: 'bot.bind.event';
+//     event: BindListenEvent;
+//   } |
+//   {
+//     name: 'bot.bind.setting';
+//     event: BindSettingEvent;
+//   }
 
 export type BotApiParams<T extends Bot[keyof Bot]> = T extends (...args: any) => any
   ? Parameters<T>
   : [];
 
-interface PluginPort extends MessagePort {
-  postMessage(message: PluginPostMessage, transferList?: ReadonlyArray<TransferListItem>): void;
+interface PluginParentPort extends MessagePort {
+  //   postMessage(message: PluginPostMessage, transferList?: ReadonlyArray<TransferListItem>): void;
 
   addListener<T extends keyof PluginEventMap>(event: T, listener: PluginEventMap<this>[T]): this;
   emit<T extends keyof PluginEventMap>(event: T, ...args: Parameters<PluginEventMap<this>[T]>): boolean;
-  on<T extends keyof PluginEventMap>(event: T, listener: PluginEventMap<this>[T]): this
-  once<T extends keyof PluginEventMap>(event: T, listener: PluginEventMap<this>[T]): this
-  prependListener<T extends keyof PluginEventMap>(event: T, listener: PluginEventMap<this>[T]): this
-  prependOnceListener<T extends keyof PluginEventMap>(event: T, listener: PluginEventMap<this>[T]): this
-  removeListener<T extends keyof PluginEventMap>(event: T, listener: PluginEventMap<this>[T]): this
-  off<T extends keyof PluginEventMap>(event: T, listener: PluginEventMap<this>[T]): this
+  on<T extends keyof PluginEventMap>(event: T, listener: PluginEventMap<this>[T]): this;
+  once<T extends keyof PluginEventMap>(event: T, listener: PluginEventMap<this>[T]): this;
+  prependListener<T extends keyof PluginEventMap>(event: T, listener: PluginEventMap<this>[T]): this;
+  prependOnceListener<T extends keyof PluginEventMap>(event: T, listener: PluginEventMap<this>[T]): this;
+  removeListener<T extends keyof PluginEventMap>(event: T, listener: PluginEventMap<this>[T]): this;
+  off<T extends keyof PluginEventMap>(event: T, listener: PluginEventMap<this>[T]): this;
 }
 
 const modules_path = join(__workname, 'node_modules');
 const plugins_path = join(__workname, 'plugins');
-const pluginPort: PluginPort = parentPort as PluginPort;
+const pluginParentPort = <PluginParentPort>parentPort;
 
 /** 插件信息 */
 export type PluginInfo = {
@@ -68,7 +66,7 @@ export type PluginInfo = {
 }
 
 /** 插件选项 */
-export type PluginSetting = {
+export type Option = {
   /** 锁定，默认 false */
   lock: boolean;
   /** 开关，默认 true */
@@ -79,24 +77,23 @@ export type PluginSetting = {
 
 export class Plugin {
   // 插件名
-  public _name: string;
+  private _name: string;
   // 版本号
   private _version: string;
   // 定时任务
   private jobs: CronJob[];
   // 事件名
-  private events: Set<string>;
+  private events: Set<BotEventName>;
   public commands: Command[];
-  // bot 通信端口
-  private botPort: Map<number, MessagePort>;
+  private broadcasts: Map<number, Broadcast>;
   private listener: Map<string, Listen>;
   private info: PluginInfo;
 
   constructor(
     /** 指令前缀 */
-    public prefix: string,
+    public prefix: string = '',
     /** 插件配置项 */
-    public setting: PluginSetting = { apply: true, lock: false },
+    public option: Option = { apply: true, lock: false },
   ) {
     if (isMainThread) {
       throw new Error('你在主线程跑这个干吗？');
@@ -107,8 +104,8 @@ export class Plugin {
 
     this.jobs = [];
     this.events = new Set();
-    this.botPort = new Map();
     this.commands = [];
+    this.broadcasts = new Map();
     this.listener = new Map();
 
     //#region 帮助指令
@@ -144,87 +141,70 @@ export class Plugin {
       });
     }
 
-    this.proxyPluginPortEvents();
-    this.bindPluginPortEvents();
-  }
+    this.initParentPortEvent();
+    this.bindParentPortEvent();
 
-  private proxyPluginPortEvents() {
-    pluginPort.on('close', () => {
-      pluginPort.emit('plugin.close');
-    });
-    pluginPort.on('message', (value) => {
-      pluginPort.emit('plugin.message', value);
-    });
-    pluginPort.on('messageerror', (error) => {
-      pluginPort.emit('plugin.messageerror', error);
+    pluginParentPort.postMessage({
+      name: 'thread.plugin.created',
     });
   }
 
-  private bindPluginPortEvents() {
-    pluginPort.on('plugin.close', () => this.onClose());
-    pluginPort.on('plugin.message', (event) => this.onMessage(event));
-    pluginPort.on('plugin.messageerror', (event) => this.onMessageError(event));
-    pluginPort.on('plugin.link.channel', (event) => this.onLinkChannel(event));
-    pluginPort.on('plugin.destroy', (code) => this.onDestroy(code));
+  private initParentPortEvent() {
+    pluginParentPort.on('close', () => pluginParentPort.emit('plugin.close'));
+    pluginParentPort.on('message', (value) => pluginParentPort.emit('plugin.message', value));
+    pluginParentPort.on('messageerror', (error) => pluginParentPort.emit('plugin.messageerror', error));
+  }
+
+  private bindParentPortEvent() {
+    pluginParentPort.on('plugin.close', () => this.onClose());
+    pluginParentPort.on('plugin.message', (event) => this.onMessage(event));
+    pluginParentPort.on('plugin.messageerror', (event) => this.onMessageError(event));
+    pluginParentPort.on('plugin.broadcast.link', (event) => this.onBroadcastLink(event));
+    pluginParentPort.on('plugin.destroy', (code) => this.onDestroy(code));
   }
 
   private onClose() {
-    // this.logger.info('通道已关闭');
+    pluginParentPort.postMessage(`通道已关闭`);
   }
 
   private onMessage(message: PluginMessage) {
     if (!message.name) {
       throw new Error('message error');
     }
-    pluginPort.emit(message.name, message.event);
-    // this.logger.debug(`插件线程收到消息:`, message);
+    pluginParentPort.emit(message.name, message.event);
+    pluginParentPort.postMessage(`插件线程收到消息: ${message}`);
   }
 
   private onMessageError(error: Error) {
-    // this.logger.error('反序列化消息失败:', error.message);
+    pluginParentPort.postMessage(`反序列化消息失败: ${error.message}`);
   }
 
-  // 绑定插件线程通信
-  private onLinkChannel(event: PluginLinkChannelEvent) {
-    const { uin, port } = event;
+  // 连接广播通信
+  private onBroadcastLink(event: BroadcastLinkEvent) {
+    const { uin } = event;
 
-    port.on('message', (value: any) => {
-      if (value.name) {
-        port.emit(value.name, value.event);
-      }
+    if (this.broadcasts.has(uin)) {
+      return;
+    }
+    const broadcast = new Broadcast(uin.toString());
+
+    broadcast.postMessage({
+      name: 'bot.option.init',
+      option: this.option,
+      plugin_name: this._name,
     });
+    pluginParentPort.postMessage(`连接广播 ${uin} 成功`);
 
-    this.botPort.set(uin, port);
     this.events.forEach((name) => {
-      const bindPluginEvent: PluginPostMessage = {
-        name: 'bot.bind.event',
-        event: {
-          name: this.info.name,
-          listen: name,
-        },
-      };
-      const bindSettingEvent: PluginPostMessage = {
-        name: 'bot.bind.setting',
-        event: {
-          name: this.info.name,
-          setting: this.setting,
-        },
-      };
-
-      port.postMessage(bindPluginEvent);
-      port.postMessage(bindSettingEvent);
-      port.on(name, async (event) => {
-        // MessagePort 事件会与 oicq 事件冲突
-        if (name === 'message' && !event.message_id) {
-          return;
+      broadcast.on(name, (event) => {
+        if (name.startsWith('message')) {
+          this.parseMessage(event);
         }
         this.listener.get(name)?.run(event);
-
-        if (name.startsWith('message')) {
-          this.parse(event);
-        }
-      })
+      });
+      pluginParentPort.postMessage(`绑定 ${name} 事件`);
     });
+    this.broadcasts.set(uin, broadcast);
   }
 
   private onDestroy(code: number = 0) {
@@ -236,32 +216,38 @@ export class Plugin {
     return this;
   }
 
+  getName() {
+    return this._name;
+  }
+
   version(version: string) {
     this._version = version;
     return this;
   }
 
+  getVersion() {
+    return this._version;
+  }
+
   async botApi<K extends keyof Bot>(uin: number, method: K, ...params: BotApiParams<Bot[K]>): Promise<
     Bot[K] extends (...args: any) => any ? ReturnType<Bot[K]> : Bot[K]
   > {
-    if (!this.botPort.has(uin)) {
-      throw new Error(`bot(${uin}) 线程未创建`);
+    if (!this.broadcasts.has(uin)) {
+      throw new Error(`未与 broadcast(${uin}) 连接通信`);
     }
-    const port = this.botPort.get(uin)!;
     const id = uuidv4();
-    const event = {
-      name: 'bot.api.task',
-      event: { method, params, id },
-    };
+    const broadcast = this.broadcasts.get(uin)!;
 
-    port.postMessage(event);
-
+    broadcast.postMessage({
+      name: 'bot.task',
+      id, method, params,
+    })
     return new Promise((resolve, reject) =>
-      port.once(`task.${id}`, (task: { result: any, error: Error }) => {
-        if (task.error) {
-          reject(task.error);
+      broadcast.once(`bot.task.${id}`, (event: { result: any, error: Error }) => {
+        if (event.error) {
+          reject(event.error);
         } else {
-          resolve(task.result);
+          resolve(event.result);
         }
       })
     );
@@ -276,49 +262,54 @@ export class Plugin {
 
   /**
    * 指令监听
-   * 
+   *
    * @param raw_name - 指令
-   * @param message_type - 消息类型
+   * @param type - 指令类型
    * @returns Command 实例
    */
-  command<T extends CommandType>(raw_name: string, message_type?: T): Command<T> {
-    const command = new Command(this, raw_name, message_type ?? 'all');
+  command<T extends CommandType>(raw_name: string, type?: T): Command<T> {
+    const command = new Command(this, raw_name, type ?? 'all');
 
     this.commands.push(command);
-    this.events.add('message');
+    switch (type) {
+      case 'all':
+      case undefined:
+        this.events.add('message');
+        break;
+      case 'group':
+        this.events.add('message.group');
+        break;
+      case 'private':
+        this.events.add('message.private');
+        break;
+    }
     return command;
   }
 
   /**
    * 事件监听
-   * 
-   * @param event_name - 事件名
+   *
+   * @param name - 事件名
    * @returns Listen 实例
    */
-  listen<K extends EventName>(name: K): Listen<K> {
-    const listen = new Listen(name, this);
+  listen<K extends BotEventName>(name: K): Listen<K> {
+    const listen = new Listen(this);
 
     // 单个插件单项事件不应该重复监听
     this.events.add(name);
     this.listener.set(name, listen);
+
     return listen;
   }
 
   // 指令解析器
-  private parse(event: any) {
-    const argv: string[] = event.raw_message.trim().split(' ');
-    const prefix: string = argv[0];
-
+  private parseMessage(event: any) {
     this.commands.forEach((command) => {
       if (!command.isMatched(event)) {
         return;
       }
       command.run(event);
     });
-  }
-
-  getBotUins(): number[] {
-    return [...this.botPort.keys()];
   }
 }
 
