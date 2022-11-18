@@ -11,7 +11,7 @@
 [![npm package](https://img.shields.io/npm/v/kokkoro?color=57B497&label=kokkoro&style=flat-square&labelColor=FAFAFA&logo=npm&logoColor=FCAA00)](https://www.npmjs.com/package/kokkoro)
 [![node engine](https://img.shields.io/node/v/kokkoro?color=339933&style=flat-square&labelColor=FAFAFA&logo=Node.js)](https://nodejs.org)
 
-> 本项目是一个基于 [amesu](https://github.com/dcyuki/amesu) 协议库，使用 [TypeScript](https://www.typescriptlang.org/) 语言开发的 [QQ](https://im.qq.com/) 机器人框架
+> 本项目是一个基于 [oicq](https://github.com/takayama-lily/oicq) 协议库，使用 [TypeScript](https://www.typescriptlang.org/) 语言开发的 [QQ](https://im.qq.com/) 机器人框架
 
 ## 介绍
 
@@ -21,7 +21,7 @@
 - [x] 支持扫码登录，能有效避免因操作不当导致账号风控、掉线等问题
 - [x] 友好的脚手架，无需手动修改配置文件，全由命令自动构建
 - [x] 账号同步登录，可添加多个 bot 自由管理（避免在项目启动瞬间登录 **过多账号** ，可能会出现被封号的风险）
-- [x] 高性能多线程，使用 worker_threads 分离 bot 与 plugin 线程，密集运算性能更佳
+- [ ] ~~高性能多线程，使用 worker_threads 分离 bot 与 plugin 线程，性能更佳~~（已弃案）
 - [ ] web 可扩展性，每个插件均支持独立的 web 页面及路由服务 ~~咕咕咕~~
 
 ## 构建
@@ -144,36 +144,36 @@ kokkoro start
 
 ### 核心库
 
-| Tables | Cool |
-| --- |---|
-| 多线程通信交互 | 🟢 |
-| bot api 封装 | 🟢 |
-| 线程事件 promise 封装 | 🟢 |
-| 子线程逻辑优化（自启，热更...） | 🟢 |
-| 群聊权限适配 | 🟢 |
-| example 完善 | 🔵 |
-| web 路由服务 | 🟡 |
-| 多 bot 管理 | 🟡 |
-| QQ 频道支持 | 🔴 |
+| Tables                          | Cool |
+| ------------------------------- | ---- |
+| 多线程通信交互                  | 🟢    |
+| bot api 封装                    | 🟢    |
+| 线程事件 promise 封装           | 🟢    |
+| 子线程逻辑优化（自启，热更...） | 🟢    |
+| 群聊权限适配                    | 🟢    |
+| example 完善                    | 🔵    |
+| web 路由服务                    | 🟡    |
+| 多 bot 管理                     | 🟡    |
+| QQ 频道支持                     | 🔴    |
 
 ### 插件适配
 
-| Tables | Cool |
-| --- | --- |
-| cherugo | 🟢 |
-| hitokoto | 🟢 |
-| group | 🟢 |
-| setu | 🟡 |
-| pcr | 🟡 |
-| saucenao | 🟡 |
-| rss | 🔴 |
-| sandbox | 🔴 |
-| aircon | 🔴 |
-| chess | 🔴 |
-| guess | 🔴 |
-| lifeRestart | 🔴 |
-| qa | 🔴 |
-| galgame | 🔴 |
+| Tables      | Cool |
+| ----------- | ---- |
+| cherugo     | 🟢    |
+| hitokoto    | 🟢    |
+| group       | 🟢    |
+| setu        | 🟡    |
+| pcr         | 🟡    |
+| saucenao    | 🟡    |
+| rss         | 🔴    |
+| sandbox     | 🔴    |
+| aircon      | 🔴    |
+| chess       | 🔴    |
+| guess       | 🔴    |
+| lifeRestart | 🔴    |
+| qa          | 🔴    |
+| galgame     | 🔴    |
 
 ## 补充
 
