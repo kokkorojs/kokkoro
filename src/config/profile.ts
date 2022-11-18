@@ -143,8 +143,6 @@ export class Profile extends EventEmitter {
     }
     const group_id = event.group_id;
     const group_name = event.group.info!.group_name;
-    // TODO ⎛⎝≥⏝⏝≤⎛⎝ 刚加的新群好像获取不到 group_name（给 oicq 提 pr?
-    // const group_name = (await this.getGroupInfo(group_id)).group_name;
 
     this.group[group_id] ??= {
       name: group_name, setting: {},
