@@ -1,10 +1,9 @@
 import { resolve } from 'path';
 
-import '@/kokkoro';
 import { BotConfig } from '@/core';
 import { deepClone } from '@/utils';
 
-/** kokkoro 全局配置 */
+/** 全局配置 */
 export type GlobalConfig = {
   /** 第三方 key */
   api_key: {
