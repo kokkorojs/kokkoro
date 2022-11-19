@@ -1,8 +1,8 @@
-import { Sendable } from 'amesu';
 
 import { Context } from '@/events';
 import { Bot, PermissionLevel } from '@/core';
-import { BotApiParams, Plugin } from '@/plugin';
+import { Plugin } from '.';
+// import { BotApiParams, Plugin } from '@/plugin';
 
 /** 指令参数 */
 type CommandArg = {
@@ -89,79 +89,59 @@ export class Command<K extends CommandType = any> {
     }
   }
 
-  run(context: CommandMap[K]) {
-    if (!this.func) {
-      return;
-    }
-    const plugin_name = this.plugin.getName();
-    const option = context.setting?.[plugin_name];
-    const disable = context.disable;
-
-    if (disable.has(plugin_name)) {
-      return;
-    }
-    context.option = option;
-    context.reply = (content: Sendable) => {
-      this.reply(context, content);
-    }
-    context.botApi = <K extends keyof Bot>(method: K, ...params: BotApiParams<Bot[K]>) => {
-      return this.plugin.botApi(context.self_id, method, ...params);
-    }
-
-    if (this.isLimit(context.permission_level)) {
-      const scope = this.min_level !== this.max_level
-        ? `范围：${this.min_level} ~ ${this.max_level}`
-        : `要求：${this.max_level}`;
-
-      context.reply(`越权，指令 ${this.name} 的 level ${scope}，你当前的 level 为：${context.permission_level}`);
-    } else if (plugin_name === 'kokkoro') {
-      this.func(context);
-    } else if (context.message_type === 'group' && !context.option!.apply) {
-      this.stop(context);
-    } else if (context.message_type === 'group' && context.option!.apply) {
-      this.func(context);
-    } else if (context.message_type === 'private') {
-      this.func(context);
-    }
-  }
-
-  description(desc: string): Command<K> {
+  /**
+   * 简介
+   * 
+   * @param desc - 指令简单描述
+   */
+  public description(desc: string): Command<K> {
     this.desc = desc;
     return this;
   }
 
+  /**
+   * 语法糖
+   * 
+   * @param shortcut - 与之匹配的字符串或正则
+   */
   public sugar(shortcut: string | RegExp): Command<K> {
     if (shortcut instanceof RegExp) {
       this.regex = shortcut;
     } else {
       // 字符串转换正则并自动添加 ^ $
-      const regex = new RegExp(/(\^|\$)/.test(shortcut) ? shortcut : `^${shortcut}$`);
+      const regex = new RegExp(`^${shortcut}$`);
       this.regex = regex;
     }
     return this;
   }
 
-  action(callback: (ctx: CommandMap[K]) => any): this {
+  /**
+   * 指令执行
+   * 
+   * @param callback 触发回调
+   */
+  public action(callback: (ctx: CommandMap[K]) => any): this {
     this.func = callback;
     return this;
   }
 
-  prevent(callback: (ctx: CommandMap[K]) => any): this {
+  /**
+   * 指令被拒
+   * 
+   * @param callback 触发回调
+   */
+  public prevent(callback: (ctx: CommandMap[K]) => any): this {
     this.stop = callback;
     return this;
   }
 
-  reply(context: CommandMap[K], content: Sendable) {
-    const { message_type, self_id } = context;
-
-    if (message_type === 'private') {
-      return this.plugin.botApi(self_id, 'sendPrivateMsg', context.user_id, content);
-    } else {
-      return this.plugin.botApi(self_id, 'sendGroupMsg', (<any>context).group_id, content);
-    }
-  }
-
-  limit(min_level: PermissionLevel, max_level: PermissionLevel = 6) {
+  /**
+   * 指令权限
+   * 
+   * @param min_level - 最低权限
+   * @param max_level - 最高权限
+   */
+  public limit(min_level: PermissionLevel, max_level: PermissionLevel = 6) {
     if (min_level > max_level) {
       throw new Error('min level be greater than max level');
     }
@@ -169,10 +149,6 @@ export class Command<K extends CommandType = any> {
     this.max_level = max_level;
 
     return this;
-  }
-
-  isLimit(level: PermissionLevel): boolean {
-    return level < this.min_level || level > this.max_level;
   }
 
   public isMatched(context: Context<'message'>) {
@@ -195,10 +171,47 @@ export class Command<K extends CommandType = any> {
       command_name = this.name;
       prefix = this.plugin.prefix;
     }
+
     const match = this.plugin.prefix === prefix && this.name === command_name;
     context.query = match ? this.parseQuery(raw_message) : {};
 
     return match;
+  }
+
+  public handle(context: CommandMap[K]) {
+    if (!this.func) {
+      return;
+    }
+    const { disable, setting, permission_level, message_type } = context;
+    const name = this.plugin.getName();
+    const option = setting?.[name];
+
+    if (disable.includes(name)) {
+      return;
+    }
+    if (option) {
+      context.option = option;
+    }
+
+    if (this.isLimit(permission_level)) {
+      const scope = this.min_level !== this.max_level
+        ? `范围：${this.min_level} ~ ${this.max_level}`
+        : `要求：${this.max_level}`;
+
+      context.reply(`越权，指令 ${this.name} 的 level ${scope}，你当前的 level 为：${permission_level}`, true);
+    } else if (name === 'kokkoro') {
+      this.func(context);
+    } else if (message_type === 'group' && !option!.apply) {
+      this.stop(context);
+    } else if (message_type === 'group' && option!.apply) {
+      this.func(context);
+    } else if (message_type === 'private') {
+      this.func(context);
+    }
+  }
+
+  private isLimit(level: PermissionLevel): boolean {
+    return level < this.min_level || level > this.max_level;
   }
 
   private parseQuery(raw_message: string): object {

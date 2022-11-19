@@ -1,9 +1,8 @@
-import { Event } from '@/events';
-import { Bot, BotEventName } from "@/core";
-import { BotApiParams, Plugin } from '@/plugin';
+import { Plugin } from '@/plugin';
+import { Context, EventName } from '@/events';
 
-export class Listen<K extends BotEventName = any>  {
-  private func?: (event: Event<K>) => any;
+export class Listen<K extends EventName = any>  {
+  private func?: (event: Context<K>) => any;
 
   constructor(
     private plugin: Plugin,
@@ -11,26 +10,25 @@ export class Listen<K extends BotEventName = any>  {
 
   }
 
-  run(event: Event<K>) {
+  run(context: Context<K>) {
     if (!this.func) {
       return;
     }
-    const plugin_name = this.plugin.getName();
-    const option = event.setting?.[plugin_name];
-    const disable = event.disable;
+    const name = this.plugin.getName();
+    const option = context.setting?.[name];
+    const disable = context.disable;
 
-    if (disable.has(plugin_name) || option?.apply === false) {
+    if (disable.includes(name) || option?.apply === false) {
       return;
     }
-    event.option = option;
-    event.botApi = <K extends keyof Bot>(method: K, ...params: BotApiParams<Bot[K]>) => {
-      return this.plugin.botApi(event.self_id, method, ...params);
+    if (option) {
+      context.option = option;
     }
 
-    this.func(event);
+    this.func(context);
   }
 
-  trigger(callback: (event: Event<K>) => any) {
+  trigger(callback: (context: Context<K>) => any) {
     this.func = callback;
     return this;
   }
