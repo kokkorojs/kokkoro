@@ -1,8 +1,7 @@
 
+import { Plugin } from '@/plugin';
 import { Context } from '@/events';
 import { Bot, PermissionLevel } from '@/core';
-import { Plugin } from '.';
-// import { BotApiParams, Plugin } from '@/plugin';
 
 /** 指令参数 */
 type CommandArg = {
