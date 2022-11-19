@@ -7,23 +7,22 @@ logger.level = 'all';
  * 校验 uin 合法性
  * 
  * @param uin - 用户账号
- * @returns qq 号是否合法
+ * @returns qq 是否合法
  */
 export function checkUin(uin: number): boolean {
   return /[1-9][0-9]{4,10}/.test(uin.toString());
 }
 
 /**
- * 获取调用栈
+ * 获取调用栈：{@link https://v8.dev/docs/stack-trace-api}
  * 
- * @returns 函数调用栈信息
+ * @returns 调用栈信息
  */
 export function getStack(): NodeJS.CallSite[] {
   const orig = Error.prepareStackTrace;
   Error.prepareStackTrace = (_, stack) => stack;
 
   const stack: NodeJS.CallSite[] = new Error().stack as any;
-
   Error.prepareStackTrace = orig;
   return stack;
 }

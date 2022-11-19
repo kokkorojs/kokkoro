@@ -19,4 +19,3 @@ export const CHANGELOGS: string = changelogs;
 export * from '@/core';
 export * from '@/config';
 export * from '@/plugin';
-export * from '@/worker';

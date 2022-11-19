@@ -24,14 +24,9 @@ plugin
   .command('state')
   .description('查看 bot 运行信息')
   .sugar(/^(状态)$/)
-  .action(async (ctx) => {
-    const resul = await Promise.all([
-      ctx.botApi('nickname'),
-      ctx.botApi('gl'),
-      ctx.botApi('fl'),
-      ctx.botApi('stat'),
-    ]);
-    const [nickname, gl, fl, stat] = resul;
+  .action((ctx) => {
+    const bot = ctx.getBot();
+    const { nickname, gl, fl, stat } = bot;
     const group_count = `${gl.size} 个`;
     const friend_count = `${fl.size} 个`;
     const message_min_count = `${stat.msg_cnt_per_min}/分`;
@@ -70,170 +65,170 @@ plugin
   });
 //#endregion
 
-//#region 挂载
-plugin
-  .command('mount <name>')
-  .description('挂载插件')
-  .limit(5)
-  .sugar(/^(挂载)\s?(?<name>([a-z]|\s)+)$/)
-  .action(async (ctx) => {
-    const { name } = ctx.query;
+// //#region 挂载
+// plugin
+//   .command('mount <name>')
+//   .description('挂载插件')
+//   .limit(5)
+//   .sugar(/^(挂载)\s?(?<name>([a-z]|\s)+)$/)
+//   .action(async (ctx) => {
+//     const { name } = ctx.query;
 
-    try {
-      await ctx.botApi('mountPlugin', name);
-      ctx.reply(`已创建 ${name} 线程`);
-    } catch (error) {
-      ctx.reply((<Error>error).message);
-    }
-  });
-//#endregion
+//     // try {
+//     //   await ctx.botApi('mountPlugin', name);
+//     //   ctx.reply(`已创建 ${name} 线程`);
+//     // } catch (error) {
+//     //   ctx.reply((<Error>error).message);
+//     // }
+//   });
+// //#endregion
 
-//#region 卸载
-plugin
-  .command('unmount <name>')
-  .description('卸载插件')
-  .limit(5)
-  .sugar(/^(卸载)\s?(?<name>([a-z]|\s)+)$/)
-  .action(async (ctx) => {
-    const { name } = ctx.query;
+// //#region 卸载
+// plugin
+//   .command('unmount <name>')
+//   .description('卸载插件')
+//   .limit(5)
+//   .sugar(/^(卸载)\s?(?<name>([a-z]|\s)+)$/)
+//   .action(async (ctx) => {
+//     const { name } = ctx.query;
 
-    try {
-      await ctx.botApi('unmountPlugin', name);
-      ctx.reply(`已销毁 ${name} 线程`);
-    } catch (error) {
-      ctx.reply((<Error>error).message);
-    }
-  });
-//#endregion
+//     try {
+//       await ctx.botApi('unmountPlugin', name);
+//       ctx.reply(`已销毁 ${name} 线程`);
+//     } catch (error) {
+//       ctx.reply((<Error>error).message);
+//     }
+//   });
+// //#endregion
 
-//#region 重载
-plugin
-  .command('reload <name>')
-  .description('重载插件')
-  .limit(5)
-  .sugar(/^(重载)\s?(?<name>([a-z]|\s)+)$/)
-  .action(async (ctx) => {
-    const { name } = ctx.query;
+// //#region 重载
+// plugin
+//   .command('reload <name>')
+//   .description('重载插件')
+//   .limit(5)
+//   .sugar(/^(重载)\s?(?<name>([a-z]|\s)+)$/)
+//   .action(async (ctx) => {
+//     const { name } = ctx.query;
 
-    try {
-      await ctx.botApi('reloadPlugin', name);
-      ctx.reply(`已重载 ${name} 线程`);
-    } catch (error) {
-      ctx.reply((<Error>error).message);
-    }
-  });
-//#endregion
+//     try {
+//       await ctx.botApi('reloadPlugin', name);
+//       ctx.reply(`已重载 ${name} 线程`);
+//     } catch (error) {
+//       ctx.reply((<Error>error).message);
+//     }
+//   });
+// //#endregion
 
-//#region 启用
-plugin
-  .command('enable <name>')
-  .description('启用插件')
-  .limit(4)
-  .sugar(/^(启用)\s?(?<name>([a-z]|\s)+)$/)
-  .action(async (ctx) => {
-    const { name } = ctx.query;
+// //#region 启用
+// plugin
+//   .command('enable <name>')
+//   .description('启用插件')
+//   .limit(4)
+//   .sugar(/^(启用)\s?(?<name>([a-z]|\s)+)$/)
+//   .action(async (ctx) => {
+//     const { name } = ctx.query;
 
-    try {
-      await ctx.botApi('enablePlugin', name);
-      ctx.reply(`已将 ${name} 从禁用列表移除`);
-    } catch (error) {
-      ctx.reply((<Error>error).message);
-    }
-  });
-//#endregion
+//     try {
+//       await ctx.botApi('enablePlugin', name);
+//       ctx.reply(`已将 ${name} 从禁用列表移除`);
+//     } catch (error) {
+//       ctx.reply((<Error>error).message);
+//     }
+//   });
+// //#endregion
 
-//#region 禁用
-plugin
-  .command('disable <name>')
-  .description('禁用插件')
-  .limit(4)
-  .sugar(/^(禁用)\s?(?<name>([a-z]|\s)+)$/)
-  .action(async (ctx) => {
-    const { name } = ctx.query;
+// //#region 禁用
+// plugin
+//   .command('disable <name>')
+//   .description('禁用插件')
+//   .limit(4)
+//   .sugar(/^(禁用)\s?(?<name>([a-z]|\s)+)$/)
+//   .action(async (ctx) => {
+//     const { name } = ctx.query;
 
-    try {
-      await ctx.botApi('disablePlugin', name);
-      ctx.reply(`已将 ${name} 添加至禁用列表`);
-    } catch (error) {
-      ctx.reply((<Error>error).message);
-    }
+//     try {
+//       await ctx.botApi('disablePlugin', name);
+//       ctx.reply(`已将 ${name} 添加至禁用列表`);
+//     } catch (error) {
+//       ctx.reply((<Error>error).message);
+//     }
 
-  });
-//#endregion
+//   });
+// //#endregion
 
-//#region 群服务
-plugin
-  .command('server')
-  .description('查看当前群服务列表')
-  .sugar(/^(服务|群服务|列表)$/)
-  .action(async (ctx) => {
-    const server: { [key: string]: boolean } = {};
-    const { group_id, setting } = ctx;
+// //#region 群服务
+// plugin
+//   .command('server')
+//   .description('查看当前群服务列表')
+//   .sugar(/^(服务|群服务|列表)$/)
+//   .action(async (ctx) => {
+//     const server: { [key: string]: boolean } = {};
+//     const { group_id, setting } = ctx;
 
-    if (group_id) {
-      const keys = Object.keys(setting!);
-      const keys_length = keys.length;
+//     if (group_id) {
+//       const keys = Object.keys(setting!);
+//       const keys_length = keys.length;
 
-      for (let i = 0; i < keys_length; i++) {
-        const name = keys[i];
-        const option = setting![name];
+//       for (let i = 0; i < keys_length; i++) {
+//         const name = keys[i];
+//         const option = setting![name];
 
-        server[name] = option.apply;
-      }
-      ctx.reply(JSON.stringify(server, null, 2));
-    } else {
-      ctx.reply(`server 指令仅支持群聊，若要查看本地可用插件，可使用 plugin 指令`);
-    }
-  });
-//#endregion
+//         server[name] = option.apply;
+//       }
+//       ctx.reply(JSON.stringify(server, null, 2));
+//     } else {
+//       ctx.reply(`server 指令仅支持群聊，若要查看本地可用插件，可使用 plugin 指令`);
+//     }
+//   });
+// //#endregion
 
-//#region 应用
-plugin
-  .command('apply <name>')
-  .description('应用群服务')
-  .limit(3)
-  .sugar(/^(应用)\s?(?<name>([a-z]|\s)+)$/)
-  .action(async (ctx) => {
-    const { group_id, query } = ctx;
+// //#region 应用
+// plugin
+//   .command('apply <name>')
+//   .description('应用群服务')
+//   .limit(3)
+//   .sugar(/^(应用)\s?(?<name>([a-z]|\s)+)$/)
+//   .action(async (ctx) => {
+//     const { group_id, query } = ctx;
 
-    if (group_id) {
-      const { name } = query;
+//     if (group_id) {
+//       const { name } = query;
 
-      try {
-        await ctx.botApi('applyPlugin', group_id, name);
-        ctx.reply(`已将 ${name} 群服务应用`);
-      } catch (error) {
-        ctx.reply((<Error>error).message);
-      }
-    } else {
-      ctx.reply(`apply 指令仅支持群聊，若要为该 bot 启用插件，可使用 enable 指令`);
-    }
-  });
-//#endregion
+//       try {
+//         await ctx.botApi('applyPlugin', group_id, name);
+//         ctx.reply(`已将 ${name} 群服务应用`);
+//       } catch (error) {
+//         ctx.reply((<Error>error).message);
+//       }
+//     } else {
+//       ctx.reply(`apply 指令仅支持群聊，若要为该 bot 启用插件，可使用 enable 指令`);
+//     }
+//   });
+// //#endregion
 
-//#region 禁用
-plugin
-  .command('exempt <name>')
-  .description('免除群服务')
-  .limit(3)
-  .sugar(/^(免除)\s?(?<name>([a-z]|\s)+)$/)
-  .action(async (ctx) => {
-    const { group_id, query } = ctx;
+// //#region 禁用
+// plugin
+//   .command('exempt <name>')
+//   .description('免除群服务')
+//   .limit(3)
+//   .sugar(/^(免除)\s?(?<name>([a-z]|\s)+)$/)
+//   .action(async (ctx) => {
+//     const { group_id, query } = ctx;
 
-    if (group_id) {
-      const { name } = query;
+//     if (group_id) {
+//       const { name } = query;
 
-      try {
-        await ctx.botApi('exemptPlugin', group_id, name);
-        ctx.reply(`已将 ${name} 群服务免除`);
-      } catch (error) {
-        ctx.reply((<Error>error).message);
-      }
-    } else {
-      ctx.reply(`exempt 指令仅支持群聊，若要为该 bot 禁用插件，可使用 disable 指令`);
-    }
-  });
-//#endregion
+//       try {
+//         await ctx.botApi('exemptPlugin', group_id, name);
+//         ctx.reply(`已将 ${name} 群服务免除`);
+//       } catch (error) {
+//         ctx.reply((<Error>error).message);
+//       }
+//     } else {
+//       ctx.reply(`exempt 指令仅支持群聊，若要为该 bot 禁用插件，可使用 disable 指令`);
+//     }
+//   });
+// //#endregion
 
 //#region 帮助
 plugin
