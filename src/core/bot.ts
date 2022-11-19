@@ -3,12 +3,14 @@
 // import { parentPort, MessagePort, TransferListItem, isMainThread } from 'worker_threads';
 // import { ClientEvent, ClientEventMap, ClientObserver, Config as Protocol, event, GroupRole, MessageRet } from 'amesu';
 
+import { resolve, isAbsolute } from 'path';
+import { Client, Config as Protocol, GroupRole, MessageRet } from 'oicq';
+
 import { Option } from '@/plugin';
 import { deepMerge, logger } from '@/utils';
 import { Profile, Setting } from '@/config';
 import { BotEvent, BotEventMap } from '@/events';
 
-import { Client, Config as Protocol, GroupRole, MessageRet } from 'oicq';
 // import { deepMerge } from '@/utils';
 // import { BotEventMap } from '@/events';
 // import { Profile, Setting } from '@/config';
@@ -715,6 +717,14 @@ export class Bot extends Client {
       },
     };
     config = deepMerge(defaultConfig, config);
+
+    const { protocol } = config;
+    const { data_dir } = protocol!;
+
+    // 转换绝对路径
+    protocol!.data_dir = isAbsolute(data_dir!)
+      ? data_dir
+      : resolve(data_dir!);
 
     super(uin, config.protocol);
     botMap.set(uin, this);
