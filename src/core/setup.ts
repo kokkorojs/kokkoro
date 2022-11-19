@@ -1,5 +1,8 @@
 import { logger } from '@/utils';
-import { VERSION, UPDAY, CHANGELOGS, getConfig, createBot, retrievalPlugins, mountPlugin, getBotMap } from '..';
+import { getConfig, } from '@/config'
+import { createBot, getBotMap } from '@/core';
+import { VERSION, UPDAY, CHANGELOGS } from '@/kokkoro';
+import { retrievalPlugins, mountPlugin } from '@/plugin';
 
 /**
  * 创建机器人服务

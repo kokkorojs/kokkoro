@@ -387,8 +387,8 @@ import { mkdir, readdir } from 'fs/promises';
 import { EventEmitter } from 'events';
 import { getBotMap, Bot } from '@/core';
 import { BotEvent, Context, ContextType, EmitEvent, EventName } from '@/events';
-import { Command, CommandType } from './command';
 import { getStack, logger } from '@/utils';
+import { Command, CommandType } from '@/plugin/command';
 
 // import { Bot, botPool } from '../bot';
 // import { BotEvent, Context, EventName } from '../events';
