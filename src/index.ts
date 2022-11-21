@@ -1,4 +1,4 @@
-import { join } from 'path';
+import { resolve } from 'path';
 
 declare global {
   /** 当前进程目录 */
@@ -8,7 +8,7 @@ declare global {
 }
 
 global.__workname = process.cwd();
-global.__dataname = join(__workname, 'data');
+global.__dataname = resolve('data');
 
 const { upday, version, changelogs } = require('../package.json');
 
