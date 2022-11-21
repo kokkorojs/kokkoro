@@ -41,9 +41,6 @@ export interface ProfileDefineEvent {
 
 /** bot 事件地图 */
 export interface BotEventMap<T = any> extends EventMap {
-  /** 发送 */
-  "bot.emit": (this: T, event: EmitEvent) => void;
-
   /** 配置定义 */
   "bot.profile.define": (this: T, event: ProfileDefineEvent) => void;
   /** 配置刷新 */
@@ -53,18 +50,20 @@ export interface BotEventMap<T = any> extends EventMap {
 export type ContextName = 'message' | 'message.group' | 'message.private';
 
 export type ContextType<K extends EventName> = K extends ContextName ? {
-  // group_id?: number;
   /** 权限等级 */
   permission_level: PermissionLevel;
   query: {
     [key: string]: any;
   };
+  /** 修改插件配置项 */
+  updateOption: (name: string, value: string | number | boolean) => void;
 } : {
 
   };
 
 /** 插件上下文 */
 export type Context<K extends EventName> = ContextType<K> & BotEvent<K> & {
+  group_id?: number;
   /** 群插件设置 */
   setting?: Setting;
   /** 群配置项 */

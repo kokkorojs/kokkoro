@@ -98,6 +98,9 @@ kokkoro start
   },
   // web 服务端口号
   "port": 2333,
+  // 日志等级，默认 info
+  // 打印日志会降低性能，若消息量巨大建议修改此参数
+  "log_level": "info",
   // bot 信息，可添加多个
   "bots": {
     // bot 账号
@@ -112,9 +115,6 @@ kokkoro start
       "password": null,
       // 协议配置，不要随意修改，除非你知道自己在做什么
       "protocol": {
-        // 日志等级，默认 info
-        // 打印日志会降低性能，若消息量巨大建议修改此参数
-        "log_level": "info",
         // 1:安卓手机(默认) 2:aPad 3:安卓手表 4:MacOS 5:iPad
         "platform": 1,
         // 忽略自己的消息，默认 true

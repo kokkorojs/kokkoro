@@ -10,7 +10,7 @@ export class Listen<K extends EventName = any>  {
 
   }
 
-  run(context: Context<K>) {
+  handle(context: Context<K>) {
     if (!this.func) {
       return;
     }

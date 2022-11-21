@@ -1,7 +1,7 @@
 
 import { Plugin } from '@/plugin';
 import { Context } from '@/events';
-import { Bot, PermissionLevel } from '@/core';
+import { PermissionLevel } from '@/core';
 
 /** 指令参数 */
 type CommandArg = {
@@ -190,22 +190,30 @@ export class Command<K extends CommandType = any> {
     }
     if (option) {
       context.option = option;
+      context.updateOption = (key: string, value: string | number | boolean) => {
+        const bot = context.getBot();
+        return this.plugin.updateOption(bot.uin, context.group_id!, name, key, value);
+      };
     }
 
-    if (this.isLimit(permission_level)) {
-      const scope = this.min_level !== this.max_level
-        ? `范围：${this.min_level} ~ ${this.max_level}`
-        : `要求：${this.max_level}`;
+    try {
+      if (this.isLimit(permission_level)) {
+        const scope = this.min_level !== this.max_level
+          ? `范围：${this.min_level} ~ ${this.max_level}`
+          : `要求：${this.max_level}`;
 
-      context.reply(`越权，指令 ${this.name} 的 level ${scope}，你当前的 level 为：${permission_level}`, true);
-    } else if (name === 'kokkoro') {
-      this.func(context);
-    } else if (message_type === 'group' && !option!.apply) {
-      this.stop(context);
-    } else if (message_type === 'group' && option!.apply) {
-      this.func(context);
-    } else if (message_type === 'private') {
-      this.func(context);
+        context.reply(`越权，指令 ${this.name} 的 level ${scope}，你当前的 level 为：${permission_level}`, true);
+      } else if (name === 'core') {
+        this.func(context);
+      } else if (message_type === 'group' && !option!.apply) {
+        this.stop(context);
+      } else if (message_type === 'group' && option!.apply) {
+        this.func(context);
+      } else if (message_type === 'private') {
+        this.func(context);
+      }
+    } catch (error) {
+      context.reply(`Error: ${(<Error>error).message}`);
     }
   }
 
@@ -214,7 +222,7 @@ export class Command<K extends CommandType = any> {
   }
 
   private parseQuery(raw_message: string): object {
-    // TODO ⎛⎝≥⏝⏝≤⎛⎝ 多参数 <...params> 解析
+    // TODO ／人◕ ‿‿ ◕人＼ 多参数 <...params> 解析
     if (this.regex && this.regex.test(raw_message)) {
       const { groups } = this.regex.exec(raw_message)!;
       const query = groups ? { ...groups } : {};

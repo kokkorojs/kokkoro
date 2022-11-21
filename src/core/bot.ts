@@ -6,9 +6,9 @@
 import { resolve, isAbsolute } from 'path';
 import { Client, Config as Protocol, GroupRole, MessageRet } from 'oicq';
 
-import { Option } from '@/plugin';
+import { getPluginMap, Option } from '@/plugin';
 import { deepMerge, logger } from '@/utils';
-import { Profile, Setting } from '@/config';
+import { getConfig, Profile, Setting } from '@/config';
 import { BotEvent, BotEventMap } from '@/events';
 
 // import { deepMerge } from '@/utils';
@@ -394,7 +394,7 @@ const botMap: Map<number, Bot> = new Map();
 //     });
 //   }
 
-//   // TODO ⎛⎝≥⏝⏝≤⎛⎝ 待优化
+//   // TODO ／人◕ ‿‿ ◕人＼ 待优化
 //   async enablePlugin(name: string): Promise<void> {
 //     let error;
 
@@ -419,7 +419,7 @@ const botMap: Map<number, Bot> = new Map();
 //     }
 //   }
 
-//   // TODO ⎛⎝≥⏝⏝≤⎛⎝ 待优化
+//   // TODO ／人◕ ‿‿ ◕人＼ 待优化
 //   async disablePlugin(name: string): Promise<void> {
 //     let error;
 
@@ -444,7 +444,7 @@ const botMap: Map<number, Bot> = new Map();
 //     }
 //   }
 
-//   // TODO ⎛⎝≥⏝⏝≤⎛⎝ 待优化
+//   // TODO ／人◕ ‿‿ ◕人＼ 待优化
 //   async applyPlugin(group_id: number, name: string): Promise<void> {
 //     let error;
 
@@ -469,7 +469,7 @@ const botMap: Map<number, Bot> = new Map();
 //     }
 //   }
 
-//   // TODO ⎛⎝≥⏝⏝≤⎛⎝ 待优化
+//   // TODO ／人◕ ‿‿ ◕人＼ 待优化
 //   async exemptPlugin(group_id: number, name: string): Promise<void> {
 //     let error;
 
@@ -540,7 +540,7 @@ const botMap: Map<number, Bot> = new Map();
 //         this.logger.info('扫码完成后将会自动登录，按回车键可刷新二维码');
 
 //         botParentPort.once('thread.process.stdout', () => {
-//           // TODO ⎛⎝≥⏝⏝≤⎛⎝ 如何主动取消 process.stdin 监听？
+//           // TODO ／人◕ ‿‿ ◕人＼ 如何主动取消 process.stdin 监听？
 //           if (this.isOnline()) {
 //             return;
 //           }
@@ -579,7 +579,7 @@ const botMap: Map<number, Bot> = new Map();
 //             });
 //             break;
 //           case 'system.login.device':
-//             // TODO ⎛⎝≥⏝⏝≤⎛⎝ 设备锁轮询，oicq 暂无相关 func
+//             // TODO ／人◕ ‿‿ ◕人＼ 设备锁轮询，oicq 暂无相关 func
 //             this.logger.info('验证完成后按回车键继续...');
 
 //             botParentPort.once('thread.process.stdout', () => {
@@ -721,10 +721,10 @@ export class Bot extends Client {
     const { protocol } = config;
     const { data_dir } = protocol!;
 
-    // 转换绝对路径
     protocol!.data_dir = isAbsolute(data_dir!)
       ? data_dir
       : resolve(data_dir!);
+    protocol!.log_level = getConfig('log_level');
 
     super(uin, config.protocol);
     botMap.set(uin, this);
@@ -756,8 +756,12 @@ export class Bot extends Client {
     });
 
     while (true) {
-      this.emit('bot.emit', {
-        name, data,
+      const pluginMap = getPluginMap();
+
+      pluginMap.forEach((plugin) => {
+        plugin.emit('plugin.message', {
+          name, data,
+        });
       });
       this.emit(name, data);
 
@@ -851,6 +855,10 @@ export class Bot extends Client {
    */
   getDisable(): string[] {
     return this.profile.getDisable();
+  }
+
+  updateOption(group_id: number, plugin: string, key: string, value: string | number | boolean) {
+    return this.profile.updateOption(group_id, plugin, key, value);
   }
 
   /**
@@ -967,7 +975,7 @@ export class Bot extends Client {
         });
       })
       .on('system.login.device', () => {
-        // TODO ⎛⎝≥⏝⏝≤⎛⎝ 设备锁轮询，oicq 暂无相关 func
+        // TODO ／人◕ ‿‿ ◕人＼ 设备锁轮询，oicq 暂无相关 func
         this.logger.mark('验证完成后按回车键继续...');
         process.stdin.once('data', () => {
           this.login();
