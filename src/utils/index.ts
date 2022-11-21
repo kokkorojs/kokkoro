@@ -1,7 +1,6 @@
 import { Logger, getLogger } from 'log4js';
 
 export const logger: Logger = getLogger('[kokkoro]');
-logger.level = 'all';
 
 /**
  * 校验 uin 合法性

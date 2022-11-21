@@ -1,8 +1,8 @@
+import { getConfig } from '@/config';
 import { logger } from '@/utils';
-import { getConfig, } from '@/config'
 import { createBot, getBotMap } from '@/core';
 import { VERSION, UPDAY, CHANGELOGS } from '@/kokkoro';
-import { retrievalPlugins, mountPlugin } from '@/plugin';
+import { retrievalPlugins, importPlugin } from '@/plugin';
 
 /**
  * 创建机器人服务
@@ -20,37 +20,28 @@ function createBots() {
     const uin = uins[i];
     const config = bots[uin];
     const bot = createBot(uin, config);
-
-    // botThread.once('thread.bot.created', () => {
-    //   botThread.logger.info(`已创建 bot(${uin}) 线程`);
-    // });
   }
 }
 
 /**
- * 创建插件多线程服务
+ * 创建插件服务
  */
 async function createPlugins() {
-  const plugins = await retrievalPlugins();
-  //   const extension: PluginInfo = {
-  //     name: 'kokkoro',
-  //     folder: 'core',
-  //     path: join(__dirname, '../plugin/extension.js'),
-  //     local: true,
-  //   };
-  const infos = [...plugins];
-  const infos_length = infos.length;
+  const pluginList = await retrievalPlugins();
 
-  for (let i = 0; i < infos_length; i++) {
-    const info = infos[i];
-    const plugin = mountPlugin(info);
+  pluginList.core = {
+    name: 'core',
+    folder: 'plugin',
+    filename: './core.js',
+    local: true,
+  }
+  const keys = Object.keys(pluginList);
+  const keys_length = keys.length;
 
-    plugin.bl.forEach((bot) => {
-      bot.emit('bot.profile.define', {
-        name: plugin.getName(),
-        option: plugin.option,
-      });
-    });
+  for (let i = 0; i < keys_length; i++) {
+    const key = keys[i];
+    const info = pluginList[key];
+    const plugin = importPlugin(info);
   }
 }
 
