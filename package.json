@@ -1,7 +1,7 @@
 {
   "name": "kokkoro",
   "version": "1.2.0",
-  "upday": "2022/11/19",
+  "upday": "2022/12/3",
   "description": "とある咕咕の QQ 机器人框架",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -9,8 +9,8 @@
     "node": ">= v15"
   },
   "scripts": {
-    "build": "tsc && tsc-alias",
-    "build:watch": "tsc && (concurrently \"tsc -w\" \"tsc-alias -w\")",
+    "build": "rm -rf lib && tsc && tsc-alias",
+    "build:watch": "rm -rf lib && tsc && (concurrently \"tsc -w\" \"tsc-alias -w\")",
     "test": "node test/main.js"
   },
   "repository": {
