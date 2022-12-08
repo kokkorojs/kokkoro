@@ -81,6 +81,19 @@ export function deepProxy<T extends { [key: string]: any }>(target: T, handler: 
 }
 
 /**
+ * Map 转换 Object 对象
+ * 
+ * @param map - Map 集合
+ * @returns 对应集合的键值对
+ */
+export function mapToObject<T>(map: Map<number | string, T>): {
+  [k: string]: T;
+} {
+  const result: any = {};
+  return [...map.entries()].reduce((object, [key, value]) => (object[key] = value, object), result);
+}
+
+/**
  * 防抖函数
  * 
  * @param func - 函数
