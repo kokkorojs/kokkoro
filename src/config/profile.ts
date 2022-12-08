@@ -41,7 +41,7 @@ export class Profile {
     this.defaultOption = {};
 
     try {
-      const profile: Profile = require(file);
+      const profile: Profile = this.getLocalData();
 
       this.group = profile.group;
       this.disable = new Set(profile.disable);
@@ -71,6 +71,11 @@ export class Profile {
     this.bot.on('notice.group.decrease', (event) => this.onGroupDecrease(event));
   }
 
+  /**
+   * 定义插件默认 Option
+   * 
+   * @param event - Plugin 实例化后触发
+   */
   private onDefine(event: ProfileDefineEvent) {
     const { name, option } = event;
     this.defaultOption[name] = option;
@@ -163,7 +168,7 @@ export class Profile {
     };
 
     // 数据校验，避免重复调用 writeFile
-    const localData = require(this.file);
+    const localData = this.getLocalData();
 
     if (JSON.stringify(localData) === JSON.stringify(data)) {
       return false;
@@ -176,9 +181,13 @@ export class Profile {
     }
   }
 
+  private getLocalData(){
+    return deepClone(require(this.file));
+  }
+
   /**
    * 获取群插件设置
-   * 
+   *
    * @param group_id - 群号
    * @returns 群插件设置
    */
@@ -186,21 +195,21 @@ export class Profile {
     return deepClone(this.group[group_id].setting);
   }
 
-  /**
-   * 获取群插件配置项
-   * 
-   * @param group_id - 群号
-   * @param name - 插件名
-   * @returns 群插件配置项
-   */
-  getOption(group_id: number, name: string): Option {
-    return deepClone(this.group[group_id].setting[name]);
-  }
+  //   /**
+  //    * 获取群插件配置项
+  //    *
+  //    * @param group_id - 群号
+  //    * @param name - 插件名
+  //    * @returns 群插件配置项
+  //    */
+  //   getOption(group_id: number, name: string): Option {
+  //     return deepClone(this.group[group_id].setting[name]);
+  //   }
 
   /**
    * 获取插件禁用列表
-   * 
-   * @returns 
+   *
+   * @returns
    */
   getDisable(): string[] {
     return [...this.disable];
@@ -214,23 +223,23 @@ export class Profile {
     option[key] = value;
 
     try {
-      await this.write();
+      return this.write();
     } catch (error) {
       option[key] = old_value;
       throw error;
     }
 
-    // switch (true) {
-    //   case !Array.isArray(option[key]) && typeof option[key] !== typeof value:
-    //     if (option[key]) {
-    //       message = `Error: ${key}.${value} 应为 ${typeof option[key]} 类型`;
-    //     } else {
-    //       message = `Error: ${key} is not defined`;
-    //     }
-    //     break;
-    //   case Array.isArray(option[key]) && !option[key].includes(key):
-    //     message = `Error: 属性 ${key} 的合法值为 [${(option[key] as (string | number)[]).join(', ')}]`;
-    //     break;
-    // }
+  //     // switch (true) {
+  //     //   case !Array.isArray(option[key]) && typeof option[key] !== typeof value:
+  //     //     if (option[key]) {
+  //     //       message = `Error: ${key}.${value} 应为 ${typeof option[key]} 类型`;
+  //     //     } else {
+  //     //       message = `Error: ${key} is not defined`;
+  //     //     }
+  //     //     break;
+  //     //   case Array.isArray(option[key]) && !option[key].includes(key):
+  //     //     message = `Error: 属性 ${key} 的合法值为 [${(option[key] as (string | number)[]).join(', ')}]`;
+  //     //     break;
+  //     // }
   }
 }
