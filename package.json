@@ -9,8 +9,8 @@
     "node": ">= v15"
   },
   "scripts": {
-    "build": "rm -rf lib && tsc && tsc-alias",
-    "build:watch": "rm -rf lib && tsc && (concurrently \"tsc -w\" \"tsc-alias -w\")",
+    "build": "rmdir /q /s lib && tsc && tsc-alias",
+    "build:watch": "rmdir /q /s lib && tsc && (concurrently \"tsc -w\" \"tsc-alias -w\")",
     "test": "node test/main.js"
   },
   "repository": {
