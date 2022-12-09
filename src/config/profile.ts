@@ -194,16 +194,16 @@ export class Profile {
     return deepClone(this.group[group_id].setting);
   }
 
-  //   /**
-  //    * 获取群插件配置项
-  //    *
-  //    * @param group_id - 群号
-  //    * @param name - 插件名
-  //    * @returns 群插件配置项
-  //    */
-  //   getOption(group_id: number, name: string): Option {
-  //     return deepClone(this.group[group_id].setting[name]);
-  //   }
+  /**
+   * 获取群插件配置项
+   *
+   * @param group_id - 群号
+   * @param name - 插件名
+   * @returns 群插件配置项
+   */
+  getOption(group_id: number, name: string): Option {
+    return deepClone(this.group[group_id].setting[name]);
+  }
 
   /**
    * 获取插件禁用列表
