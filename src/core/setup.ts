@@ -3,6 +3,7 @@ import { getConfig } from '@/config';
 import { createBot, getBotMap } from '@/core';
 import { VERSION, UPDAY, CHANGELOGS } from '@/kokkoro';
 import { retrievalPluginList, importPlugin } from '@/plugin';
+import { join } from 'path';
 
 /**
  * 创建机器人服务
@@ -32,7 +33,7 @@ async function createPluginServe() {
   pluginList.kokkoro = {
     name: 'kokkoro',
     folder: 'kokkoro',
-    filename: './system.js',
+    filename: join(__dirname, '../system.js'),
     local: true,
   }
   const keys = Object.keys(pluginList);
