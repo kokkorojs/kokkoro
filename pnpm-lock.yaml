@@ -2,7 +2,7 @@ lockfileVersion: 5.4
 
 specifiers:
   '@types/cron': ^2.0.0
-  '@types/node': ^18.11.11
+  '@types/node': ^18.11.12
   cron: ^2.1.0
   log4js: ^6.7.1
   oicq: ^2.3.1
@@ -14,7 +14,7 @@ dependencies:
 
 devDependencies:
   '@types/cron': 2.0.0
-  '@types/node': 18.11.11
+  '@types/node': 18.11.12
   log4js: 6.7.1
   tsc-alias: 1.8.2
 
@@ -45,15 +45,15 @@ packages:
     resolution: {integrity: sha512-xZM08fqvwIXgghtPVkSPKNgC+JoMQ2OHazEvyTKnNf7aWu1aB6/4lBbQFrb03Td2cUGG7ITzMv3mFYnMu6xRaQ==}
     dependencies:
       '@types/luxon': 3.1.0
-      '@types/node': 18.11.11
+      '@types/node': 18.11.12
     dev: true
 
   /@types/luxon/3.1.0:
     resolution: {integrity: sha512-gCd/HcCgjqSxfMrgtqxCgYk/22NBQfypwFUG7ZAyG/4pqs51WLTcUzVp1hqTbieDYeHS3WoVEh2Yv/2l+7B0Vg==}
     dev: true
 
-  /@types/node/18.11.11:
-    resolution: {integrity: sha512-KJ021B1nlQUBLopzZmPBVuGU9un7WJd/W4ya7Ih02B4Uwky5Nja0yGYav2EfYIk0RR2Q9oVhf60S2XR1BCWJ2g==}
+  /@types/node/18.11.12:
+    resolution: {integrity: sha512-FgD3NtTAKvyMmD44T07zz2fEf+OKwutgBCEVM8GcvMGVGaDktiLNTDvPwC/LUe3PinMW+X6CuLOF2Ui1mAlSXg==}
     dev: true
 
   /anymatch/3.1.3:
