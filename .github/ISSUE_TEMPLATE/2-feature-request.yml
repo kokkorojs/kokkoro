@@ -1,0 +1,26 @@
+name: 功能请求
+description: 若是有在下能力所能及的事情，还请主人吩咐♪
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢你提出的宝贵意见 (*^▽^*)
+
+        该 issue 将被用于程序中的新功能开发，在这之前请先确认 kokkoro 是否已存在类似插件哦。若你想要获取更多插件，可以先查阅文档 https://kokkoro.js.org/plugin/awesome
+
+        为了方便确认该功能的可行性，建议尽可能多地填写以下表格。
+
+  - type: textarea
+    attributes:
+      label: 此功能的开发将会解决什么问题？
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: 解决该问题所需的功能点有哪些？
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: 从代码层面来讲该方案是否可行？有没有类似的轮子和成熟方案？
