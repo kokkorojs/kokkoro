@@ -28,8 +28,8 @@ export type BotEvent<K extends EventName> = EventType<EventMap[K]> & {
   self_id: number;
 };
 
-/** bot emit 事件 */
-export interface EmitEvent<K extends EventName = any> {
+/** 插件消息事件 */
+export interface PluginMessageEvent<K extends EventName = any> {
   name: K;
   data: BotEvent<K>;
 }
@@ -39,13 +39,13 @@ export interface ProfileDefineEvent {
   option: Option;
 }
 
-/** bot 事件地图 */
-export interface BotEventMap<T = any> extends EventMap {
-  /** 配置定义 */
-  "bot.profile.define": (this: T, event: ProfileDefineEvent) => void;
-  /** 配置刷新 */
-  "bot.profile.refresh": (this: T) => void;
-}
+// /** bot 事件地图 */
+// export interface BotEventMap<T = any> extends EventMap {
+//   /** 配置定义 */
+//   "bot.profile.define": (this: T, event: ProfileDefineEvent) => void;
+//   /** 配置刷新 */
+//   "bot.profile.refresh": (this: T) => void;
+// }
 
 export type ContextName = 'message' | 'message.group' | 'message.private';
 
@@ -55,8 +55,6 @@ export type ContextType<K extends EventName> = K extends ContextName ? {
   query: {
     [key: string]: any;
   };
-  /** 修改插件配置项 */
-  updateOption: (name: string, value: string | number | boolean) => void;
 } : {
 
   };
@@ -68,8 +66,10 @@ export type Context<K extends EventName> = ContextType<K> & BotEvent<K> & {
   setting?: Setting;
   /** 群配置项 */
   option?: Option;
-  /** 插件禁用清单 */
-  disable: string[];
+  /** 当前 bot 实例 */
+  bot: Bot;
+  /** 快捷修改插件配置项 */
+  revise: (option: string, value: string | number | boolean, plugin?: string) => void;
   /** 获取 bot 实例 */
-  getBot: () => Bot;
+  getBot: (uin: number) => Bot;
 };
