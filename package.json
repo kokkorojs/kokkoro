@@ -1,7 +1,7 @@
 {
   "name": "kokkoro",
   "version": "1.2.0",
-  "upday": "2022/12/8",
+  "upday": "2022/12/9",
   "description": "とある咕咕の QQ 机器人框架",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -25,7 +25,7 @@
     "princess-connect-redive"
   ],
   "author": "yuki <mail@yuki.sh>",
-  "license": "MPL-2.0",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/kokkorojs/kokkoro/issues"
   },
@@ -37,7 +37,7 @@
   },
   "devDependencies": {
     "@types/cron": "^2.0.0",
-    "@types/node": "^18.11.11",
+    "@types/node": "^18.11.12",
     "log4js": "^6.7.1",
     "tsc-alias": "^1.8.2"
   },

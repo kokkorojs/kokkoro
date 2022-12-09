@@ -269,6 +269,7 @@ export class Profile {
     let message: string = '';
     let new_value: string | number | boolean | Array<string | number>;
 
+    // 数据类型转换
     switch (true) {
       case ['true', 'false'].includes(value as string):
         new_value = value === 'true';
@@ -281,6 +282,7 @@ export class Profile {
         break;
     }
 
+    // 配置项类型校验
     switch (true) {
       case old_value === new_value:
         message = `Error: "${key}" 当前值相等`;
@@ -294,6 +296,7 @@ export class Profile {
         message = `Error: 属性 ${key} 的合法值为 [${(option[key] as (string | number)[]).join(', ')}]`;
         break;
     }
+
     if (message) {
       throw new Error(message);
     }
