@@ -1,0 +1,30 @@
+name: 问题反馈
+description: 主人，遇到什么 bug 了么？
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢你的问题反馈 (*^▽^*)
+
+        该 issue 将被用于查找程序中发现的错误和问题，在这之前请先确认是 kokkoro 本身的行为导致而非协议库 bug 哦。若你想要获取更多使用帮助，可以先查阅文档 https://kokkoro.js.org
+
+        为了方便更快的定位问题，建议尽可能多地填写以下表格。
+  - type: input
+    attributes:
+      label: node 版本
+      description: 你可以输入 `node -v` 查询
+  - type: input
+    attributes:
+      label: kokkoro 版本
+      description: 若不是最新版本，可以尝试升级依赖库后确认问题是否还存在
+  - type: textarea
+    attributes:
+      label: 什么操作行为会导致该 bug 复现？
+      description: 描述相关报错的详细步骤，最好能提供代码片段
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: 控制台日志
+      description: 如果方便的话，你可以将 `log_level` 改为 `debug` 后查看
