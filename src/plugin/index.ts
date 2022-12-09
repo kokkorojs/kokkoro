@@ -196,10 +196,18 @@ export class Plugin extends EventEmitter {
       return;
     }
 
-    const updateCommand = new Command<'all'>(this, 'update')
+    const updateCommand = new Command<'all'>(this, 'update <option> <value>')
       .description('修改插件配置')
-      .action((ctx) => {
-        // ctx.revise()
+      .action(async (ctx) => {
+        const { query } = ctx;
+        const { option, value } = query;
+
+        try {
+          await ctx.revise(option, value);
+          ctx.reply('修改成功');
+        } catch (error) {
+          ctx.reply((<Error>error).message);
+        }
       });
     const helpCommand = new Command<'all'>(this, 'help')
       .description('帮助信息')
@@ -247,7 +255,7 @@ export class Plugin extends EventEmitter {
       context.setting = bot.getSetting(context.group_id);
     }
     context.bot = bot;
-    context.revise = (key: string, value: string | number | boolean, plugin: string = name) => {
+    context.revise = (key: string, value: string | number | boolean, plugin: string = this.name) => {
       return bot.updateOption(context.group_id!, plugin, key, value);
     };
     context.getBot = (uin: number) => this.bl.get(uin);
