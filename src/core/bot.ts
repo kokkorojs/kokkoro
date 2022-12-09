@@ -2,8 +2,8 @@ import { resolve, isAbsolute } from 'path';
 import { Client, Config as Protocol, GroupRole, MessageRet } from 'oicq';
 
 import { BotEvent } from '@/events';
-import { getPluginMap } from '@/plugin';
 import { deepMerge, logger } from '@/util';
+import { getPluginMap, Option } from '@/plugin';
 import { getConfig, Profile, Setting } from '@/config';
 
 const admins: number[] = [
@@ -157,16 +157,16 @@ export class Bot extends Client {
     return this.profile.getSetting(group_id);
   }
 
-  //   /**
-  //    * 获取群插件配置项
-  //    * 
-  //    * @param group_id - 群号
-  //    * @param name - 插件名
-  //    * @returns 群插件配置项
-  //    */
-  //   getOption(group_id: number, name: string): Option {
-  //     return this.profile.getOption(group_id, name);
-  //   }
+  /**
+   * 获取群插件配置项
+   * 
+   * @param group_id - 群号
+   * @param name - 插件名
+   * @returns 群插件配置项
+   */
+  getOption(group_id: number, name: string): Option {
+    return this.profile.getOption(group_id, name);
+  }
 
   /**
    * 获取 bot 插件禁用列表
