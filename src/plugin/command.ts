@@ -1,4 +1,3 @@
-
 import { Plugin } from '@/plugin';
 import { Context } from '@/events';
 import { PermissionLevel } from '@/core';
@@ -90,7 +89,7 @@ export class Command<K extends CommandType = any> {
 
   /**
    * 简介
-   * 
+   *
    * @param desc - 指令简单描述
    */
   public description(desc: string): Command<K> {
@@ -100,7 +99,7 @@ export class Command<K extends CommandType = any> {
 
   /**
    * 语法糖
-   * 
+   *
    * @param shortcut - 与之匹配的字符串或正则
    */
   public sugar(shortcut: string | RegExp): Command<K> {
@@ -116,7 +115,7 @@ export class Command<K extends CommandType = any> {
 
   /**
    * 指令执行
-   * 
+   *
    * @param callback 触发回调
    */
   public action(callback: (ctx: CommandMap[K]) => any): this {
@@ -126,7 +125,7 @@ export class Command<K extends CommandType = any> {
 
   /**
    * 指令被拒
-   * 
+   *
    * @param callback 触发回调
    */
   public prevent(callback: (ctx: CommandMap[K]) => any): this {
@@ -136,7 +135,7 @@ export class Command<K extends CommandType = any> {
 
   /**
    * 指令权限
-   * 
+   *
    * @param min_level - 最低权限
    * @param max_level - 最高权限
    */
@@ -181,19 +180,12 @@ export class Command<K extends CommandType = any> {
     if (!this.func) {
       return;
     }
-    const { disable, setting, permission_level, message_type } = context;
+    const { setting, permission_level, message_type } = context;
     const name = this.plugin.getName();
     const option = setting?.[name];
 
-    if (disable.includes(name)) {
-      return;
-    }
     if (option) {
       context.option = option;
-      context.updateOption = (key: string, value: string | number | boolean) => {
-        const bot = context.getBot();
-        return this.plugin.updateOption(bot.uin, context.group_id!, name, key, value);
-      };
     }
 
     try {
@@ -203,7 +195,7 @@ export class Command<K extends CommandType = any> {
           : `要求：${this.max_level}`;
 
         context.reply(`越权，指令 ${this.name} 的 level ${scope}，你当前的 level 为：${permission_level}`, true);
-      } else if (name === 'core') {
+      } else if (name === 'kokkoro') {
         this.func(context);
       } else if (message_type === 'group' && !option!.apply) {
         this.stop(context);

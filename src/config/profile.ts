@@ -6,7 +6,7 @@ import { MemberIncreaseEvent, MemberDecreaseEvent } from 'oicq';
 import { Bot } from '@/core';
 import { Option } from '@/plugin';
 import { ProfileDefineEvent } from '@/events';
-import { deepClone, deepMerge } from '@/utils';
+import { deepClone, deepMerge } from '@/util';
 
 /** 群设置 */
 export interface Setting {
