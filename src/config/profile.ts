@@ -263,11 +263,44 @@ export class Profile {
   }
 
   async updateOption(group_id: number, plugin: string, key: string, value: string | number | boolean) {
-    // let message: string;
     const option = this.group[group_id].setting[plugin];
     const old_value = option[key];
 
-    option[key] = value;
+    let message: string = '';
+    let new_value: string | number | boolean | Array<string | number>;
+
+    switch (true) {
+      case ['true', 'false'].includes(value as string):
+        new_value = value === 'true';
+        break;
+      case /^(-?[1-9]\d*|0)$/.test(value as string):
+        new_value = +value;
+        break;
+      default:
+        new_value = value;
+        break;
+    }
+
+    switch (true) {
+      case old_value === new_value:
+        message = `Error: "${key}" 当前值相等`;
+        break;
+      case !Array.isArray(old_value) && typeof old_value !== typeof new_value:
+        message = old_value
+          ? `Error: ${plugin}[${key}] 应为 ${typeof option[key]} 类型`
+          : `Error: ${key} is not defined`;
+        break;
+      case Array.isArray(old_value) && !old_value.includes(new_value as string | number):
+        message = `Error: 属性 ${key} 的合法值为 [${(option[key] as (string | number)[]).join(', ')}]`;
+        break;
+    }
+    if (message) {
+      throw new Error(message);
+    }
+    if (Array.isArray(old_value)) {
+      new_value = old_value.sort(i => i === new_value ? -1 : 0);
+    }
+    option[key] = new_value;
 
     try {
       return this.write();
@@ -275,18 +308,5 @@ export class Profile {
       option[key] = old_value;
       throw error;
     }
-
-  //     // switch (true) {
-  //     //   case !Array.isArray(option[key]) && typeof option[key] !== typeof value:
-  //     //     if (option[key]) {
-  //     //       message = `Error: ${key}.${value} 应为 ${typeof option[key]} 类型`;
-  //     //     } else {
-  //     //       message = `Error: ${key} is not defined`;
-  //     //     }
-  //     //     break;
-  //     //   case Array.isArray(option[key]) && !option[key].includes(key):
-  //     //     message = `Error: 属性 ${key} 的合法值为 [${(option[key] as (string | number)[]).join(', ')}]`;
-  //     //     break;
-  //     // }
   }
 }
