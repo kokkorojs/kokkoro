@@ -1,6 +1,6 @@
 import { join } from 'path';
-import { writeFileSync } from 'fs';
-import { writeFile } from 'fs/promises';
+import { readFileSync, writeFileSync } from 'fs';
+import { readFile, writeFile } from 'fs/promises';
 import { MemberIncreaseEvent, MemberDecreaseEvent } from 'oicq';
 
 import { Bot } from '@/core';
@@ -164,9 +164,8 @@ export class Profile {
   private async write(): Promise<boolean> {
     const data = {
       group: this.group,
-      disable: [...this.disable],
+      disable: this.getDisable(),
     };
-
     // 数据校验，避免重复调用 writeFile
     const localData = this.getLocalData();
 
@@ -181,8 +180,8 @@ export class Profile {
     }
   }
 
-  private getLocalData(){
-    return deepClone(require(this.file));
+  private getLocalData() {
+    return JSON.parse(readFileSync(this.file, 'utf-8'));
   }
 
   /**
@@ -191,7 +190,7 @@ export class Profile {
    * @param group_id - 群号
    * @returns 群插件设置
    */
-  getSetting(group_id: number): Setting {
+  public getSetting(group_id: number): Setting {
     return deepClone(this.group[group_id].setting);
   }
 
@@ -211,8 +210,56 @@ export class Profile {
    *
    * @returns
    */
-  getDisable(): string[] {
+  public getDisable(): string[] {
     return [...this.disable];
+  }
+
+  public async enablePlugin(name: string): Promise<void> {
+    let error;
+
+    if (!this.defaultOption[name]) {
+      error = `插件 ${name} 未挂载`;
+    } else if (!this.disable.has(name)) {
+      error = `插件 ${name} 不在禁用列表`;
+    } else {
+      this.disable.delete(name);
+
+      try {
+        await this.write();
+        this.bot.logger.info(`更新了禁用列表，移除了插件：${name}`);
+      } catch (err) {
+        error = `更新禁用列表失败，${(<Error>err).message}`;
+        this.disable.add(name);
+      }
+    }
+    if (error) {
+      this.bot.logger.error(error);
+      throw new Error(error);
+    }
+  }
+
+  public async disablePlugin(name: string): Promise<void> {
+    let error;
+
+    if (!this.defaultOption[name]) {
+      error = `插件 ${name} 未挂载`;
+    } else if (this.disable.has(name)) {
+      error = `插件 ${name} 已在禁用列表`;
+    } else {
+      this.disable.add(name);
+
+      try {
+        await this.write();
+        this.bot.logger.info(`更新了禁用列表，新增了插件：${name}`);
+      } catch (err) {
+        error = `更新禁用列表失败，${(<Error>err).message}`;
+        this.disable.delete(name);
+      }
+    }
+    if (error) {
+      this.bot.logger.error(error);
+      throw new Error(error);
+    }
   }
 
   async updateOption(group_id: number, plugin: string, key: string, value: string | number | boolean) {
