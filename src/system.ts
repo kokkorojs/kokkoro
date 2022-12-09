@@ -1,5 +1,5 @@
 import { UPDAY, VERSION } from '@/kokkoro';
-import { Plugin, retrievalPlugins, getPluginMap, importPlugin, destroyPlugin } from '@/plugin';
+import { Plugin, retrievalPluginList, getPluginMap, importPlugin, destroyPlugin } from '@/plugin';
 
 const plugin = new Plugin();
 
@@ -22,8 +22,9 @@ plugin
   .description('查看 bot 运行信息')
   .sugar(/^(状态)$/)
   .action((ctx) => {
-    const bot = ctx.getBot();
+    const { bot } = ctx;
     const { nickname, gl, fl, stat } = bot;
+
     const group_count = `${gl.size} 个`;
     const friend_count = `${fl.size} 个`;
     const message_min_count = `${stat.msg_cnt_per_min}/分`;
@@ -42,7 +43,7 @@ plugin
   .description('插件模块列表')
   .sugar(/^(插件)$/)
   .action(async (ctx) => {
-    const pluginList = await retrievalPlugins();
+    const pluginList = await retrievalPluginList();
     const list: {
       node_modules: string[];
       plugins: string[];
@@ -120,42 +121,42 @@ plugin
 //#endregion
 
 //#region 启用
-// plugin
-//   .command('enable <name>')
-//   .description('启用插件')
-//   .limit(4)
-//   .sugar(/^(启用)\s?(?<name>([a-z]|\s)+)$/)
-//   .action(async (ctx) => {
-//     const { name } = ctx.query;
+plugin
+  .command('enable <name>')
+  .description('启用插件')
+  .limit(4)
+  .sugar(/^(启用)\s?(?<name>([a-z]|\s)+)$/)
+  .action(async (ctx) => {
+    const { bot, query } = ctx;
+    const { name } = query;
 
-//     ctx.updateOption('apply', true);
-//     // try {
-//     //   await ctx.botApi('enablePlugin', name);
-//     //   ctx.reply(`已将 ${name} 从禁用列表移除`);
-//     // } catch (error) {
-//     //   ctx.reply((<Error>error).message);
-//     // }
-//   });
+    try {
+      await bot.enablePlugin(name);
+      ctx.reply(`已将 ${name} 从禁用列表移除`);
+    } catch (error) {
+      ctx.reply((<Error>error).message);
+    }
+  });
 //#endregion
 
-// //#region 禁用
-// plugin
-//   .command('disable <name>')
-//   .description('禁用插件')
-//   .limit(4)
-//   .sugar(/^(禁用)\s?(?<name>([a-z]|\s)+)$/)
-//   .action(async (ctx) => {
-//     const { name } = ctx.query;
+//#region 禁用
+plugin
+  .command('disable <name>')
+  .description('禁用插件')
+  .limit(4)
+  .sugar(/^(禁用)\s?(?<name>([a-z]|\s)+)$/)
+  .action(async (ctx) => {
+    const { bot, query } = ctx;
+    const { name } = query;
 
-//     try {
-//       await ctx.botApi('disablePlugin', name);
-//       ctx.reply(`已将 ${name} 添加至禁用列表`);
-//     } catch (error) {
-//       ctx.reply((<Error>error).message);
-//     }
-
-//   });
-// //#endregion
+    try {
+      await bot.disablePlugin(name);
+      ctx.reply(`已将 ${name} 添加至禁用列表`);
+    } catch (error) {
+      ctx.reply((<Error>error).message);
+    }
+  });
+//#endregion
 
 //#region 群服务
 plugin
@@ -190,15 +191,14 @@ plugin
   .limit(3)
   .sugar(/^(应用)\s?(?<name>([a-z]|\s)+)$/)
   .action(async (ctx) => {
-    const { group_id, query } = ctx;
+    const { bot, group_id, query } = ctx;
 
     if (group_id) {
       const { name } = query;
-      const bot = ctx.getBot();
 
       try {
-        plugin.updateOption(bot.uin, group_id, name, 'apply', true);
-        ctx.reply(`已将 ${name} 群服务应用`);
+        const is_write = await bot.updateOption(group_id, name, 'apply', true);
+        ctx.reply(is_write ? `已将 ${name} 群服务应用` : `${name} 已被应用，不要重复修改`);
       } catch (error) {
         ctx.reply((<Error>error).message);
       }
@@ -215,15 +215,14 @@ plugin
   .limit(3)
   .sugar(/^(免除)\s?(?<name>([a-z]|\s)+)$/)
   .action(async (ctx) => {
-    const { group_id, query } = ctx;
+    const { bot, group_id, query } = ctx;
 
     if (group_id) {
       const { name } = query;
-      const bot = ctx.getBot();
 
       try {
-        plugin.updateOption(bot.uin, group_id, name, 'apply', false);
-        ctx.reply(`已将 ${name} 群服务免除`);
+        const is_write = await bot.updateOption(group_id, name, 'apply', false);
+        ctx.reply(is_write ? `已将 ${name} 群服务免除` : `${name} 已被免除，不要重复修改`);
       } catch (error) {
         ctx.reply((<Error>error).message);
       }
@@ -284,7 +283,7 @@ async function mountPlugin(name: string): Promise<void> {
   }
 
   try {
-    const pluginList = await retrievalPlugins();
+    const pluginList = await retrievalPluginList();
     const info = pluginList[name];
 
     if (!info) {
@@ -313,12 +312,12 @@ async function unmountPlugin(name: string) {
   }
 
   try {
-    const pluginList = await retrievalPlugins();
+    const pluginList = await retrievalPluginList();
     const info = pluginList[name];
     const plugin = pluginMap.get(name)!;
 
     plugin.emit('plugin.destroy');
-    destroyPlugin(info.filename);
+    destroyPlugin(info);
   } catch (error) {
     throw error;
   }

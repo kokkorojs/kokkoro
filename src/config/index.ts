@@ -2,7 +2,7 @@ import { resolve } from 'path';
 import { LogLevel } from 'oicq';
 
 import { BotConfig } from '@/core';
-import { deepClone, logger } from '@/utils';
+import { deepClone, logger } from '@/util';
 
 /** 全局配置 */
 export type GlobalConfig = {

@@ -16,9 +16,8 @@ export class Listen<K extends EventName = any>  {
     }
     const name = this.plugin.getName();
     const option = context.setting?.[name];
-    const disable = context.disable;
 
-    if (disable.includes(name) || option?.apply === false) {
+    if (option?.apply === false) {
       return;
     }
     if (option) {

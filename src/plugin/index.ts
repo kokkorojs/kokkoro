@@ -4,11 +4,11 @@ import { mkdir, readdir } from 'fs/promises';
 import { join, resolve } from 'path';
 import { CronCommand, CronJob } from 'cron';
 
-import { getBotMap, Bot } from '@/core';
-import { getStack, logger } from '@/utils';
-import { EmitEvent, EventName } from '@/events';
 import { Listen } from '@/plugin/listen';
 import { Command, CommandType } from '@/plugin/command';
+import { getBotMap, Bot } from '@/core';
+import { getStack, logger } from '@/util';
+import { PluginMessageEvent, EventName, BotEvent, Context } from '@/events';
 
 const modules_path = resolve('node_modules');
 const plugins_path = resolve('plugins');
@@ -66,12 +66,11 @@ export class Plugin extends EventEmitter {
 
     super();
 
+    pluginMap.set(name, this);
+
     this.ver = '0.0.0';
     this.name = name;
     this.fullname = fullname;
-
-    pluginMap.set(name, this);
-
     this.jobs = [];
     this.events = new Set();
     this.commands = [];
@@ -157,13 +156,6 @@ export class Plugin extends EventEmitter {
     return this;
   }
 
-  updateOption(uin: number, group_id: number, plugin: string, key: string, value: string | number | boolean) {
-    const botMap = getBotMap();
-    const bot = botMap.get(uin);
-
-    return bot?.updateOption(group_id, plugin, key, value);
-  }
-
   private parseMessage(ctx: any) {
     this.commands.forEach((command) => {
       if (!command.isMatched(ctx)) {
@@ -175,7 +167,7 @@ export class Plugin extends EventEmitter {
 
   private initEvents() {
     this.bl.forEach((bot) => {
-      if (this.name !== 'core') {
+      if (this.name !== 'kokkoro') {
         bot.emit('bot.profile.define', {
           name: this.name,
           option: this.option,
@@ -203,15 +195,12 @@ export class Plugin extends EventEmitter {
     if (!this.prefix) {
       return;
     }
-    // #region 修改指令
+
     const updateCommand = new Command<'all'>(this, 'update')
       .description('修改插件配置')
       .action((ctx) => {
-        // ctx.reply(`${this.fullname} v${this.ver}`);
+        // ctx.revise()
       });
-    //#endregion
-
-    //#region 帮助指令
     const helpCommand = new Command<'all'>(this, 'help')
       .description('帮助信息')
       .action((ctx) => {
@@ -226,15 +215,11 @@ export class Plugin extends EventEmitter {
         }
         ctx.reply(message.join('\n'));
       });
-    //#endregion
-
-    // #region 版本指令
     const versionCommand = new Command<'all'>(this, 'version')
       .description('版本信息')
       .action((ctx) => {
         ctx.reply(`${this.fullname} v${this.ver}`);
       });
-    //#endregion
 
     setTimeout(() => {
       this.commands.push(updateCommand);
@@ -243,22 +228,29 @@ export class Plugin extends EventEmitter {
     });
   }
 
-  private onMessage(bot: Bot, event: EmitEvent) {
+  private onMessage(bot: Bot, event: PluginMessageEvent) {
+    const disable = bot.getDisable();
+
+    if (disable.includes(this.name)) {
+      return;
+    }
     const { name, data } = event;
-    const { group_id } = data as any;
-    const context = data as any;
+    const context: any = data;
 
     // message 事件才会有 permission_level
     if (name.startsWith('message')) {
-      context.permission_level = bot.getPermissionLevel(data as any);
+      context.permission_level = bot.getPermissionLevel(data as BotEvent<'message'>);
     }
 
     // 所有 group 相关事件都会有 setting
-    if (group_id) {
-      context.setting = bot.getSetting(group_id);
+    if (context.group_id) {
+      context.setting = bot.getSetting(context.group_id);
     }
-    context.disable = bot.getDisable();
-    context.getBot = () => bot;
+    context.bot = bot;
+    context.revise = (key: string, value: string | number | boolean, plugin: string = name) => {
+      return bot.updateOption(context.group_id!, plugin, key, value);
+    };
+    context.getBot = (uin: number) => this.bl.get(uin);
 
     this.emit(name, context);
   }
@@ -276,21 +268,21 @@ export class Plugin extends EventEmitter {
 /**
  * 检索可用插件
  *
- * @returns 插件信息集合
+ * @returns 插件信息列表
  */
-export async function retrievalPlugins(): Promise<PluginList> {
-  const plugin_dirs: Dirent[] = [];
-  const module_dirs: Dirent[] = [];
-  const plugins: PluginList = {};
+export async function retrievalPluginList(): Promise<PluginList> {
+  const pluginDirs: Dirent[] = [];
+  const moduleDirs: Dirent[] = [];
+  const pluginList: PluginList = {};
 
   try {
     const dirs = await readdir(plugins_path, { withFileTypes: true });
-    plugin_dirs.push(...dirs);
+    pluginDirs.push(...dirs);
   } catch (error) {
     await mkdir(plugins_path);
   }
 
-  for (const dir of plugin_dirs) {
+  for (const dir of pluginDirs) {
     if (dir.isDirectory() || dir.isSymbolicLink()) {
       const folder = dir.name;
       const name = folder.replace('kokkoro-plugin-', '');
@@ -300,7 +292,7 @@ export async function retrievalPlugins(): Promise<PluginList> {
         const info: PluginInfo = {
           name, folder, filename, local: true,
         };
-        plugins[name] = info;
+        pluginList[name] = info;
       } catch {
       }
     }
@@ -308,12 +300,12 @@ export async function retrievalPlugins(): Promise<PluginList> {
 
   try {
     const dirs = await readdir(modules_path, { withFileTypes: true });
-    module_dirs.push(...dirs);
+    moduleDirs.push(...dirs);
   } catch (err) {
     await mkdir(modules_path);
   }
 
-  for (const dir of module_dirs) {
+  for (const dir of moduleDirs) {
     if (dir.isDirectory() && dir.name.startsWith('kokkoro-plugin-')) {
       const folder = dir.name;
       const name = folder.replace('kokkoro-plugin-', '');
@@ -323,12 +315,12 @@ export async function retrievalPlugins(): Promise<PluginList> {
         const info: PluginInfo = {
           name, folder, filename, local: false,
         };
-        plugins[name] = info;
+        pluginList[name] = info;
       } catch {
       }
     }
   }
-  return plugins;
+  return pluginList;
 }
 
 /**
@@ -347,9 +339,10 @@ function getPlugin(name: string): Plugin {
 /**
  * 销毁插件模块
  *
- * @param filename - 插件文件路径
+ * @param info - 插件信息
  */
-export function destroyPlugin(filename: string) {
+export function destroyPlugin(info: PluginInfo) {
+  const { filename, name } = info;
   const module = require.cache[filename];
   const index = module?.parent?.children.indexOf(module);
 
@@ -366,6 +359,7 @@ export function destroyPlugin(filename: string) {
     }
   }
 
+  pluginMap.delete(name);
   delete require.cache[filename];
 }
 
@@ -403,7 +397,7 @@ export function importPlugin(info: PluginInfo): Plugin {
  */
 function getPluginName(filename: string): { fullname: string, name: string } {
   const regex = /(?<=\\(node_modules|plugins)\\).+?(?=\\)/;
-  const fullname = regex.exec(filename)?.[0] ?? 'core';
+  const fullname = regex.exec(filename)?.[0] ?? 'kokkoro';
   const name = fullname.replace('kokkoro-plugin-', '');
 
   return {
