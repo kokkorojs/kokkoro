@@ -1,13 +1,13 @@
+import { logger } from '@/util';
 import { getConfig } from '@/config';
-import { logger } from '@/utils';
 import { createBot, getBotMap } from '@/core';
 import { VERSION, UPDAY, CHANGELOGS } from '@/kokkoro';
-import { retrievalPlugins, importPlugin } from '@/plugin';
+import { retrievalPluginList, importPlugin } from '@/plugin';
 
 /**
  * 创建机器人服务
  */
-function createBots() {
+function createBotServe() {
   const bots = getConfig('bots');
   const uins = Object.keys(bots).map(Number);
   const uins_length = uins.length;
@@ -26,13 +26,13 @@ function createBots() {
 /**
  * 创建插件服务
  */
-async function createPlugins() {
-  const pluginList = await retrievalPlugins();
+async function createPluginServe() {
+  const pluginList = await retrievalPluginList();
 
-  pluginList.core = {
-    name: 'core',
-    folder: 'plugin',
-    filename: './core.js',
+  pluginList.kokkoro = {
+    name: 'kokkoro',
+    folder: 'kokkoro',
+    filename: './system.js',
     local: true,
   }
   const keys = Object.keys(pluginList);
@@ -60,8 +60,8 @@ export async function setup() {
   logger.mark(`----------`);
 
   try {
-    createBots();
-    await createPlugins();
+    createBotServe();
+    await createPluginServe();
 
     const bl = getBotMap();
 
@@ -70,6 +70,6 @@ export async function setup() {
     });
   } catch (error) {
     logger.error((<Error>error).message);
-    process.exit();
+    process.exit(1);
   }
 }
