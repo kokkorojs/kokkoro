@@ -1,9 +1,9 @@
-import { logger } from '@/util';
+import { join } from 'path';
+
 import { getConfig } from '@/config';
 import { createBot, getBotMap } from '@/core';
-import { VERSION, UPDAY, CHANGELOGS } from '@/kokkoro';
 import { retrievalPluginList, importPlugin } from '@/plugin';
-import { join } from 'path';
+import { VERSION, UPDAY, CHANGELOGS, logger } from '@/kokkoro';
 
 /**
  * 创建机器人服务

@@ -1,12 +1,12 @@
 import { join } from 'path';
 import { readFileSync, writeFileSync } from 'fs';
-import { readFile, writeFile } from 'fs/promises';
+import { writeFile } from 'fs/promises';
+import { deepClone, deepMerge } from '@kokkoro/utils';
 import { MemberIncreaseEvent, MemberDecreaseEvent } from 'oicq';
 
 import { Bot } from '@/core';
 import { Option } from '@/plugin';
 import { ProfileDefineEvent } from '@/events';
-import { deepClone, deepMerge } from '@/util';
 
 /** 群设置 */
 export interface Setting {
