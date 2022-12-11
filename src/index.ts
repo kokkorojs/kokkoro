@@ -1,4 +1,5 @@
 import { resolve } from 'path';
+import { Logger, getLogger } from 'log4js';
 
 declare global {
   /** 当前进程目录 */
@@ -10,6 +11,8 @@ declare global {
 global.__workname = process.cwd();
 global.__dataname = resolve('data');
 
+export const logger: Logger = getLogger('[kokkoro]');
+
 const { upday, version, changelogs } = require('../package.json');
 
 export const UPDAY: string = upday;
@@ -18,4 +21,5 @@ export const CHANGELOGS: string = changelogs;
 
 export * from '@/core';
 export * from '@/config';
+export * from '@/events';
 export * from '@/plugin';

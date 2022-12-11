@@ -2,13 +2,14 @@ import { EventEmitter } from 'events';
 import { Dirent } from 'fs';
 import { mkdir, readdir } from 'fs/promises';
 import { join, resolve } from 'path';
+import { getStack } from '@kokkoro/utils';
 import { CronCommand, CronJob } from 'cron';
 
+import { logger } from '@/kokkoro';
 import { Listen } from '@/plugin/listen';
 import { Command, CommandType } from '@/plugin/command';
 import { getBotMap, Bot } from '@/core';
-import { getStack, logger } from '@/util';
-import { PluginMessageEvent, EventName, BotEvent, Context } from '@/events';
+import { PluginMessageEvent, EventName, BotEvent } from '@/events';
 
 const modules_path = resolve('node_modules');
 const plugins_path = resolve('plugins');

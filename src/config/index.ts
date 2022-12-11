@@ -1,8 +1,9 @@
 import { resolve } from 'path';
 import { LogLevel } from 'oicq';
+import { deepClone } from '@kokkoro/utils';
 
+import { logger } from '@/kokkoro';
 import { BotConfig } from '@/core';
-import { deepClone, logger } from '@/util';
 
 /** 全局配置 */
 export type GlobalConfig = {
