@@ -7,9 +7,9 @@ import { BotConfig } from '@/core';
 
 /** 全局配置 */
 export type GlobalConfig = {
-  /** 第三方 key */
-  api_key: {
-    [api: string]: string;
+  /** 自定义变量 */
+  env: {
+    [key: string]: string;
   };
   /** 服务端口 */
   port: number;
