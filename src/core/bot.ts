@@ -234,7 +234,6 @@ export class Bot extends Client {
     return admins.includes(user_id);
   }
 
-
   private initEvents() {
     this.emit('bot.profile.refresh');
 

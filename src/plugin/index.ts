@@ -405,7 +405,7 @@ export function importPlugin(info: PluginInfo): Plugin {
  * @returns 插件全称（包含 kokkoro-plugin-）与插件简称
  */
 function getPluginName(filename: string): { fullname: string, name: string } {
-  const regex = /(?<=\\(node_modules|plugins)\\).+?(?=\\)/;
+  const regex = /(?<=(\\|\/)(node_modules|plugins)(\\|\/)).+?(?=(\\|\/))/;
   const fullname = regex.exec(filename)?.[0] ?? 'kokkoro';
   const name = fullname.replace('kokkoro-plugin-', '');
 
