@@ -1,4 +1,4 @@
-import { UPDAY, VERSION } from '@/kokkoro';
+import { logger, UPDAY, VERSION } from '@/kokkoro';
 import { Plugin, retrievalPluginList, getPluginMap, importPlugin, destroyPlugin } from '@/plugin';
 
 const plugin = new Plugin();
@@ -78,6 +78,7 @@ plugin
       await mountPlugin(name);
       ctx.reply(`插件 ${name} 挂载成功`);
     } catch (error) {
+      logger.error(error);
       ctx.reply((<Error>error).message);
     }
   });
@@ -96,6 +97,7 @@ plugin
       await unmountPlugin(name);
       ctx.reply(`插件 ${name} 已卸载`);
     } catch (error) {
+      logger.error(error);
       ctx.reply((<Error>error).message);
     }
   });
@@ -115,6 +117,7 @@ plugin
       await mountPlugin(name);
       ctx.reply(`插件 ${name} 已重载`);
     } catch (error) {
+      logger.error(error);
       ctx.reply((<Error>error).message);
     }
   });
@@ -134,6 +137,7 @@ plugin
       await bot.enablePlugin(name);
       ctx.reply(`已将 ${name} 从禁用列表移除`);
     } catch (error) {
+      logger.error(error);
       ctx.reply((<Error>error).message);
     }
   });
@@ -153,6 +157,7 @@ plugin
       await bot.disablePlugin(name);
       ctx.reply(`已将 ${name} 添加至禁用列表`);
     } catch (error) {
+      logger.error(error);
       ctx.reply((<Error>error).message);
     }
   });
@@ -287,7 +292,7 @@ async function mountPlugin(name: string): Promise<void> {
     const info = pluginList[name];
 
     if (!info) {
-      throw new Error(`plugins 与 node_modules 目录均为检索到 "${name}" 和 "kokkoro-plugin-${name}" 插件`);
+      throw new Error(`plugins 与 node_modules 目录均未检索到 "${name}" 和 "kokkoro-plugin-${name}" 插件`);
     }
     const plugin = importPlugin(info);
 
