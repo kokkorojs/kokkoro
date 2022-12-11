@@ -91,10 +91,9 @@ kokkoro start
 
 ```json
 {
-  // 第三方服务 api key
-  "api_key": {
-    // 例如 saucenao 搜图
-    "saucenao": "3d14159265358979323846264338327950288419"
+  // 自定义变量
+  "env": {
+    // 例如你可以在这里配置一些第三方 api key，使用 getConfig('env') 获取
   },
   // web 服务端口号
   "port": 2333,
