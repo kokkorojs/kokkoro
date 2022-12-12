@@ -6,6 +6,7 @@ specifiers:
   '@types/node': ^18.11.13
   axios: ^1.2.1
   cron: ^2.1.0
+  dotenv: ^16.0.3
   log4js: ^6.7.1
   oicq: ^2.3.1
   tsc-alias: ^1.8.2
@@ -13,6 +14,7 @@ specifiers:
 dependencies:
   '@kokkoro/utils': 0.1.5
   cron: 2.1.0
+  dotenv: 16.0.3
   oicq: 2.3.1
 
 devDependencies:
@@ -190,6 +192,11 @@ packages:
     dependencies:
       path-type: 4.0.0
     dev: true
+
+  /dotenv/16.0.3:
+    resolution: {integrity: sha512-7GO6HghkA5fYG9TYnNxi14/7K9f5occMlp3zXAuSxn7CKCxt9xbNWG7yF8hTCSUchlfWSe3uLmlPfigevRItzQ==}
+    engines: {node: '>=12'}
+    dev: false
 
   /fast-glob/3.2.12:
     resolution: {integrity: sha512-DVj4CQIYYow0BlaelwK1pHl5n5cRSJfM60UA0zK891sVInoPri2Ekj7+e1CT3/3qxXenpI+nBBmQAcJPJgaj4w==}
