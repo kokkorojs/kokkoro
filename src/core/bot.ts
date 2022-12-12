@@ -1,6 +1,6 @@
 import { deepMerge } from '@kokkoro/utils';
 import { resolve, isAbsolute } from 'path';
-import { Client, Config as Protocol, GroupRole, MessageRet } from 'oicq';
+import { Client, Config, GroupRole, MessageRet } from 'oicq';
 
 import { logger } from '@/kokkoro';
 import { BotEvent } from '@/events';
@@ -13,6 +13,8 @@ const admins: number[] = [
 const botMap: Map<number, Bot> = new Map();
 
 export type PermissionLevel = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
+export type Protocol = Omit<Config, 'log_level'>;
 
 export interface BotConfig {
   /** 自动登录，默认 true */
@@ -45,9 +47,11 @@ export class Bot extends Client {
 
     // 转换绝对路径
     protocol!.data_dir = isAbsolute(data_dir!) ? data_dir : resolve(data_dir!);
-    protocol!.log_level = getConfig('log_level');
 
-    super(uin, config.protocol);
+    super(uin, {
+      ...config.protocol,
+      log_level: getConfig('log_level'),
+    });
     botMap.set(uin, this);
 
     this.profile = new Profile(this);
