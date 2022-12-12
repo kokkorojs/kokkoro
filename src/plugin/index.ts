@@ -42,16 +42,23 @@ export interface Option {
 }
 
 export class Plugin extends EventEmitter {
+  /** 插件文件夹 */
   private fullname: string;
+  /** 插件名 */
   private name: string;
-  // 版本号
+  /** 版本号 */
   private ver: string;
-  // 定时任务
+  /** 使用提示 */
+  private guide!: string;
+  /** 定时任务 */
   private jobs: CronJob[];
-  // 事件名
+  /** 事件名清单 */
   private events: Set<EventName>;
+  /** 指令清单 */
   public commands: Command[];
+  /** 监听器清单 */
   private listener: Map<string, Listen>;
+  /** bot 列表 */
   public bl: Map<number, Bot>;
 
   constructor(
@@ -102,6 +109,15 @@ export class Plugin extends EventEmitter {
     return this;
   }
 
+  /**
+   * 自定义插件帮助信息
+   * 
+   */
+  public help(message: string) {
+    this.guide = message;
+    return this;
+  }
+  
   /**
    * 指令集
    * 
@@ -213,16 +229,19 @@ export class Plugin extends EventEmitter {
     const helpCommand = new Command<'all'>(this, 'help')
       .description('帮助信息')
       .action((ctx) => {
-        const message = ['Commands: '];
-        const commands_length = this.commands.length;
-
-        for (let i = 0; i < commands_length; i++) {
-          const command = this.commands[i];
-          const { raw_name, desc } = command;
-
-          message.push(`  ${raw_name}  ${desc}`);
+        if (!this.guide) {
+          const message = ['Commands: '];
+          const commands_length = this.commands.length;
+  
+          for (let i = 0; i < commands_length; i++) {
+            const command = this.commands[i];
+            const { raw_name, desc } = command;
+  
+            message.push(`  ${raw_name}  ${desc}`);
+          }
+          this.guide = message.join('\n');
         }
-        ctx.reply(message.join('\n'));
+        ctx.reply(this.guide);
       });
     const versionCommand = new Command<'all'>(this, 'version')
       .description('版本信息')
