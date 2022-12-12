@@ -65,10 +65,17 @@ export async function setup() {
     await createPluginServe();
 
     const bl = getBotMap();
+    const linkQueue = [];
+    const uins = [...bl.keys()];
+    const uins_length = uins.length;
 
-    bl.forEach((bot) => {
-      bot.linkStart();
-    });
+    for (let i = 0; i < uins_length; i++) {
+      const uin = uins[i];
+      const bot = bl.get(uin)!;
+
+      linkQueue.push(bot.linkStart());
+    }
+    await Promise.allSettled(linkQueue);
   } catch (error) {
     logger.error((<Error>error).message);
     process.exit(1);

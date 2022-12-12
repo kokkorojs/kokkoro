@@ -88,8 +88,6 @@ export class Plugin extends EventEmitter {
 
     this.initEvents();
     this.initCommands();
-
-    logger.debug('created plugin');
   }
 
   /**
@@ -406,12 +404,12 @@ export function importPlugin(info: PluginInfo): Plugin {
 
   try {
     require(filename);
-    logger.mark(`导入插件 ${name} 成功`);
+    logger.mark(`插件 ${name} 导入成功`);
 
     return pluginMap.get(name)!;
   } catch (error) {
     const message = `import module "${name}" failed, ${(<Error>error).message}`;
-    logger.error(`导入插件 ${name} 失败`);
+    logger.error(`插件 ${name} 导入失败`);
 
     throw new Error(message);
   }

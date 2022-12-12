@@ -2,7 +2,6 @@ import { deepMerge } from '@kokkoro/utils';
 import { resolve, isAbsolute } from 'path';
 import { Client, Config, GroupRole, MessageRet } from 'oicq';
 
-import { logger } from '@/kokkoro';
 import { BotEvent } from '@/events';
 import { getPluginMap, Option } from '@/plugin';
 import { getConfig, Profile, Setting } from '@/config';
@@ -62,8 +61,6 @@ export class Bot extends Client {
       this.initEvents();
       this.sendMasterMsg('おはようございます、主様♪');
     });
-
-    logger.debug('created bot');
   }
 
   /**
@@ -89,6 +86,7 @@ export class Bot extends Client {
         });
       });
       this.emit(name, data);
+      this.logger.debug(`转发 ${name} 事件`);
 
       const i = name.lastIndexOf('.');
 
@@ -240,11 +238,6 @@ export class Bot extends Client {
 
   private initEvents() {
     this.emit('bot.profile.refresh');
-
-    this.removeAllListeners('system.login.slider');
-    this.removeAllListeners('system.login.device');
-    this.removeAllListeners('system.login.qrcode');
-
     this.on('system.online', this.onOnline);
     this.on('system.offline', this.onOffline);
   }
@@ -263,64 +256,74 @@ export class Bot extends Client {
    * 账号登录
    */
   public async linkStart() {
-    this.password ? this.passwordLink() : this.qrcodeLink();
+    process.stdin.setEncoding('utf8')
+
+    this.qrcodeLoginListen();
+    this.passwordLoginListen();
     this.login(this.password);
 
     await new Promise<void>((resolve, reject) => {
       this
         .once('system.online', () => resolve())
-        .once('system.login.error', (event) => reject(event.message))
+        .once('system.login.error', (event) => {
+          const { code } = event;
+          const error = new Error(`错误代码 ${code}`);
+
+          this.logger.error(error.message);
+          reject(error);
+        })
     })
   }
 
   /**
-   * 扫描登录
+   * 扫描登录监听
    *
    * 优点是不需要过滑块和设备锁
    * 缺点是万一 token 失效，无法自动登录，需要重新扫码
    */
-  private qrcodeLink() {
-    this
-      .on('system.login.qrcode', () => {
-        // 扫码轮询
-        const interval_id = setInterval(async () => {
-          const { retcode } = await this.queryQrcodeResult();
+  private qrcodeLoginListen() {
+    this.on('system.login.qrcode', () => {
+      // 扫码轮询
+      const interval_id = setInterval(async () => {
+        const { retcode } = await this.queryQrcodeResult();
 
-          // 0: 扫码完成 48: 未确认 53: 取消扫码
-          if (retcode === 0 || ![48, 53].includes(retcode)) {
-            clearInterval(interval_id);
-            this.login();
-          }
-        }, 500);
-
-        this.logger.mark('扫码完成后将会自动登录，按回车键可刷新二维码');
-        process.stdin.once('data', () => {
+        // 0: 扫码完成 48: 未确认 53: 取消扫码
+        if (retcode === 0 || ![48, 53].includes(retcode)) {
+          clearInterval(interval_id);
           this.login();
-        });
-      })
+        }
+      }, 500);
+
+      this.logger.mark('扫码完成后将会自动登录，按回车键可刷新二维码');
+      process.stdin.once('data', () => {
+        this.login();
+      });
+    })
   }
 
   /**
-   * 密码登录
+   * 密码登录监听
    *
    * 优点是一劳永逸
    * 缺点是需要过滑块，可能会报环境异常
    */
-  private passwordLink() {
+  private passwordLoginListen() {
     this
       .on('system.login.slider', () => {
         this.logger.mark('取 ticket 教程: https://github.com/takayama-lily/oicq/wiki/01.滑动验证码和设备锁');
+
         process.stdout.write('请输入 ticket: ');
-        process.stdin.once('data', (event: string) => {
-          this.submitSlider(event.trim());
+        process.stdin.once('data', (input: string) => {
+          this.submitSlider(input.trim());
         });
       })
-      .on('system.login.device', () => {
-        // TODO ／人◕ ‿‿ ◕人＼ 设备锁轮询，oicq 暂无相关 func
+      .on('system.login.device', (e) => {
+        // TODO ／人◕ ‿‿ ◕人＼ 短信结果轮询，oicq 暂无相关 func
         this.logger.mark('输入密保手机收到的短信验证码后按回车键继续');
         this.sendSmsCode();
-        process.stdin.once('data', (event: string) => {
-          this.submitSmsCode(event);
+
+        process.stdin.once('data', (input: string) => {
+          this.submitSmsCode(input);
         });
       })
   }
