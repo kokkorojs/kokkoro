@@ -285,7 +285,7 @@ plugin
       version: VERSION,
       upday: UPDAY,
       author: 'yuki <mail@yuki.sh>',
-      license: 'MPL-2.0',
+      license: 'MIT',
       repository: 'https://github.com/kokkorojs/kokkoro/'
     };
     ctx.reply(JSON.stringify(version, null, 2));
