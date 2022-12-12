@@ -1,3 +1,4 @@
+import { refreshEnv } from '@/config';
 import { logger, UPDAY, VERSION } from '@/kokkoro';
 import { Plugin, retrievalPluginList, getPluginMap, importPlugin, destroyPlugin } from '@/plugin';
 
@@ -13,6 +14,22 @@ plugin
   .sugar(/^(打印|输出)\s?(?<message>.+)$/)
   .action((ctx) => {
     ctx.reply(ctx.query.message);
+  });
+//#endregion
+
+//#region 环境变量
+plugin
+  .command('env')
+  .description('读取配置文件刷新环境变量')
+  .limit(5)
+  .sugar(/^(刷新)$/)
+  .action(async (ctx) => {
+    try {
+      refreshEnv();
+      ctx.reply('已更新环境变量');
+    } catch (error) {
+      ctx.reply((<Error>error).message);
+    }
   });
 //#endregion
 
@@ -78,7 +95,7 @@ plugin
       await mountPlugin(name);
       ctx.reply(`插件 ${name} 挂载成功`);
     } catch (error) {
-      logger.error(error);
+      logger.error((<Error>error).message);
       ctx.reply((<Error>error).message);
     }
   });
@@ -97,7 +114,7 @@ plugin
       await unmountPlugin(name);
       ctx.reply(`插件 ${name} 已卸载`);
     } catch (error) {
-      logger.error(error);
+      logger.error((<Error>error).message);
       ctx.reply((<Error>error).message);
     }
   });
@@ -117,7 +134,7 @@ plugin
       await mountPlugin(name);
       ctx.reply(`插件 ${name} 已重载`);
     } catch (error) {
-      logger.error(error);
+      logger.error((<Error>error).message);
       ctx.reply((<Error>error).message);
     }
   });
@@ -137,7 +154,7 @@ plugin
       await bot.enablePlugin(name);
       ctx.reply(`已将 ${name} 从禁用列表移除`);
     } catch (error) {
-      logger.error(error);
+      logger.error((<Error>error).message);
       ctx.reply((<Error>error).message);
     }
   });
@@ -157,7 +174,7 @@ plugin
       await bot.disablePlugin(name);
       ctx.reply(`已将 ${name} 添加至禁用列表`);
     } catch (error) {
-      logger.error(error);
+      logger.error((<Error>error).message);
       ctx.reply((<Error>error).message);
     }
   });

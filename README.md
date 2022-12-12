@@ -102,12 +102,12 @@ kokkoro start
     "1145141919": {
       // 项目启动时自动登录，默认 true
       "auto_login": true,
+      // 账号密码，若不填写则使用扫码登陆
+      "password": null,
       // bot 主人，可添加多个
       "masters": [
         2225151531
       ],
-      // 账号密码，若不填写则使用扫码登陆
-      "password": null,
       // 协议配置，不要随意修改，除非你知道自己在做什么
       "protocol": {
         // 1:安卓手机(默认) 2:aPad 3:安卓手表 4:MacOS 5:iPad
