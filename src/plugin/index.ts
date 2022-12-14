@@ -1,14 +1,16 @@
-import { EventEmitter } from 'events';
 import { Dirent } from 'fs';
 import { mkdir, readdir } from 'fs/promises';
+import { CronJob } from 'cron';
+import { Logger, getLogger } from 'log4js';
 import { join, resolve } from 'path';
+import { EventEmitter } from 'events';
 import { getStack } from '@kokkoro/utils';
-import { CronCommand, CronJob } from 'cron';
 
 import { logger } from '@/kokkoro';
+import { getConfig } from '@/config';
+import { getBotMap, Bot } from '@/core';
 import { Listen } from '@/plugin/listen';
 import { Command, CommandType } from '@/plugin/command';
-import { getBotMap, Bot } from '@/core';
 import { PluginMessageEvent, EventName, BotEvent } from '@/events';
 
 const modules_path = resolve('node_modules');
@@ -60,6 +62,7 @@ export class Plugin extends EventEmitter {
   private listener: Map<string, Listen>;
   /** bot 列表 */
   public bl: Map<number, Bot>;
+  logger: Logger;
 
   constructor(
     /** 指令前缀 */
@@ -85,6 +88,8 @@ export class Plugin extends EventEmitter {
     this.listener = new Map();
     // 此处命名与 oicq 保持一致，参考 gl、fl
     this.bl = getBotMap();
+    this.logger = getLogger(`[plugin:${name}]`);
+    this.logger.level = getConfig('log_level');
 
     this.initEvents();
     this.initCommands();
@@ -162,10 +167,17 @@ export class Plugin extends EventEmitter {
    * 定时任务
    * 
    * @param cron - cron 表达式
-   * @param command - 任务回调
+   * @param callback - 任务回调
    */
-  public schedule(cron: string, command: CronCommand) {
-    const job = new CronJob(cron, command, null, true);
+  public schedule(cron: string, callback: () => any) {
+    const func = async () => {
+      try {
+        await callback();
+      } catch (error) {
+        this.logger.error((<Error>error).toString());
+      }
+    };
+    const job = new CronJob(cron, func, null, true);
 
     this.jobs.push(job);
     return this;
@@ -199,7 +211,7 @@ export class Plugin extends EventEmitter {
             }
             this.listener.get(name)?.handle(ctx);
           });
-          bot.logger.debug(`插件 ${this.fullname} 绑定 ${name} 事件`);
+          this.logger.debug(`绑定 ${name} 事件`);
         });
       });
     });
