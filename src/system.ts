@@ -12,8 +12,8 @@ plugin
   .command('print <message>')
   .description('打印测试')
   .sugar(/^(打印|输出)\s?(?<message>.+)$/)
-  .action((ctx) => {
-    ctx.reply(ctx.query.message);
+  .action(async (ctx) => {
+    await ctx.reply(ctx.query.message);
   });
 //#endregion
 
@@ -24,12 +24,8 @@ plugin
   .limit(5)
   .sugar(/^(刷新)$/)
   .action(async (ctx) => {
-    try {
-      refreshEnv();
-      ctx.reply('已更新环境变量');
-    } catch (error) {
-      ctx.reply((<Error>error).message);
-    }
+    refreshEnv();
+    await ctx.reply('已更新环境变量');
   });
 //#endregion
 
@@ -38,7 +34,7 @@ plugin
   .command('state')
   .description('查看 bot 运行信息')
   .sugar(/^(状态)$/)
-  .action((ctx) => {
+  .action(async (ctx) => {
     const { bot } = ctx;
     const { nickname, gl, fl, stat } = bot;
 
@@ -50,7 +46,7 @@ plugin
     好　友：${friend_count}
     消息量：${message_min_count}`;
 
-    ctx.reply(state);
+    await ctx.reply(state);
   });
 //#endregion
 
@@ -78,7 +74,7 @@ plugin
 
       local ? list.plugins.push(folder) : list.node_modules.push(folder);
     }
-    ctx.reply(JSON.stringify(list, null, 2));
+    await ctx.reply(JSON.stringify(list, null, 2));
   });
 //#endregion
 
@@ -174,9 +170,9 @@ plugin
 
         server[name] = option.apply;
       }
-      ctx.reply(JSON.stringify(server, null, 2));
+      await ctx.reply(JSON.stringify(server, null, 2));
     } else {
-      ctx.reply(`server 指令仅支持群聊，若要查看本地可用插件，可使用 plugin 指令`);
+      await ctx.reply(`server 指令仅支持群聊，若要查看本地可用插件，可使用 plugin 指令`);
     }
   });
 //#endregion
@@ -193,14 +189,10 @@ plugin
     if (group_id) {
       const { name } = query;
 
-      try {
-        const is_write = await bot.updateOption(group_id, name, 'apply', true);
-        ctx.reply(is_write ? `已将 ${name} 群服务应用` : `${name} 已被应用，不要重复修改`);
-      } catch (error) {
-        ctx.reply((<Error>error).message);
-      }
+      await bot.updateOption(group_id, name, 'apply', true)
+        .then(is_write => ctx.reply(is_write ? `已将 ${name} 群服务应用` : `${name} 已被应用，不要重复修改`))
     } else {
-      ctx.reply(`apply 指令仅支持群聊，若要为该 bot 启用插件，可使用 enable 指令`);
+      await ctx.reply(`apply 指令仅支持群聊，若要为该 bot 启用插件，可使用 enable 指令`);
     }
   });
 //#endregion
@@ -217,14 +209,10 @@ plugin
     if (group_id) {
       const { name } = query;
 
-      try {
-        const is_write = await bot.updateOption(group_id, name, 'apply', false);
-        ctx.reply(is_write ? `已将 ${name} 群服务免除` : `${name} 已被免除，不要重复修改`);
-      } catch (error) {
-        ctx.reply((<Error>error).message);
-      }
+      await bot.updateOption(group_id, name, 'apply', false)
+        .then(is_write => ctx.reply(is_write ? `已将 ${name} 群服务免除` : `${name} 已被免除，不要重复修改`))
     } else {
-      ctx.reply(`exempt 指令仅支持群聊，若要为该 bot 禁用插件，可使用 disable 指令`);
+      await ctx.reply(`exempt 指令仅支持群聊，若要为该 bot 禁用插件，可使用 disable 指令`);
     }
   });
 //#endregion
@@ -234,7 +222,7 @@ plugin
   .command('help')
   .description('帮助信息')
   .sugar(/^(帮助)$/)
-  .action((ctx) => {
+  .action(async (ctx) => {
     const message = ['Commands: '];
     const commands_length = plugin.commands.length;
 
@@ -245,7 +233,7 @@ plugin
       message.push(`  ${raw_name}  ${desc}`);
     }
     message.push('\nMore: https://kokkoro.js.org/');
-    ctx.reply(message.join('\n'));
+    await ctx.reply(message.join('\n'));
   });
 //#endregion
 
@@ -254,7 +242,7 @@ plugin
   .command('version')
   .description('版本信息')
   .sugar(/^(版本|ver)$/)
-  .action((ctx) => {
+  .action(async (ctx) => {
     const version = {
       name: 'kokkoro',
       version: VERSION,
@@ -263,7 +251,7 @@ plugin
       license: 'MIT',
       repository: 'https://github.com/kokkorojs/kokkoro/'
     };
-    ctx.reply(JSON.stringify(version, null, 2));
+    await ctx.reply(JSON.stringify(version, null, 2));
   });
 //#endregion
 
