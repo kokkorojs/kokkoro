@@ -1,5 +1,5 @@
 import { refreshEnv } from '@/config';
-import { logger, UPDAY, VERSION } from '@/kokkoro';
+import { UPDAY, VERSION } from '@/kokkoro';
 import { Plugin, retrievalPluginList, getPluginMap, importPlugin, destroyPlugin } from '@/plugin';
 
 const plugin = new Plugin();
@@ -91,13 +91,8 @@ plugin
   .action(async (ctx) => {
     const { name } = ctx.query;
 
-    try {
-      await mountPlugin(name);
-      ctx.reply(`插件 ${name} 挂载成功`);
-    } catch (error) {
-      logger.error((<Error>error).message);
-      ctx.reply((<Error>error).message);
-    }
+    await mountPlugin(name);
+    await ctx.reply(`插件 ${name} 挂载成功`);
   });
 //#endregion
 
@@ -110,13 +105,8 @@ plugin
   .action(async (ctx) => {
     const { name } = ctx.query;
 
-    try {
-      await unmountPlugin(name);
-      ctx.reply(`插件 ${name} 已卸载`);
-    } catch (error) {
-      logger.error((<Error>error).message);
-      ctx.reply((<Error>error).message);
-    }
+    await unmountPlugin(name);
+    await ctx.reply(`插件 ${name} 已卸载`);
   });
 //#endregion
 
@@ -129,14 +119,9 @@ plugin
   .action(async (ctx) => {
     const { name } = ctx.query;
 
-    try {
-      await unmountPlugin(name);
-      await mountPlugin(name);
-      ctx.reply(`插件 ${name} 已重载`);
-    } catch (error) {
-      logger.error((<Error>error).message);
-      ctx.reply((<Error>error).message);
-    }
+    await unmountPlugin(name);
+    await mountPlugin(name);
+    await ctx.reply(`插件 ${name} 已重载`);
   });
 //#endregion
 
@@ -150,13 +135,8 @@ plugin
     const { bot, query } = ctx;
     const { name } = query;
 
-    try {
-      await bot.enablePlugin(name);
-      ctx.reply(`已将 ${name} 从禁用列表移除`);
-    } catch (error) {
-      logger.error((<Error>error).message);
-      ctx.reply((<Error>error).message);
-    }
+    await bot.enablePlugin(name);
+    await ctx.reply(`已将 ${name} 从禁用列表移除`);
   });
 //#endregion
 
@@ -170,13 +150,8 @@ plugin
     const { bot, query } = ctx;
     const { name } = query;
 
-    try {
-      await bot.disablePlugin(name);
-      ctx.reply(`已将 ${name} 添加至禁用列表`);
-    } catch (error) {
-      logger.error((<Error>error).message);
-      ctx.reply((<Error>error).message);
-    }
+    await bot.disablePlugin(name);
+    await ctx.reply(`已将 ${name} 添加至禁用列表`);
   });
 //#endregion
 
