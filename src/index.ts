@@ -19,6 +19,7 @@ export const UPDAY: string = upday;
 export const VERSION: string = version;
 export const CHANGELOGS: string = changelogs;
 
+export * from 'oicq';
 export * from '@/core';
 export * from '@/config';
 export * from '@/events';

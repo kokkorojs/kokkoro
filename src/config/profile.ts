@@ -14,22 +14,23 @@ export interface Setting {
   [name: string]: Option;
 }
 
-/** 群聊 */
-export interface Group {
-  /** 群名称 */
-  name: string;
-  /** 插件 */
-  setting: Setting;
-}
-
 export class Profile {
+  /** 群列表 */
   private group: {
-    [group_id: number]: Group;
+    [group_id: number]: {
+      /** 群名称 */
+      name: string;
+      /** 插件 */
+      setting: Setting;
+    };
   };
+  /** 禁用列表 */
   private disable: Set<string>;
+  /** 插件默认配置项 */
   private defaultOption: {
     [key: string]: Option;
   };
+  /** 文件路径 */
   private readonly file: string;
 
   constructor(
