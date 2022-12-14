@@ -119,7 +119,13 @@ export class Command<K extends CommandType = any> {
    * @param callback 触发回调
    */
   public action(callback: (ctx: CommandMap[K]) => any): this {
-    this.func = callback;
+    this.func = async (ctx: CommandMap[K]) => {
+      try {
+        await callback(ctx)
+      } catch (error) {
+        ctx.reply((<Error>error).toString());
+      }
+    };
     return this;
   }
 
@@ -129,7 +135,13 @@ export class Command<K extends CommandType = any> {
    * @param callback 触发回调
    */
   public prevent(callback: (ctx: CommandMap[K]) => any): this {
-    this.stop = callback;
+    this.stop = async (ctx: CommandMap[K]) => {
+      try {
+        await callback(ctx)
+      } catch (error) {
+        ctx.reply((<Error>error).toString());
+      }
+    };
     return this;
   }
 
@@ -176,36 +188,31 @@ export class Command<K extends CommandType = any> {
     return match;
   }
 
-  public handle(context: CommandMap[K]) {
+  public handle(ctx: CommandMap[K]) {
     if (!this.func) {
       return;
     }
-    const { setting, permission_level, message_type } = context;
+    const { setting, permission_level, message_type } = ctx;
     const name = this.plugin.getName();
     const option = setting?.[name];
 
     if (option) {
-      context.option = option;
+      ctx.option = option;
     }
+    if (this.isLimit(permission_level)) {
+      const scope = this.min_level !== this.max_level
+        ? `范围：${this.min_level} ~ ${this.max_level}`
+        : `要求：${this.max_level}`;
 
-    try {
-      if (this.isLimit(permission_level)) {
-        const scope = this.min_level !== this.max_level
-          ? `范围：${this.min_level} ~ ${this.max_level}`
-          : `要求：${this.max_level}`;
-
-        context.reply(`越权，指令 ${this.name} 的 level ${scope}，你当前的 level 为：${permission_level}`, true);
-      } else if (name === 'kokkoro') {
-        this.func(context);
-      } else if (message_type === 'group' && !option!.apply) {
-        this.stop(context);
-      } else if (message_type === 'group' && option!.apply) {
-        this.func(context);
-      } else if (message_type === 'private') {
-        this.func(context);
-      }
-    } catch (error) {
-      context.reply(`Error: ${(<Error>error).message}`);
+      ctx.reply(`越权，指令 ${this.name} 的 level ${scope}，你当前的 level 为：${permission_level}`, true);
+    } else if (name === 'kokkoro') {
+      this.func(ctx);
+    } else if (message_type === 'group' && !option!.apply) {
+      this.stop(ctx);
+    } else if (message_type === 'group' && option!.apply) {
+      this.func(ctx);
+    } else if (message_type === 'private') {
+      this.func(ctx);
     }
   }
 

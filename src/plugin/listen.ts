@@ -28,7 +28,13 @@ export class Listen<K extends EventName = any>  {
   }
 
   trigger(callback: (context: Context<K>) => any) {
-    this.func = callback;
+    this.func = async (ctx) => {
+      try {
+        await callback(ctx)
+      } catch (error) {
+        this.plugin.logger.error((<Error>error).toString());
+      }
+    };
     return this;
   }
 }
