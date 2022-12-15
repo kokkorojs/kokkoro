@@ -123,9 +123,9 @@ export class Command<K extends CommandType = any> {
       try {
         await callback(ctx);
       } catch (error) {
-        ctx.reply((<Error>error).toString())
+        ctx.reply(JSON.stringify(error, null, 2))
           .catch((error) => {
-            this.plugin.logger.error(error.toString());
+            this.plugin.logger.error(error);
           })
       }
     };
@@ -142,9 +142,9 @@ export class Command<K extends CommandType = any> {
       try {
         await callback(ctx);
       } catch (error) {
-        ctx.reply((<Error>error).toString())
+        ctx.reply(JSON.stringify(error, null, 2))
           .catch((error) => {
-            this.plugin.logger.error(error.toString());
+            this.plugin.logger.error(error);
           })
       }
     };
@@ -269,17 +269,4 @@ export class Command<K extends CommandType = any> {
     }
     return query;
   }
-}
-
-function parseGroups(groups: { [key: string]: string; } = {}): string[] {
-  const raw_args = [];
-  const keys = Object.keys(groups);
-
-  for (let i = 0; i < keys.length; i++) {
-    const key = keys[i];
-    const args = groups[key].split(' ');
-
-    raw_args.push(...args);
-  }
-  return raw_args;
 }

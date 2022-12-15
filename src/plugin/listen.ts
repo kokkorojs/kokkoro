@@ -32,7 +32,7 @@ export class Listen<K extends EventName = any>  {
       try {
         await callback(ctx)
       } catch (error) {
-        this.plugin.logger.error((<Error>error).toString());
+        this.plugin.logger.error(error);
       }
     };
     return this;
