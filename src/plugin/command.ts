@@ -121,9 +121,12 @@ export class Command<K extends CommandType = any> {
   public action(callback: (ctx: CommandMap[K]) => any): this {
     this.func = async (ctx: CommandMap[K]) => {
       try {
-        await callback(ctx)
+        await callback(ctx);
       } catch (error) {
-        ctx.reply((<Error>error).toString());
+        ctx.reply((<Error>error).toString())
+          .catch((error) => {
+            this.plugin.logger.error(error.toString());
+          })
       }
     };
     return this;
@@ -137,9 +140,12 @@ export class Command<K extends CommandType = any> {
   public prevent(callback: (ctx: CommandMap[K]) => any): this {
     this.stop = async (ctx: CommandMap[K]) => {
       try {
-        await callback(ctx)
+        await callback(ctx);
       } catch (error) {
-        ctx.reply((<Error>error).toString());
+        ctx.reply((<Error>error).toString())
+          .catch((error) => {
+            this.plugin.logger.error(error.toString());
+          })
       }
     };
     return this;
@@ -161,8 +167,8 @@ export class Command<K extends CommandType = any> {
     return this;
   }
 
-  public isMatched(context: Context<'message'>) {
-    const { raw_message, message_type } = context;
+  public isMatched(ctx: Context<'message'>) {
+    const { raw_message, message_type } = ctx;
 
     // 匹配事件类型
     if (this.message_type !== 'all' && this.message_type !== message_type) {
@@ -181,9 +187,17 @@ export class Command<K extends CommandType = any> {
       command_name = this.name;
       prefix = this.plugin.prefix;
     }
+    let match = this.plugin.prefix === prefix && this.name === command_name;
+    const query = match ? this.parseQuery(raw_message) : {};
+    const args_count = this.args.filter((arg) => arg.required).length;
+    const query_count = Object.entries(query).filter((arg) => arg[1]).length;
 
-    const match = this.plugin.prefix === prefix && this.name === command_name;
-    context.query = match ? this.parseQuery(raw_message) : {};
+    if (match && query_count < args_count) {
+      match = false;
+      ctx.reply(`缺少命令 "${this.raw_name}" 所需的参数`)
+        .catch((error: Error) => this.plugin.logger.error(error))
+    }
+    ctx.query = query;
 
     return match;
   }
@@ -221,23 +235,51 @@ export class Command<K extends CommandType = any> {
   }
 
   private parseQuery(raw_message: string): object {
-    // TODO ／人◕ ‿‿ ◕人＼ 多参数 <...params> 解析
+    const query: { [k: string]: any } = {};
+
     if (this.regex && this.regex.test(raw_message)) {
-      const { groups } = this.regex.exec(raw_message)!;
-      const query = groups ? { ...groups } : {};
+      const { groups = {} } = this.regex.exec(raw_message)!;
 
-      return query;
+      this.args.forEach((arg) => {
+        const { variadic, value } = arg;
+
+        if (variadic) {
+          query[value] = groups[value] ? groups[value].split(' ') : null;
+        } else {
+          query[value] = groups[value] ?? null;
+        }
+      });
     } else {
-      const query = Object.fromEntries(
-        raw_message
-          .replace(new RegExp(this.plugin.prefix), '')
-          .replace(new RegExp(this.name), '')
-          .split(' ')
-          .filter(i => i !== '')
-          .map((v, i) => [this.args[i].value, v])
-      );
+      const args = raw_message
+        .replace(new RegExp(this.plugin.prefix), '')
+        .replace(new RegExp(this.name), '')
+        .split(' ')
+        .filter(i => i !== '')
 
-      return query;
+      this.args.forEach((arg, index) => {
+        const { variadic, value } = arg;
+
+        if (variadic) {
+          const arg = args.slice(index);
+          query[value] = arg.length ? arg : null;
+        } else {          
+          query[value] = args[index] ?? null;
+        }
+      });
     }
+    return query;
   }
+}
+
+function parseGroups(groups: { [key: string]: string; } = {}): string[] {
+  const raw_args = [];
+  const keys = Object.keys(groups);
+
+  for (let i = 0; i < keys.length; i++) {
+    const key = keys[i];
+    const args = groups[key].split(' ');
+
+    raw_args.push(...args);
+  }
+  return raw_args;
 }
