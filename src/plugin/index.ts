@@ -174,7 +174,7 @@ export class Plugin extends EventEmitter {
       try {
         await callback();
       } catch (error) {
-        this.logger.error((<Error>error).toString());
+        this.logger.error(error);
       }
     };
     const job = new CronJob(cron, func, null, true);
