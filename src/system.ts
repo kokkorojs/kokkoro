@@ -2,6 +2,18 @@ import { refreshEnv } from '@/config';
 import { UPDAY, VERSION } from '@/kokkoro';
 import { Plugin, retrievalPluginList, getPluginMap, importPlugin, destroyPlugin } from '@/plugin';
 
+interface AllSettledResult {
+  status: 'fulfilled' | 'rejected';
+  value: any;
+  reason: Error;
+}
+
+interface AllSettledMessage {
+  fulfilled: string[];
+  rejected: string[];
+  error: string[];
+}
+
 const plugin = new Plugin();
 
 plugin
@@ -80,74 +92,207 @@ plugin
 
 //#region 挂载
 plugin
-  .command('mount <name>')
+  .command('mount <...names>')
   .description('挂载插件')
   .limit(5)
-  .sugar(/^(挂载)\s?(?<name>([a-z]|\s)+)$/)
+  .sugar(/^(挂载)\s?(?<names>([a-z]|\s)+)$/)
   .action(async (ctx) => {
-    const { name } = ctx.query;
+    const { names } = ctx.query;
+    const names_length = names.length;
+    const mountQueue = [];
 
-    await mountPlugin(name);
-    await ctx.reply(`插件 ${name} 挂载成功`);
+    for (let i = 0; i < names_length; i++) {
+      const name = names[i];
+      mountQueue.push(mountPlugin(name));
+    }
+    await Promise.allSettled(mountQueue)
+      .then((results) => {
+        const message: AllSettledMessage = {
+          fulfilled: [],
+          rejected: [],
+          error: [],
+        };
+
+        for (let i = 0; i < results.length; i++) {
+          const result = results[i];
+          const { status, reason } = result as AllSettledResult;
+          const name = names[i];
+
+          if (status === 'fulfilled') {
+            message.fulfilled.push(name);
+          } else {
+            message.rejected.push(name);
+            message.error.push(reason.message);
+          }
+        }
+        return ctx.reply(JSON.stringify(message, null ,2));
+      })
   });
 //#endregion
 
 //#region 卸载
 plugin
-  .command('unmount <name>')
+  .command('unmount <...names>')
   .description('卸载插件')
   .limit(5)
-  .sugar(/^(卸载)\s?(?<name>([a-z]|\s)+)$/)
+  .sugar(/^(卸载)\s?(?<names>([a-z]|\s)+)$/)
   .action(async (ctx) => {
-    const { name } = ctx.query;
+    const { names } = ctx.query;
+    const names_length = names.length;
+    const unmountQueue = [];
 
-    await unmountPlugin(name);
-    await ctx.reply(`插件 ${name} 已卸载`);
+    for (let i = 0; i < names_length; i++) {
+      const name = names[i];
+      unmountQueue.push(unmountPlugin(name));
+    }
+    await Promise.allSettled(unmountQueue)
+      .then((results) => {
+        const message: AllSettledMessage = {
+          fulfilled: [],
+          rejected: [],
+          error: [],
+        };
+
+        for (let i = 0; i < results.length; i++) {
+          const result = results[i];
+          const { status, reason } = result as AllSettledResult;
+          const name = names[i];
+
+          if (status === 'fulfilled') {
+            message.fulfilled.push(name);
+          } else {
+            message.rejected.push(name);
+            message.error.push(reason.message);
+          }
+        }
+        return ctx.reply(JSON.stringify(message, null ,2));
+      })
   });
 //#endregion
 
 //#region 重载
 plugin
-  .command('reload <name>')
+  .command('reload <...names>')
   .description('重载插件')
   .limit(5)
-  .sugar(/^(重载)\s?(?<name>([a-z]|\s)+)$/)
+  .sugar(/^(重载)\s?(?<names>([a-z]|\s)+)$/)
   .action(async (ctx) => {
-    const { name } = ctx.query;
+    const { names } = ctx.query;
+    const names_length = names.length;
+    const reloadQueue = [];
 
-    await unmountPlugin(name);
-    await mountPlugin(name);
-    await ctx.reply(`插件 ${name} 已重载`);
+    for (let i = 0; i < names_length; i++) {
+      const name = names[i];
+    
+      reloadQueue.push(Promise.all([
+        await unmountPlugin(name), 
+        await mountPlugin(name),
+      ]));
+    }
+    await Promise.allSettled(reloadQueue)
+      .then((results) => {
+        const message: AllSettledMessage = {
+          fulfilled: [],
+          rejected: [],
+          error: [],
+        };
+
+        for (let i = 0; i < results.length; i++) {
+          const result = results[i];
+          const { status, reason } = result as AllSettledResult;
+          const name = names[i];
+
+          if (status === 'fulfilled') {
+            message.fulfilled.push(name);
+          } else {
+            message.rejected.push(name);
+            message.error.push(reason.message);
+          }
+        }
+        return ctx.reply(JSON.stringify(message, null ,2));
+      })
   });
 //#endregion
 
 //#region 启用
 plugin
-  .command('enable <name>')
+  .command('enable <...names>')
   .description('启用插件')
   .limit(4)
-  .sugar(/^(启用)\s?(?<name>([a-z]|\s)+)$/)
+  .sugar(/^(启用)\s?(?<names>([a-z]|\s)+)$/)
   .action(async (ctx) => {
     const { bot, query } = ctx;
-    const { name } = query;
+    const { names } = query;
+    const names_length = names.length;
+    const enableQueue = [];
 
-    await bot.enablePlugin(name);
-    await ctx.reply(`已将 ${name} 从禁用列表移除`);
+    for (let i = 0; i < names_length; i++) {
+      const name = names[i];
+      enableQueue.push(bot.enablePlugin(name));
+    }
+    await Promise.allSettled(enableQueue)
+      .then((results) => {
+        const message: AllSettledMessage = {
+          fulfilled: [],
+          rejected: [],
+          error: [],
+        };
+
+        for (let i = 0; i < results.length; i++) {
+          const result = results[i];
+          const { status, reason } = result as AllSettledResult;
+          const name = names[i];
+
+          if (status === 'fulfilled') {
+            message.fulfilled.push(name);
+          } else {
+            message.rejected.push(name);
+            message.error.push(reason.message);
+          }
+        }
+        return ctx.reply(JSON.stringify(message, null ,2));
+      })
   });
 //#endregion
 
 //#region 禁用
 plugin
-  .command('disable <name>')
+  .command('disable <...names>')
   .description('禁用插件')
   .limit(4)
-  .sugar(/^(禁用)\s?(?<name>([a-z]|\s)+)$/)
+  .sugar(/^(禁用)\s?(?<names>([a-z]|\s)+)$/)
   .action(async (ctx) => {
     const { bot, query } = ctx;
-    const { name } = query;
+    const { names } = query;
+    const names_length = names.length;
+    const disableQueue = [];
 
-    await bot.disablePlugin(name);
-    await ctx.reply(`已将 ${name} 添加至禁用列表`);
+    for (let i = 0; i < names_length; i++) {
+      const name = names[i];
+      disableQueue.push(bot.disablePlugin(name));
+    }
+    await Promise.allSettled(disableQueue)
+      .then((results) => {
+        const message: AllSettledMessage = {
+          fulfilled: [],
+          rejected: [],
+          error: [],
+        };
+
+        for (let i = 0; i < results.length; i++) {
+          const result = results[i];
+          const { status, reason } = result as AllSettledResult;
+          const name = names[i];
+
+          if (status === 'fulfilled') {
+            message.fulfilled.push(name);
+          } else {
+            message.rejected.push(name);
+            message.error.push(reason.message);
+          }
+        }
+        return ctx.reply(JSON.stringify(message, null ,2));
+      })
   });
 //#endregion
 
@@ -179,18 +324,44 @@ plugin
 
 //#region 应用
 plugin
-  .command('apply <name>')
+  .command('apply <...names>')
   .description('应用群服务')
   .limit(3)
-  .sugar(/^(应用)\s?(?<name>([a-z]|\s)+)$/)
+  .sugar(/^(应用)\s?(?<names>([a-z]|\s)+)$/)
   .action(async (ctx) => {
     const { bot, group_id, query } = ctx;
 
     if (group_id) {
-      const { name } = query;
+      const { names } = query;
+      const names_length = names.length;
+      const applyQueue = [];
+  
+      for (let i = 0; i < names_length; i++) {
+        const name = names[i];
+        applyQueue.push(bot.updateOption(group_id, name, 'apply', true));
+      }
+      await Promise.allSettled(applyQueue)
+        .then((results) => {
+          const message: AllSettledMessage = {
+            fulfilled: [],
+            rejected: [],
+            error: [],
+          };
 
-      await bot.updateOption(group_id, name, 'apply', true)
-        .then(is_write => ctx.reply(is_write ? `已将 ${name} 群服务应用` : `${name} 已被应用，不要重复修改`))
+          for (let i = 0; i < results.length; i++) {
+            const result = results[i];
+            const { status, reason } = result as AllSettledResult;
+            const name = names[i];
+
+            if (status === 'fulfilled') {
+              message.fulfilled.push(name);
+            } else {
+              message.rejected.push(name);
+              message.error.push(reason.message);
+            }
+          }
+          return ctx.reply(JSON.stringify(message, null ,2));
+        })
     } else {
       await ctx.reply(`apply 指令仅支持群聊，若要为该 bot 启用插件，可使用 enable 指令`);
     }
@@ -199,18 +370,44 @@ plugin
 
 //#region 免除
 plugin
-  .command('exempt <name>')
+  .command('exempt <...names>')
   .description('免除群服务')
   .limit(3)
-  .sugar(/^(免除)\s?(?<name>([a-z]|\s)+)$/)
+  .sugar(/^(免除)\s?(?<names>([a-z]|\s)+)$/)
   .action(async (ctx) => {
     const { bot, group_id, query } = ctx;
 
     if (group_id) {
-      const { name } = query;
+      const { names } = query;
+      const names_length = names.length;
+      const applyQueue = [];
+  
+      for (let i = 0; i < names_length; i++) {
+        const name = names[i];
+        applyQueue.push(bot.updateOption(group_id, name, 'apply', false));
+      }
+      await Promise.allSettled(applyQueue)
+        .then((results) => {
+          const message: AllSettledMessage = {
+            fulfilled: [],
+            rejected: [],
+            error: [],
+          };
 
-      await bot.updateOption(group_id, name, 'apply', false)
-        .then(is_write => ctx.reply(is_write ? `已将 ${name} 群服务免除` : `${name} 已被免除，不要重复修改`))
+          for (let i = 0; i < results.length; i++) {
+            const result = results[i];
+            const { status, reason } = result as AllSettledResult;
+            const name = names[i];
+
+            if (status === 'fulfilled') {
+              message.fulfilled.push(name);
+            } else {
+              message.rejected.push(name);
+              message.error.push(reason.message);
+            }
+          }
+          return ctx.reply(JSON.stringify(message, null ,2));
+        })
     } else {
       await ctx.reply(`exempt 指令仅支持群聊，若要为该 bot 禁用插件，可使用 disable 指令`);
     }
@@ -289,7 +486,7 @@ async function mountPlugin(name: string): Promise<void> {
  * 
  * @param name - 插件名
  */
-async function unmountPlugin(name: string) {
+async function unmountPlugin(name: string): Promise<void> {
   const pluginMap = getPluginMap();
 
   if (!pluginMap.has(name)) {
