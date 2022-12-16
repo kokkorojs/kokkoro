@@ -1,7 +1,6 @@
 lockfileVersion: 5.4
 
 specifiers:
-  '@kokkoro/utils': ^0.1.5
   '@types/cron': ^2.0.0
   '@types/node': ^18.11.13
   axios: ^1.2.1
@@ -12,7 +11,6 @@ specifiers:
   tsc-alias: ^1.8.2
 
 dependencies:
-  '@kokkoro/utils': 0.1.5
   cron: 2.1.0
   dotenv: 16.0.3
   oicq: 2.3.1
@@ -25,10 +23,6 @@ devDependencies:
   tsc-alias: 1.8.2
 
 packages:
-
-  /@kokkoro/utils/0.1.5:
-    resolution: {integrity: sha512-aoaTpqQ32gb/CtVNO3Q8sQ+W9FzoRw7L0OBq4B81lcscHflJKptm8Lu9/gjV2xHHh5ngjyj1Pngw6xki07g+DA==}
-    dev: false
 
   /@nodelib/fs.scandir/2.1.5:
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
