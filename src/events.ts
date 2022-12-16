@@ -39,14 +39,6 @@ export interface ProfileDefineEvent {
   option: Option;
 }
 
-// /** bot 事件地图 */
-// export interface BotEventMap<T = any> extends EventMap {
-//   /** 配置定义 */
-//   "bot.profile.define": (this: T, event: ProfileDefineEvent) => void;
-//   /** 配置刷新 */
-//   "bot.profile.refresh": (this: T) => void;
-// }
-
 export type ContextName = 'message' | 'message.group' | 'message.private';
 
 export type ContextType<K extends EventName> = K extends ContextName ? {
