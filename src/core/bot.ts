@@ -1,8 +1,8 @@
-import { deepMerge } from '@kokkoro/utils';
 import { resolve, isAbsolute } from 'path';
 import { Client, Config, GroupRole, MessageRet } from 'oicq';
 
 import { BotEvent } from '@/events';
+import { deepMerge } from '@/utils';
 import { getPluginMap, Option } from '@/plugin';
 import { getConfig, Profile, Setting } from '@/config';
 
