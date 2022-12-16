@@ -10,7 +10,7 @@ export class Scanner {
     private bot: Bot
   ) {}
 
-  next(user_id: number) {
+  next(user_id: number): Promise<MessageElem> {
     return new Promise((resolve) => {
       const listen = (event: AllMessageEvent) => {
         const { sender, message } = event;
@@ -26,7 +26,7 @@ export class Scanner {
     });
   }
 
-  nextLine(user_id: number) {
+  nextLine(user_id: number): Promise<MessageElem[]> {
     return new Promise((resolve) => {
       const listen = (event: AllMessageEvent) => {
         const { sender } = event;
@@ -48,7 +48,7 @@ export class Scanner {
     });
   }
 
-  nextText(user_id: number) {
+  nextText(user_id: number): Promise<TextElem> {
     return new Promise((resolve) => {
       const listen = (event: AllMessageEvent) => {
         const { sender } = event;
@@ -70,7 +70,7 @@ export class Scanner {
     });
   }
 
-  nextImage(user_id: number) {
+  nextImage(user_id: number): Promise<ImageElem> {
     return new Promise((resolve) => {
       const listen = (event: AllMessageEvent) => {
         const { sender } = event;
