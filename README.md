@@ -154,10 +154,10 @@ kokkoro start
 | setu | 🟢 |
 | chatgpt | 🟡 |
 | rss | 🟡 |
-| saucenao | 🟡 |
+| saucenao | 🟢 |
 | pcr | 🟡 |
-| sandbox | 🔴 |
-| aircon | 🔴 |
+| sandbox | 🟡 |
+| aircon | 🟡 |
 | chess | 🔴 |
 | guess | 🔴 |
 | lifeRestart | 🔴 |
