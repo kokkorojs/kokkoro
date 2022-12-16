@@ -4,9 +4,9 @@ import { CronJob } from 'cron';
 import { Logger, getLogger } from 'log4js';
 import { join, resolve } from 'path';
 import { EventEmitter } from 'events';
-import { getStack } from '@kokkoro/utils';
 
 import { logger } from '@/kokkoro';
+import { getStack } from '@/utils';
 import { getConfig } from '@/config';
 import { getBotMap, Bot } from '@/core';
 import { Listen } from '@/plugin/listen';
