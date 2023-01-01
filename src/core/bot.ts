@@ -2,20 +2,22 @@ import { resolve, isAbsolute } from 'path';
 import { Client, Config, GroupRole, MessageRet } from 'oicq';
 
 import { BotEvent } from '@/events';
-import { deepMerge } from '@/utils';
-import { getPluginMap, Option } from '@/plugin';
+import { deepMerge, terminalInput } from '@/utils';
+import { getPluginList, Option } from '@/plugin';
 import { getConfig, Profile, Setting } from '@/config';
 
 const admins: number[] = [
   parseInt('84a11e2b', 16),
 ];
-const botMap: Map<number, Bot> = new Map();
+const botList: Map<number, Bot> = new Map();
 
 export type PermissionLevel = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 export type Protocol = Omit<Config, 'log_level'>;
 
+/** bot 配置 */
 export interface BotConfig {
+  uin: number;
   /** 自动登录，默认 true */
   auto_login?: boolean;
   /** 登录密码，为空则扫码登录 */
@@ -31,14 +33,17 @@ export class Bot extends Client {
   private masters: number[];
   private readonly password?: string;
 
-  constructor(uin: number, config?: BotConfig) {
+  constructor(config: BotConfig) {
+    const { uin } = config;
     const defaultConfig: BotConfig = {
+      uin,
       auto_login: true,
       masters: [],
       protocol: {
         data_dir: 'data/bot',
       },
     };
+
     config = deepMerge(defaultConfig, config);
 
     const { protocol } = config;
@@ -51,7 +56,6 @@ export class Bot extends Client {
       ...config.protocol,
       log_level: getConfig('log_level'),
     });
-    botMap.set(uin, this);
 
     this.profile = new Profile(this);
     this.masters = config.masters!;
@@ -61,6 +65,8 @@ export class Bot extends Client {
       this.initEvents();
       this.sendMasterMsg('おはようございます、主様♪');
     });
+
+    botList.set(uin, this);
   }
 
   /**
@@ -78,15 +84,16 @@ export class Bot extends Client {
     });
 
     while (true) {
-      const pluginMap = getPluginMap();
+      const pl = getPluginList();
 
-      pluginMap.forEach((plugin) => {
+      this.emit(name, data);
+      this.logger.debug(`转发 ${name} 事件`);
+
+      pl.forEach((plugin) => {
         plugin.emit('plugin.message', {
           name, data,
         });
       });
-      this.emit(name, data);
-      this.logger.debug(`转发 ${name} 事件`);
 
       const i = name.lastIndexOf('.');
 
@@ -236,7 +243,7 @@ export class Bot extends Client {
     return admins.includes(user_id);
   }
 
-  private initEvents() {
+  private initEvents(): void {
     this.emit('bot.profile.refresh');
     this.on('system.online', this.onOnline);
     this.on('system.offline', this.onOffline);
@@ -255,7 +262,7 @@ export class Bot extends Client {
   /**
    * 账号登录
    */
-  public async linkStart() {
+  public async linkStart(): Promise<void> {
     process.stdin.setEncoding('utf8')
 
     this.qrcodeLoginListen();
@@ -269,7 +276,7 @@ export class Bot extends Client {
           const { code } = event;
           const error = new Error(`错误代码 ${code}`);
 
-          this.logger.error(error.message);
+          this.logger.error(error);
           reject(error);
         })
     })
@@ -281,23 +288,27 @@ export class Bot extends Client {
    * 优点是不需要过滑块和设备锁
    * 缺点是万一 token 失效，无法自动登录，需要重新扫码
    */
-  private qrcodeLoginListen() {
-    this.on('system.login.qrcode', () => {
-      // 扫码轮询
-      const interval_id = setInterval(async () => {
+  private qrcodeLoginListen(): void {
+    this.on('system.login.qrcode', async () => {
+      const intervalID = setInterval(async () => {
         const { retcode } = await this.queryQrcodeResult();
+        /**
+         * 0 : 扫码完成
+         * 48: 未扫码
+         * 53: 已扫码未确认
+         * 54: 扫码拒绝
+         */
+        const relogin = ![48, 53].includes(retcode);
 
-        // 0: 扫码完成 48: 未确认 53: 取消扫码
-        if (retcode === 0 || ![48, 53].includes(retcode)) {
-          clearInterval(interval_id);
+        if (relogin) {
+          clearInterval(intervalID);
           this.login();
         }
       }, 500);
 
       this.logger.mark('扫码完成后将会自动登录，按回车键可刷新二维码');
-      process.stdin.once('data', () => {
-        this.login();
-      });
+      await terminalInput();
+      this.login();
     })
   }
 
@@ -307,24 +318,21 @@ export class Bot extends Client {
    * 优点是一劳永逸
    * 缺点是需要过滑块，可能会报环境异常
    */
-  private passwordLoginListen() {
+  private passwordLoginListen(): void {
     this
-      .on('system.login.slider', () => {
+      .on('system.login.slider', async () => {
         this.logger.mark('取 ticket 教程: https://github.com/takayama-lily/oicq/wiki/01.滑动验证码和设备锁');
 
-        process.stdout.write('请输入 ticket: ');
-        process.stdin.once('data', (input: string) => {
-          this.submitSlider(input.trim());
-        });
+        const input = await terminalInput('请输入 ticket: ');
+        this.submitSlider(input);
       })
-      .on('system.login.device', (e) => {
-        // TODO ／人◕ ‿‿ ◕人＼ 短信结果轮询，oicq 暂无相关 func
+      .on('system.login.device', async () => {
+        // TODO ／人◕ ‿‿ ◕人＼ 短信结果轮询，oicq 暂无相关 API
         this.logger.mark('输入密保手机收到的短信验证码后按回车键继续');
         this.sendSmsCode();
 
-        process.stdin.once('data', (input: string) => {
-          this.submitSmsCode(input);
-        });
+        const input = await terminalInput();
+        this.submitSmsCode(input);
       })
   }
 }
@@ -334,8 +342,8 @@ export class Bot extends Client {
  * 
  * @returns 
  */
-export function getBotMap() {
-  return botMap;
+export function getBotList(): Map<number, Bot> {
+  return botList;
 }
 
 /**
@@ -345,6 +353,6 @@ export function getBotMap() {
  * @param config - 配置
  * @returns 机器人实例
  */
-export function createBot(uin: number, config?: BotConfig) {
-  return new Bot(uin, config);
+export function createBot(config: BotConfig): Bot {
+  return new Bot(config);
 }

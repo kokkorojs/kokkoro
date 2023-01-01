@@ -1,9 +1,14 @@
-import { config } from 'dotenv';
+import { config, DotenvConfigOptions } from 'dotenv';
 
 config();
 
-export function refreshEnv() {
-  config({
+/**
+ * 刷新 env
+ */
+export function refreshEnv(): void {
+  const option: DotenvConfigOptions = {
     override: true,
-  });
+  };
+
+  config(option);
 }
