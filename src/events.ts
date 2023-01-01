@@ -1,8 +1,10 @@
-import { EventMap } from 'oicq';
+import { DiscussMessageEvent, EventMap, GroupMessageEvent, PrivateMessageEvent } from 'oicq';
 
 import { Option } from '@/plugin';
 import { Setting } from '@/config';
 import { Bot, PermissionLevel } from '@/core';
+
+export type AllMessageEvent = PrivateMessageEvent | GroupMessageEvent | DiscussMessageEvent;
 
 /** 展开对象 value 类型 */
 export type ValueOf<T> = T[keyof T];

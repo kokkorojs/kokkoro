@@ -60,12 +60,12 @@ export class Command<K extends CommandType = any> {
   private regex?: RegExp;
   private min_level: PermissionLevel;
   private max_level: PermissionLevel;
+  private stop: (ctx: CommandMap[K]) => void;
+  private func?: (ctx: CommandMap[K]) => void;
 
   public name: string;
   public desc: string;
   public args: CommandArg[];
-  private stop: (ctx: CommandMap[K]) => void;
-  private func?: (ctx: CommandMap[K]) => void;
 
   constructor(
     /** 插件实例 */
@@ -123,7 +123,8 @@ export class Command<K extends CommandType = any> {
       try {
         await callback(ctx);
       } catch (error) {
-        ctx.reply(JSON.stringify(error, null, 2))
+        ctx
+          .reply((<Error>error).toString())
           .catch((error) => {
             this.plugin.logger.error(error);
           })
@@ -142,7 +143,8 @@ export class Command<K extends CommandType = any> {
       try {
         await callback(ctx);
       } catch (error) {
-        ctx.reply(JSON.stringify(error, null, 2))
+        ctx
+          .reply((<Error>error).toString())
           .catch((error) => {
             this.plugin.logger.error(error);
           })
@@ -194,7 +196,8 @@ export class Command<K extends CommandType = any> {
 
     if (match && query_count < args_count) {
       match = false;
-      ctx.reply(`缺少命令 "${this.raw_name}" 所需的参数`)
+      ctx
+        .reply(`缺少命令 "${this.raw_name}" 所需的参数`)
         .catch((error: Error) => this.plugin.logger.error(error))
     }
     ctx.query = query;
@@ -262,7 +265,7 @@ export class Command<K extends CommandType = any> {
         if (variadic) {
           const arg = args.slice(index);
           query[value] = arg.length ? arg : null;
-        } else {          
+        } else {
           query[value] = args[index] ?? null;
         }
       });
