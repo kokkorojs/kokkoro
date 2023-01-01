@@ -2,7 +2,7 @@ import { segment } from 'oicq';
 import axios, { AxiosRequestConfig } from 'axios';
 
 /**
- * 创建图片消息
+ * 创建图片消息（oicq 无法捕获网络图片下载失败，所以二次封装）
  * 
  * @param url - 图片 url
  * @param flash - 是否闪图
