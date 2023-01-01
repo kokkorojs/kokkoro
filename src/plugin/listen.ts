@@ -10,7 +10,7 @@ export class Listen<K extends EventName = any>  {
 
   }
 
-  handle(context: Context<K>) {
+  public handle(context: Context<K>) {
     if (!this.func) {
       return;
     }
@@ -27,7 +27,7 @@ export class Listen<K extends EventName = any>  {
     this.func(context);
   }
 
-  trigger(callback: (context: Context<K>) => any) {
+  public trigger(callback: (context: Context<K>) => any) {
     this.func = async (ctx) => {
       try {
         await callback(ctx)
