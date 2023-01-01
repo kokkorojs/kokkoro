@@ -8,14 +8,14 @@ import { EventEmitter } from 'events';
 import { logger } from '@/kokkoro';
 import { getStack } from '@/utils';
 import { getConfig } from '@/config';
-import { getBotMap, Bot } from '@/core';
+import { getBotList, Bot } from '@/core';
 import { Listen } from '@/plugin/listen';
 import { Command, CommandType } from '@/plugin/command';
 import { PluginMessageEvent, EventName, BotEvent } from '@/events';
 
 const modules_path = resolve('node_modules');
 const plugins_path = resolve('plugins');
-const pluginMap: Map<string, Plugin> = new Map();
+const pluginList: Map<string, Plugin> = new Map();
 
 /** 插件信息 */
 export interface PluginInfo {
@@ -29,10 +29,6 @@ export interface PluginInfo {
   local: boolean;
 }
 
-interface PluginList {
-  [name: string]: PluginInfo;
-}
-
 /** 插件选项 */
 export interface Option {
   /** 锁定，默认 false */
@@ -44,14 +40,10 @@ export interface Option {
 }
 
 export class Plugin extends EventEmitter {
-  /** 插件文件夹 */
-  private fullname: string;
-  /** 插件名 */
-  private name: string;
   /** 版本号 */
   private ver: string;
-  /** 使用提示 */
-  private guide!: string;
+  /** 指令提示 */
+  private guide?: string;
   /** 定时任务 */
   private jobs: CronJob[];
   /** 事件名清单 */
@@ -60,9 +52,13 @@ export class Plugin extends EventEmitter {
   public commands: Command[];
   /** 监听器清单 */
   private listener: Map<string, Listen>;
+
   /** bot 列表 */
   public bl: Map<number, Bot>;
-  logger: Logger;
+  /** 插件信息 */
+  public info: PluginInfo;
+  /** 日志 */
+  public logger: Logger;
 
   constructor(
     /** 指令前缀 */
@@ -70,36 +66,34 @@ export class Plugin extends EventEmitter {
     /** 插件配置项 */
     public option: Option = { apply: true, lock: false },
   ) {
-    // TODO ／人◕ ‿‿ ◕人＼ 动态获取
+    // TODO ／人◕ ‿‿ ◕人＼ 动态解析
     const stack = getStack();
     const filename = stack[2].getFileName()!;
-    const { fullname, name } = getPluginName(filename);
+    const info = parsePluginInfo(filename);
 
     super();
 
-    pluginMap.set(name, this);
-
+    this.info = info;
     this.ver = '0.0.0';
-    this.name = name;
-    this.fullname = fullname;
     this.jobs = [];
     this.events = new Set();
     this.commands = [];
     this.listener = new Map();
-    // 此处命名与 oicq 保持一致，参考 gl、fl
-    this.bl = getBotMap();
-    this.logger = getLogger(`[plugin:${name}]`);
+    this.bl = getBotList();
+    this.logger = getLogger(`[plugin:${info.name}]`);
     this.logger.level = getConfig('log_level');
 
     this.initEvents();
     this.initCommands();
+
+    pluginList.set(info.name, this);
   }
 
   /**
-   * 获取插件名（简称）
+   * 获取插件名
    */
-  public getName() {
-    return this.name;
+  public getName(): string {
+    return this.info.name;
   }
 
   /**
@@ -107,7 +101,7 @@ export class Plugin extends EventEmitter {
    * 
    * @param ver - 若不设置则默认 "0.0.0"
    */
-  public version(ver: string) {
+  public version(ver: string): this {
     this.ver = ver;
     return this;
   }
@@ -116,11 +110,11 @@ export class Plugin extends EventEmitter {
    * 自定义插件帮助信息
    * 
    */
-  public help(message: string) {
+  public help(message: string): this {
     this.guide = message;
     return this;
   }
-  
+
   /**
    * 指令集
    * 
@@ -194,9 +188,9 @@ export class Plugin extends EventEmitter {
 
   private initEvents() {
     this.bl.forEach((bot) => {
-      if (this.name !== 'kokkoro') {
+      if (this.info.name !== 'kokkoro') {
         bot.emit('bot.profile.define', {
-          name: this.name,
+          name: this.info.name,
           option: this.option,
         });
       }
@@ -242,11 +236,11 @@ export class Plugin extends EventEmitter {
         if (!this.guide) {
           const message = ['Commands: '];
           const commands_length = this.commands.length;
-  
+
           for (let i = 0; i < commands_length; i++) {
             const command = this.commands[i];
             const { raw_name, desc } = command;
-  
+
             message.push(`  ${raw_name}  ${desc}`);
           }
           this.guide = message.join('\n');
@@ -256,7 +250,7 @@ export class Plugin extends EventEmitter {
     const versionCommand = new Command<'all'>(this, 'version')
       .description('版本信息')
       .action((ctx) => {
-        ctx.reply(`${this.fullname} v${this.ver}`);
+        ctx.reply(`${this.info.folder} v${this.ver}`);
       });
 
     setTimeout(() => {
@@ -269,7 +263,7 @@ export class Plugin extends EventEmitter {
   private onMessage(bot: Bot, event: PluginMessageEvent) {
     const disable = bot.getDisable();
 
-    if (disable.includes(this.name)) {
+    if (disable.includes(this.info.name)) {
       return;
     }
     const { name, data } = event;
@@ -285,7 +279,7 @@ export class Plugin extends EventEmitter {
       context.setting = bot.getSetting(context.group_id);
     }
     context.bot = bot;
-    context.revise = (key: string, value: string | number | boolean, plugin: string = this.name) => {
+    context.revise = (key: string, value: string | number | boolean, plugin: string = this.info.name) => {
       return bot.updateOption(context.group_id!, plugin, key, value);
     };
     context.getBot = (uin: number) => this.bl.get(uin);
@@ -299,19 +293,19 @@ export class Plugin extends EventEmitter {
     });
     this.removeAllListeners();
 
-    pluginMap.delete(this.name);
+    pluginList.delete(this.info.name);
   }
 }
 
 /**
- * 检索可用插件
+ * 检索可用插件信息
  *
  * @returns 插件信息列表
  */
-export async function retrievalPluginList(): Promise<PluginList> {
+export async function retrievalPluginInfos(): Promise<PluginInfo[]> {
   const pluginDirs: Dirent[] = [];
   const moduleDirs: Dirent[] = [];
-  const pluginList: PluginList = {};
+  const pluginInfos: PluginInfo[] = [];
 
   try {
     const dirs = await readdir(plugins_path, { withFileTypes: true });
@@ -328,11 +322,12 @@ export async function retrievalPluginList(): Promise<PluginList> {
       try {
         const filename = require.resolve(join(plugins_path, folder));
         const info: PluginInfo = {
-          name, folder, filename, local: true,
+          local: true,
+          name, folder, filename,
         };
-        pluginList[name] = info;
-      } catch {
-      }
+
+        pluginInfos.push(info);
+      } catch { }
     }
   }
 
@@ -351,15 +346,15 @@ export async function retrievalPluginList(): Promise<PluginList> {
       try {
         const filename = require.resolve(join(modules_path, folder));
         const info: PluginInfo = {
-          name, folder, filename, local: false,
+          local: false,
+          name, folder, filename,
         };
-        pluginList[name] = info;
-      } catch {
-      }
+        pluginInfos.push(info);
+      } catch { }
     }
   }
-  return pluginList;
-}
+  return pluginInfos;
+};
 
 /**
  * 获取插件实例
@@ -368,10 +363,10 @@ export async function retrievalPluginList(): Promise<PluginList> {
  * @returns 插件实例
  */
 function getPlugin(name: string): Plugin {
-  if (!pluginMap.has(name)) {
+  if (!pluginList.has(name)) {
     throw new Error(`plugin "${name}" is undefined`);
   }
-  return pluginMap.get(name)!;
+  return pluginList.get(name)!;
 }
 
 /**
@@ -397,7 +392,7 @@ export function destroyPlugin(info: PluginInfo) {
     }
   }
 
-  pluginMap.delete(name);
+  pluginList.delete(name);
   delete require.cache[filename];
 }
 
@@ -410,7 +405,7 @@ export function destroyPlugin(info: PluginInfo) {
 export function importPlugin(info: PluginInfo): Plugin {
   const { name, filename } = info;
 
-  if (pluginMap.has(name)) {
+  if (pluginList.has(name)) {
     return getPlugin(name);
   }
 
@@ -418,7 +413,7 @@ export function importPlugin(info: PluginInfo): Plugin {
     require(filename);
     logger.mark(`插件 ${name} 导入成功`);
 
-    return pluginMap.get(name)!;
+    return pluginList.get(name)!;
   } catch (error) {
     const message = `import module "${name}" failed, ${(<Error>error).message}`;
     logger.error(`插件 ${name} 导入失败`);
@@ -428,21 +423,22 @@ export function importPlugin(info: PluginInfo): Plugin {
 }
 
 /**
- * 获取插件名
+ * 解析插件信息
  * 
  * @param filename - 插件文件路径
- * @returns 插件全称（包含 kokkoro-plugin-）与插件简称
+ * @returns 插件信息
  */
-function getPluginName(filename: string): { fullname: string, name: string } {
+function parsePluginInfo(filename: string): PluginInfo {
   const regex = /(?<=(\\|\/)(node_modules|plugins)(\\|\/)).+?(?=(\\|\/))/;
-  const fullname = regex.exec(filename)?.[0] ?? 'kokkoro';
-  const name = fullname.replace('kokkoro-plugin-', '');
+  const folder = regex.exec(filename)?.[0] ?? 'kokkoro';
+  const name = folder.replace('kokkoro-plugin-', '');
+  const local = filename.indexOf('node_modules') === -1;
 
   return {
-    fullname, name,
+    name, folder, filename, local,
   };
 }
 
-export function getPluginMap() {
-  return pluginMap;
+export function getPluginList(): Map<string, Plugin> {
+  return pluginList;
 }

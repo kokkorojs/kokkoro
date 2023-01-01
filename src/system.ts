@@ -1,6 +1,6 @@
 import { refreshEnv } from '@/config';
-import { UPDAY, VERSION } from '@/kokkoro';
-import { Plugin, retrievalPluginList, getPluginMap, importPlugin, destroyPlugin } from '@/plugin';
+import { AUTHOR, LICENSE, UPDAY, VERSION } from '@/kokkoro';
+import { Plugin, retrievalPluginInfos, getPluginList, importPlugin, destroyPlugin } from '@/plugin';
 
 interface AllSettledResult {
   status: 'fulfilled' | 'rejected';
@@ -68,7 +68,7 @@ plugin
   .description('插件模块列表')
   .sugar(/^(插件)$/)
   .action(async (ctx) => {
-    const pluginList = await retrievalPluginList();
+    const pluginInfos = await retrievalPluginInfos();
     const list: {
       node_modules: string[];
       plugins: string[];
@@ -76,12 +76,10 @@ plugin
       node_modules: [],
       plugins: [],
     };
-    const keys = Object.keys(pluginList);
-    const keys_length = keys.length;
+    const infos_length = pluginInfos.length;
 
-    for (let i = 0; i < keys_length; i++) {
-      const key = keys[i];
-      const info = pluginList[key];
+    for (let i = 0; i < infos_length; i++) {
+      const info = pluginInfos[i];
       const { folder, local } = info;
 
       local ? list.plugins.push(folder) : list.node_modules.push(folder);
@@ -125,7 +123,7 @@ plugin
             message.error.push(reason.message);
           }
         }
-        return ctx.reply(JSON.stringify(message, null ,2));
+        return ctx.reply(JSON.stringify(message, null, 2));
       })
   });
 //#endregion
@@ -165,7 +163,7 @@ plugin
             message.error.push(reason.message);
           }
         }
-        return ctx.reply(JSON.stringify(message, null ,2));
+        return ctx.reply(JSON.stringify(message, null, 2));
       })
   });
 //#endregion
@@ -183,9 +181,9 @@ plugin
 
     for (let i = 0; i < names_length; i++) {
       const name = names[i];
-    
+
       reloadQueue.push(Promise.all([
-        await unmountPlugin(name), 
+        await unmountPlugin(name),
         await mountPlugin(name),
       ]));
     }
@@ -209,7 +207,7 @@ plugin
             message.error.push(reason.message);
           }
         }
-        return ctx.reply(JSON.stringify(message, null ,2));
+        return ctx.reply(JSON.stringify(message, null, 2));
       })
   });
 //#endregion
@@ -250,7 +248,7 @@ plugin
             message.error.push(reason.message);
           }
         }
-        return ctx.reply(JSON.stringify(message, null ,2));
+        return ctx.reply(JSON.stringify(message, null, 2));
       })
   });
 //#endregion
@@ -291,7 +289,7 @@ plugin
             message.error.push(reason.message);
           }
         }
-        return ctx.reply(JSON.stringify(message, null ,2));
+        return ctx.reply(JSON.stringify(message, null, 2));
       })
   });
 //#endregion
@@ -335,7 +333,7 @@ plugin
       const { names } = query;
       const names_length = names.length;
       const applyQueue = [];
-  
+
       for (let i = 0; i < names_length; i++) {
         const name = names[i];
         applyQueue.push(bot.updateOption(group_id, name, 'apply', true));
@@ -360,7 +358,7 @@ plugin
               message.error.push(reason.message);
             }
           }
-          return ctx.reply(JSON.stringify(message, null ,2));
+          return ctx.reply(JSON.stringify(message, null, 2));
         })
     } else {
       await ctx.reply(`apply 指令仅支持群聊，若要为该 bot 启用插件，可使用 enable 指令`);
@@ -381,7 +379,7 @@ plugin
       const { names } = query;
       const names_length = names.length;
       const applyQueue = [];
-  
+
       for (let i = 0; i < names_length; i++) {
         const name = names[i];
         applyQueue.push(bot.updateOption(group_id, name, 'apply', false));
@@ -406,7 +404,7 @@ plugin
               message.error.push(reason.message);
             }
           }
-          return ctx.reply(JSON.stringify(message, null ,2));
+          return ctx.reply(JSON.stringify(message, null, 2));
         })
     } else {
       await ctx.reply(`exempt 指令仅支持群聊，若要为该 bot 禁用插件，可使用 disable 指令`);
@@ -444,8 +442,8 @@ plugin
       name: 'kokkoro',
       version: VERSION,
       upday: UPDAY,
-      author: 'yuki <mail@yuki.sh>',
-      license: 'MIT',
+      author: AUTHOR,
+      license: LICENSE,
       repository: 'https://github.com/kokkorojs/kokkoro/'
     };
     await ctx.reply(JSON.stringify(version, null, 2));
@@ -458,24 +456,30 @@ plugin
  * @param name - 插件名
  */
 async function mountPlugin(name: string): Promise<void> {
-  const pluginMap = getPluginMap();
+  const pl = getPluginList();
 
-  if (pluginMap.has(name)) {
+  if (pl.has(name)) {
     throw new Error(`插件 ${name} 已被挂载`);
   }
 
   try {
-    const pluginList = await retrievalPluginList();
-    const info = pluginList[name];
+    const pluginInfos = await retrievalPluginInfos();
+    const infos_length = pluginInfos.length;
 
-    if (!info) {
-      throw new Error(`plugins 与 node_modules 目录均未检索到 "${name}" 和 "kokkoro-plugin-${name}" 插件`);
+    for (let i = 0; i < infos_length; i++) {
+      const info = pluginInfos[i];
+
+      if (info.name === name) {
+        const plugin = importPlugin(info);
+
+        plugin.bl.forEach((bot) => {
+          bot.emit('bot.profile.refresh');
+        });
+        return;
+      }
     }
-    const plugin = importPlugin(info);
-
-    plugin.bl.forEach((bot) => {
-      bot.emit('bot.profile.refresh');
-    });
+    const error = new Error(`plugins 与 node_modules 目录均未检索到 "${name}" 和 "kokkoro-plugin-${name}" 插件`);
+    throw error;
   } catch (error) {
     throw error;
   }
@@ -487,19 +491,17 @@ async function mountPlugin(name: string): Promise<void> {
  * @param name - 插件名
  */
 async function unmountPlugin(name: string): Promise<void> {
-  const pluginMap = getPluginMap();
+  const pl = getPluginList();
 
-  if (!pluginMap.has(name)) {
+  if (!pl.has(name)) {
     throw new Error(`插件 ${name} 未被挂载`);
   }
 
   try {
-    const pluginList = await retrievalPluginList();
-    const info = pluginList[name];
-    const plugin = pluginMap.get(name)!;
+    const plugin = pl.get(name)!;
 
     plugin.emit('plugin.destroy');
-    destroyPlugin(info);
+    destroyPlugin(plugin.info);
   } catch (error) {
     throw error;
   }
