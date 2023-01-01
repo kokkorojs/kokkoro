@@ -93,3 +93,20 @@ export function mapToObject<T>(map: Map<number | string, T>): {
     result
   );
 }
+
+/**
+ * 终端文本输入
+ * 
+ * @param prefix - 前缀文本
+ * @returns 接收的字符串（已 trim 处理）
+ */
+export function terminalInput(prefix?: string): Promise<string> {
+  prefix && process.stdout.write(prefix);
+
+  return new Promise((resolve) => {
+    process.stdin.once('data', (event) => {
+      const content = event.toString().trim();
+      resolve(content);
+    });
+  });
+}
