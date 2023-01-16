@@ -1,9 +1,9 @@
 import { resolve } from 'path';
 import { LogLevel } from 'oicq';
+import { deepClone } from '@kokkoro/utils';
 
-import { logger } from '@/kokkoro';
 import { BotConfig } from '@/core';
-import { deepClone } from '@/utils';
+import { logger } from '@/kokkoro';
 
 /** 全局配置 */
 export type GlobalConfig = {
@@ -25,4 +25,4 @@ export function getConfig<T extends keyof GlobalConfig>(key: T): GlobalConfig[T]
 }
 
 export * from '@/config/env';
-export * from '@/config/profile';
+// export * from '@/config/profile';
