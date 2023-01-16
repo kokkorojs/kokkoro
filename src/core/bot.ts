@@ -1,10 +1,8 @@
-import { resolve, isAbsolute } from 'path';
-import { Client, Config, GroupRole, MessageRet } from 'oicq';
+import { resolve, isAbsolute, join } from 'path';
+import { Client, Config, MessageRet } from 'oicq';
+import { deepAssign, terminalInput } from '@kokkoro/utils';
 
-import { BotEvent } from '@/events';
-import { deepMerge, terminalInput } from '@/utils';
-import { getPluginList, Option } from '@/plugin';
-import { getConfig, Profile, Setting } from '@/config';
+import { getConfig } from '@/config';
 
 const admins: number[] = [
   parseInt('84a11e2b', 16),
@@ -12,11 +10,11 @@ const admins: number[] = [
 const botList: Map<number, Bot> = new Map();
 
 export type PermissionLevel = 0 | 1 | 2 | 3 | 4 | 5 | 6;
-
 export type Protocol = Omit<Config, 'log_level'>;
 
 /** bot 配置 */
 export interface BotConfig {
+  /** bot 账号 */
   uin: number;
   /** 自动登录，默认 true */
   auto_login?: boolean;
@@ -29,24 +27,23 @@ export interface BotConfig {
 }
 
 export class Bot extends Client {
-  private profile: Profile;
   private masters: number[];
   private readonly password?: string;
 
   constructor(config: BotConfig) {
-    const { uin } = config;
-    const defaultConfig: BotConfig = {
-      uin,
+    const defaultConfig: Omit<BotConfig, 'uin'> = {
       auto_login: true,
       masters: [],
       protocol: {
-        data_dir: 'data/bot',
+        // 默认 ipad 防止 android 被挤下线
+        platform: 5,
+        data_dir: join(__dataname, 'bot'),
       },
     };
 
-    config = deepMerge(defaultConfig, config);
+    config = deepAssign(defaultConfig, config) as BotConfig;
 
-    const { protocol } = config;
+    const { uin, protocol } = config;
     const { data_dir } = protocol!;
 
     // 转换绝对路径
@@ -54,10 +51,10 @@ export class Bot extends Client {
 
     super(uin, {
       ...config.protocol,
-      log_level: getConfig('log_level'),
+      log_level: 'off',
     });
 
-    this.profile = new Profile(this);
+    this.log_level = getConfig('log_level')
     this.masters = config.masters!;
     this.password = config.password;
 
@@ -73,7 +70,7 @@ export class Bot extends Client {
    * 重写 Client 方法
    * 
    * @param name - 事件名
-   * @param data - 事件 event 对象
+   * @param data - 事件对象
    */
   public em(name = '', data?: any) {
     data = Object.defineProperty(data || {}, 'self_id', {
@@ -84,16 +81,8 @@ export class Bot extends Client {
     });
 
     while (true) {
-      const pl = getPluginList();
-
       this.emit(name, data);
       this.logger.debug(`转发 ${name} 事件`);
-
-      pl.forEach((plugin) => {
-        plugin.emit('plugin.message', {
-          name, data,
-        });
-      });
 
       const i = name.lastIndexOf('.');
 
@@ -105,122 +94,18 @@ export class Bot extends Client {
   }
 
   /**
-   * 获取用户权限等级
-   *
-   * level 0 群成员（随活跃度提升）
-   * level 1 群成员（随活跃度提升）
-   * level 2 群成员（随活跃度提升）
-   * level 3 管  理
-   * level 4 群  主
-   * level 5 主  人
-   * level 6 维护组
-   *
-   * @param event - 消息事件
-   * @returns 权限等级
-   */
-  public getPermissionLevel(event: BotEvent<'message'>): PermissionLevel {
-    let role: GroupRole = 'member';
-    let level: number = 0;
-    let user_id: number = event.sender.user_id;
-
-    if (event.message_type === 'group') {
-      const { sender } = event;
-
-      role = sender.role;
-      level = sender.level;
-    }
-    let permission_level: PermissionLevel;
-
-    switch (true) {
-      case admins.includes(user_id):
-        permission_level = 6;
-        break;
-      case this.masters.includes(user_id):
-        permission_level = 5;
-        break;
-      case role === 'owner':
-        permission_level = 4;
-        break;
-      case role === 'admin':
-        permission_level = 3;
-        break;
-      case level > 4:
-        permission_level = 2;
-        break;
-      case level > 2:
-        permission_level = 1;
-        break;
-      default:
-        permission_level = 0;
-        break;
-    }
-    return permission_level;
-  }
-
-  /**
-   * 获取群插件设置
-   * 
-   * @param group_id - 群号
-   * @returns 群插件设置
-   */
-  getSetting(group_id: number): Setting {
-    return this.profile.getSetting(group_id);
-  }
-
-  /**
-   * 获取群插件配置项
-   * 
-   * @param group_id - 群号
-   * @param name - 插件名
-   * @returns 群插件配置项
-   */
-  getOption(group_id: number, name: string): Option {
-    return this.profile.getOption(group_id, name);
-  }
-
-  /**
-   * 获取 bot 插件禁用列表
-   * 
-   * @returns 
-   */
-  getDisable(): string[] {
-    return this.profile.getDisable();
-  }
-
-  enablePlugin(name: string) {
-    return this.profile.enablePlugin(name);
-  }
-
-  disablePlugin(name: string) {
-    return this.profile.disablePlugin(name);
-  }
-
-  /**
-   * 修改当前 bot 插件配置项
-   * 
-   * @param group_id - 群号
-   * @param plugin - 插件名
-   * @param key - option 名
-   * @param value - 值
-   * @returns 是否修改成功
-   */
-  updateOption(group_id: number, plugin: string, key: string, value: string | number | boolean) {
-    return this.profile.updateOption(group_id, plugin, key, value);
-  }
-
-  /**
    * 给 bot 主人发送信息
-   *
+   * 
    * @param message - 通知信息
    * @returns 发消息的返回值
    */
-  public sendMasterMsg(message: string): Promise<MessageRet[]> {
+  public sendMasterMsg(message: string): Promise<PromiseSettledResult<MessageRet>[]> {
     const queue: Promise<MessageRet>[] = [];
 
     for (const uin of this.masters) {
       queue.push(this.sendPrivateMsg(uin, message));
     }
-    return Promise.all(queue);
+    return Promise.allSettled(queue);
   }
 
   /**
@@ -244,96 +129,19 @@ export class Bot extends Client {
   }
 
   private initEvents(): void {
-    this.emit('bot.profile.refresh');
     this.on('system.online', this.onOnline);
     this.on('system.offline', this.onOffline);
   }
 
   private onOnline(): void {
-    this.emit('bot.profile.refresh');
-    this.sendMasterMsg('该账号刚刚从离线中恢复，现在一切正常');
-    this.logger.mark(`${this.nickname} 刚刚从离线中恢复，现在一切正常`);
+    const message = '该账号刚刚从离线中恢复，现在一切正常';
+
+    this.logger.mark(message);
+    this.sendMasterMsg(message);
   }
 
   private onOffline(event: { message: string; }): void {
-    this.logger.mark(`${this.nickname} 已离线，${event.message}`);
-  }
-
-  /**
-   * 账号登录
-   */
-  public async linkStart(): Promise<void> {
-    process.stdin.setEncoding('utf8')
-
-    this.qrcodeLoginListen();
-    this.passwordLoginListen();
-    this.login(this.password);
-
-    await new Promise<void>((resolve, reject) => {
-      this
-        .once('system.online', () => resolve())
-        .once('system.login.error', (event) => {
-          const { code } = event;
-          const error = new Error(`错误代码 ${code}`);
-
-          this.logger.error(error);
-          reject(error);
-        })
-    })
-  }
-
-  /**
-   * 扫描登录监听
-   *
-   * 优点是不需要过滑块和设备锁
-   * 缺点是万一 token 失效，无法自动登录，需要重新扫码
-   */
-  private qrcodeLoginListen(): void {
-    this.on('system.login.qrcode', async () => {
-      const intervalID = setInterval(async () => {
-        const { retcode } = await this.queryQrcodeResult();
-        /**
-         * 0 : 扫码完成
-         * 48: 未扫码
-         * 53: 已扫码未确认
-         * 54: 扫码拒绝
-         */
-        const relogin = ![48, 53].includes(retcode);
-
-        if (relogin) {
-          clearInterval(intervalID);
-          this.login();
-        }
-      }, 500);
-
-      this.logger.mark('扫码完成后将会自动登录，按回车键可刷新二维码');
-      await terminalInput();
-      this.login();
-    })
-  }
-
-  /**
-   * 密码登录监听
-   *
-   * 优点是一劳永逸
-   * 缺点是需要过滑块，可能会报环境异常
-   */
-  private passwordLoginListen(): void {
-    this
-      .on('system.login.slider', async () => {
-        this.logger.mark('取 ticket 教程: https://github.com/takayama-lily/oicq/wiki/01.滑动验证码和设备锁');
-
-        const input = await terminalInput('请输入 ticket: ');
-        this.submitSlider(input);
-      })
-      .on('system.login.device', async () => {
-        // TODO ／人◕ ‿‿ ◕人＼ 短信结果轮询，oicq 暂无相关 API
-        this.logger.mark('输入密保手机收到的短信验证码后按回车键继续');
-        this.sendSmsCode();
-
-        const input = await terminalInput();
-        this.submitSmsCode(input);
-      })
+    this.logger.mark(`该账号已离线，${event.message}`);
   }
 }
 
@@ -344,15 +152,4 @@ export class Bot extends Client {
  */
 export function getBotList(): Map<number, Bot> {
   return botList;
-}
-
-/**
- * 创建 bot
- * 
- * @param uin - 账号
- * @param config - 配置
- * @returns 机器人实例
- */
-export function createBot(config: BotConfig): Bot {
-  return new Bot(config);
 }
