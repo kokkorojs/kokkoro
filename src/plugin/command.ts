@@ -124,7 +124,7 @@ export class Command<K extends CommandType = any> {
         await callback(ctx);
       } catch (error) {
         ctx
-          .reply((<Error>error).toString())
+          .reply(JSON.stringify(<Error>error, null, 2))
           .catch((error) => {
             this.plugin.logger.error(error);
           })
@@ -144,7 +144,7 @@ export class Command<K extends CommandType = any> {
         await callback(ctx);
       } catch (error) {
         ctx
-          .reply((<Error>error).toString())
+          .reply(JSON.stringify(<Error>error, null, 2))
           .catch((error) => {
             this.plugin.logger.error(error);
           })
