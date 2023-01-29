@@ -33,7 +33,10 @@ export class Scanner {
       const listen = (event: AllMessageEvent) => {
         const { sender, message } = event;
 
-        if (sender.user_id === user_id && (sender as any).group_id === group_id) {
+        if (
+          (!user_id || user_id === sender.user_id)
+          && (!group_id || group_id === (event as any).group_id)
+        ) {
           this.bot.off('message', listen);
           resolve(message[0]);
         }
@@ -59,7 +62,10 @@ export class Scanner {
       const listen = (event: AllMessageEvent) => {
         const { sender } = event;
 
-        if (sender.user_id === user_id && (sender as any).group_id === group_id) {
+        if (
+          (!user_id || user_id === sender.user_id)
+          && (!group_id || group_id === (event as any).group_id)
+        ) {
           const message = this.parseMessage(event.message, 'line');
 
           if (!message.length) {
@@ -90,7 +96,10 @@ export class Scanner {
       const listen = (event: AllMessageEvent) => {
         const { sender } = event;
 
-        if (sender.user_id === user_id && (sender as any).group_id === group_id) {
+        if (
+          (!user_id || user_id === sender.user_id)
+          && (!group_id || group_id === (event as any).group_id)
+        ) {
           const message = this.parseMessage(event.message, 'text');
 
           if (!message.length) {
@@ -122,7 +131,10 @@ export class Scanner {
       const listen = (event: AllMessageEvent) => {
         const { sender } = event;
 
-        if (sender.user_id === user_id && (sender as any).group_id === group_id) {
+        if (
+          (!user_id || user_id === sender.user_id)
+          && (!group_id || group_id === (event as any).group_id)
+        ) {
           const message = this.parseMessage(event.message, 'image');
 
           if (!message.length) {
