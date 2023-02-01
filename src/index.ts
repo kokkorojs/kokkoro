@@ -14,13 +14,10 @@ declare global {
   var __workname: string;
   /** 资源目录 */
   var __dataname: string;
-  /** 数据库目录 */
-  var __dbname: string;
 }
 
 global.__workname = process.cwd();
 global.__dataname = resolve('data');
-global.__dbname = resolve('db');
 
 const { author, changelogs, license, upday, version } = require('../package.json') as Package;
 
@@ -33,3 +30,5 @@ export const VERSION = version;
 export const logger: Logger = getLogger('[kokkoro]');
 
 export * from 'oicq';
+export * from '@/core';
+export * from '@/config';

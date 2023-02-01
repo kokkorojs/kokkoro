@@ -1,6 +1,8 @@
+import { v4 } from 'public-ip';
 import { getConfig } from '@/config';
 import { CHANGELOGS, logger, UPDAY, VERSION } from '@/kokkoro';
 import { Bot, importPlugin, retrievalPluginInfos } from '@/core';
+import { app } from '../../web';
 
 /**
  * 创建机器人服务
@@ -38,13 +40,10 @@ async function createPluginService(): Promise<void> {
 }
 
 async function createWebService(): Promise<void> {
-  const app = await import('./web');
-  const port = getConfig('port');
-  const domain = '';
+  const { port, domain } = getConfig('server');
 
-  // TODO ／人◕ ‿‿ ◕人＼ 生成随机账号
-  app.default.listen(port, () => {
-    logger.info(`web serve started at http://${domain ? domain : 'localhost'}:${port}`);
+  app.listen(port, async () => {
+    logger.info(`web serve started at http://${domain ?? await v4()}:${port}`);
   });
 }
 
@@ -68,8 +67,8 @@ export async function setup(): Promise<void> {
 
   try {
     createBotService();
-    await createWebService();
     await createPluginService();
+    await createWebService();
   } catch (error) {
     logger.error(error);
     process.exit(1);

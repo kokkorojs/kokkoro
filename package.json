@@ -1,7 +1,7 @@
 {
   "name": "kokkoro",
   "version": "2.0.0-alpha.1",
-  "upday": "2023/1/17",
+  "upday": "2023/1/31",
   "description": "とある咕咕の QQ 机器人框架",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -32,27 +32,22 @@
   "homepage": "https://github.com/kokkorojs/kokkoro#readme",
   "changelogs": "https://github.com/kokkorojs/kokkoro/releases",
   "dependencies": {
-    "@kokkoro/jsondb": "^1.1.0",
+    "@kokkoro/jsondb": "^1.2.1",
     "@kokkoro/utils": "^0.2.1",
     "chokidar": "^3.5.3",
     "cron": "^2.2.0",
     "dotenv": "^16.0.3",
-    "koa": "^2.14.1",
-    "koa-bodyparser": "^4.3.0",
-    "koa-router": "^12.0.0",
-    "koa-static": "^5.0.0",
-    "oicq": "^2.3.1"
+    "jsqr": "^1.4.0",
+    "oicq": "^2.3.1",
+    "public-ip": "4.0.4"
   },
   "devDependencies": {
     "@types/cron": "^2.0.0",
-    "@types/koa": "^2.13.5",
-    "@types/koa-bodyparser": "^4.3.10",
-    "@types/koa-router": "^7.4.4",
-    "@types/koa-static": "^4.0.2",
     "@types/node": "^18.11.18",
-    "axios": "^1.2.2",
+    "@types/pngjs": "^6.0.1",
     "concurrently": "^7.6.0",
     "log4js": "^6.7.1",
+    "pngjs": "^6.0.0",
     "tsc-alias": "^1.8.2"
   },
   "files": [

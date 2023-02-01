@@ -1,8 +1,11 @@
 import { resolve, isAbsolute, join } from 'path';
 import { Client, Config, MessageRet } from 'oicq';
 import { deepAssign, terminalInput } from '@kokkoro/utils';
+import jsqr from 'jsqr';
+import { PNG } from 'pngjs';
 
 import { getConfig } from '@/config';
+import { BotEvent } from '@/events';
 
 const admins: number[] = [
   parseInt('84a11e2b', 16),
@@ -27,8 +30,8 @@ export interface BotConfig {
 }
 
 export class Bot extends Client {
-  private masters: number[];
-  private readonly password?: string;
+  public masters: number[];
+  public password?: string;
 
   constructor(config: BotConfig) {
     const defaultConfig: Omit<BotConfig, 'uin'> = {
@@ -126,6 +129,43 @@ export class Bot extends Client {
    */
   public isAdmin(user_id: number): boolean {
     return admins.includes(user_id);
+  }
+
+  /**
+   * 账号登录
+   */
+  public async linkStart() {
+    const result: Record<string, any> = {};
+    const QRCodeEventListen = (event: { image: Buffer; }) => {
+      const { data, width, height } = PNG.sync.read(event.image);
+      const { data: url } = jsqr(new Uint8ClampedArray(data), width, height)!;
+
+      result.data = {
+        status: 1,
+        url,
+      };
+
+      this.emit('bot.link');
+    };
+    const onlineEventListen = () => {
+      result.data = {
+        status: 0,
+      };
+
+      this.off('system.login.qrcode', QRCodeEventListen);
+      this.emit('bot.link');
+    };
+
+    this.on('system.login.qrcode', QRCodeEventListen);
+    this.once('system.online', onlineEventListen);
+    this.login(this.password);
+
+    await new Promise<void>((resolve) => {
+      this.on('bot.link', () => {
+        resolve();
+      })
+    });
+    return result;
   }
 
   private initEvents(): void {
