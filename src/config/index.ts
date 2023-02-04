@@ -1,12 +1,22 @@
 import { resolve } from 'path';
 import { LogLevel } from 'oicq';
 import { deepClone } from '@kokkoro/utils';
-
 import { BotConfig } from '@/core';
-import { logger } from '@/kokkoro';
 
-/** 全局配置 */
-export type GlobalConfig = {
+declare global {
+  /** 当前进程目录 */
+  var __workname: string;
+  /** 资源目录 */
+  var __dataname: string;
+  /** 日志目录 */
+  var __logsname: string;
+}
+
+global.__workname = process.cwd();
+global.__dataname = resolve('data');
+global.__logsname = resolve('logs');
+
+export type KokkoroConfig = {
   /** web 服务 */
   server: {
     port: number;
@@ -19,13 +29,12 @@ export type GlobalConfig = {
 };
 
 const config_path: string = resolve('kokkoro.json');
-const config: GlobalConfig = require(config_path);
+const config: KokkoroConfig = require(config_path);
 
-logger.level = getConfig('log_level');
-
-export function getConfig<T extends keyof GlobalConfig>(key: T): GlobalConfig[T] {
+export function getConfig<T extends keyof KokkoroConfig>(key: T): KokkoroConfig[T] {
   return deepClone(config[key]);
 }
 
 export * from '@/config/env';
+export * from '@/config/logger';
 // export * from '@/config/profile';
