@@ -43,12 +43,12 @@ async function createWebService(): Promise<void> {
   const { port, domain } = getConfig('server');
 
   app.listen(port, async () => {
-    logger.info(`web serve started at http://${domain ?? await v4()}:${port}`);
+    logger.trace(`web serve started at http://${domain ?? await v4()}:${port}`);
   });
 }
 
 export async function setup(): Promise<void> {
-  // コッコロマジ天使！⎛⎝≥⏝⏝≤⎛⎝
+  // ⎛⎝≥⏝⏝≤⎛⎝ コッコロマジ天使！
   const logo = [
     '┌─────────────────────────────────────────────────────────────────────────────┐',
     '│    |   _  |  |   _  ._ _    ._ _   _. o o   _|_  _  ._  ._   _ |_  o   |    │',
@@ -60,17 +60,17 @@ export async function setup(): Promise<void> {
   process.title = 'kokkoro';
   console.log(`\u001b[32m${logo.join('\n')}\u001b[0m`);
 
-  logger.mark(`----------`);
-  logger.mark(`Package Version: kokkoro@${VERSION} (Released on ${UPDAY})`);
-  logger.mark(`View Changelogs: ${CHANGELOGS}`);
-  logger.mark(`----------`);
+  logger.trace(`----------`);
+  logger.trace(`Package Version: kokkoro@${VERSION} (Released on ${UPDAY})`);
+  logger.trace(`View Changelogs: ${CHANGELOGS}`);
+  logger.trace(`----------`);
 
   try {
     createBotService();
     await createPluginService();
     await createWebService();
   } catch (error) {
-    logger.error(error);
+    logger.fatal(error);
     process.exit(1);
   }
 }

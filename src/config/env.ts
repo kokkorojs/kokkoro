@@ -1,7 +1,7 @@
+import { join } from 'path';
 import { watch } from 'chokidar';
 import { config, DotenvConfigOptions } from 'dotenv';
-import { join } from 'path';
-import { logger } from '..';
+import { logger } from '@/kokkoro';
 
 const env_path = join(__workname, '.env');
 

@@ -57,7 +57,7 @@ export class Bot extends Client {
       log_level: 'off',
     });
 
-    this.log_level = getConfig('log_level')
+    // this.log_level = getConfig('log_level')
     this.masters = config.masters!;
     this.password = config.password;
 
