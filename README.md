@@ -89,8 +89,13 @@ kokkoro start
 
 ```json
 {
-  // web 服务端口号
-  "port": 2333,
+  // web 服务
+  "server": {
+    // 端口号
+    "port": 2333,
+    // 域名
+    "domain": null,
+  },
   // 日志等级，默认 info
   // 打印日志会降低性能，若消息量巨大建议修改此参数
   "log_level": "info",
