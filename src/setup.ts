@@ -1,8 +1,12 @@
+import { join } from 'path';
 import { v4 } from 'public-ip';
+import { app } from '@kokkoro/web';
+import { buildView } from '@kokkoro/admin';
+
+import { Bot } from '@/core';
 import { getConfig } from '@/config';
+import { importPlugin, retrievalPluginInfos } from '@/plugin';
 import { CHANGELOGS, logger, UPDAY, VERSION } from '@/kokkoro';
-import { Bot, importPlugin, retrievalPluginInfos } from '@/core';
-import { app } from '../../web';
 
 /**
  * 创建机器人服务
@@ -22,14 +26,14 @@ function createBotService(): void {
  */
 async function createPluginService(): Promise<void> {
   const pluginInfos = await retrievalPluginInfos();
-  //   const system = {
-  //     name: 'kokkoro',
-  //     folder: 'kokkoro',
-  //     filename: join(__dirname, '../system.js'),
-  //     local: true,
-  //   };
+  const system = {
+    name: 'kokkoro',
+    folder: 'kokkoro',
+    filename: join(__dirname, 'system.js'),
+    local: true,
+  };
 
-  //   pluginInfos.unshift(system);
+  pluginInfos.unshift(system);
 
   const infos_length = pluginInfos.length;
 
@@ -42,8 +46,15 @@ async function createPluginService(): Promise<void> {
 async function createWebService(): Promise<void> {
   const { port, domain } = getConfig('server');
 
+  logger.trace('View building, please wait patiently...');
+  await buildView(port);
+  logger.trace('View build success');
+
   app.listen(port, async () => {
-    logger.trace(`web serve started at http://${domain ?? await v4()}:${port}`);
+    logger.trace(`----------`);
+    logger.trace(`Web serve started public IP at http://${domain ?? await v4()}:${port}`);
+    logger.trace(`Web serve started internal IP at http://localhost:${port}`);
+    logger.trace(`----------`);
   });
 }
 
