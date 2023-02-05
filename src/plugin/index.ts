@@ -413,10 +413,9 @@ export class Plugin extends EventEmitter {
 
   private initEvents() {
     this.bl.forEach((bot) => {
-      if (this.info.name === 'kokkoro') {
-        return;
+      if (this.info.name !== 'kokkoro') {
+        bot.profile.defineOption(this.info.name, this.option);
       }
-      bot.profile.defineOption(this.info.name, this.option);
 
       this.on('plugin.destroy', () => this.onDestroy());
       this.on('plugin.message', (event) => this.onMessage(bot, event));
