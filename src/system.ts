@@ -410,9 +410,9 @@ plugin
 
     for (let i = 0; i < commands_length; i++) {
       const command = plugin.commands[i];
-      const { raw_name, description } = command;
+      const { raw_name, desc } = command;
 
-      message.push(`  ${raw_name}  ${description}`);
+      message.push(`  ${raw_name}  ${desc}`);
     }
     message.push('\nMore: https://kokkoro.js.org/');
     await ctx.reply(message.join('\n'));
