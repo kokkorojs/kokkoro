@@ -46,15 +46,15 @@ async function createPluginService(): Promise<void> {
 async function createWebService(): Promise<void> {
   const { port, domain } = getConfig('server');
 
-  logger.trace('View building, please wait patiently...');
+  logger.mark('View building, please wait patiently...');
   await buildView(port);
-  logger.trace('View build success');
+  logger.mark('View build success');
 
   app.listen(port, async () => {
-    logger.trace(`----------`);
-    logger.trace(`Web serve started public IP at http://${domain ?? await v4()}:${port}`);
-    logger.trace(`Web serve started internal IP at http://localhost:${port}`);
-    logger.trace(`----------`);
+    logger.mark(`----------`);
+    logger.mark(`Web serve started public IP at http://${domain ?? await v4()}:${port}`);
+    logger.mark(`Web serve started internal IP at http://localhost:${port}`);
+    logger.mark(`----------`);
   });
 }
 
@@ -71,10 +71,10 @@ export async function setup(): Promise<void> {
   process.title = 'kokkoro';
   console.log(`\u001b[32m${logo.join('\n')}\u001b[0m`);
 
-  logger.trace(`----------`);
-  logger.trace(`Package Version: kokkoro@${VERSION} (Released on ${UPDAY})`);
-  logger.trace(`View Changelogs: ${CHANGELOGS}`);
-  logger.trace(`----------`);
+  logger.mark(`----------`);
+  logger.mark(`Package Version: kokkoro@${VERSION} (Released on ${UPDAY})`);
+  logger.mark(`View Changelogs: ${CHANGELOGS}`);
+  logger.mark(`----------`);
 
   try {
     createBotService();

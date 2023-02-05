@@ -239,13 +239,13 @@ export class Bot extends Client {
   private onOnline(): void {
     const message = '该账号刚刚从离线中恢复，现在一切正常';
 
-    this.logger.trace(message);
+    this.logger.mark(message);
     this.profile.refreshData();
     this.sendMasterMsg(message);
   }
 
   private onOffline(event: { message: string; }): void {
-    this.logger.trace(`该账号已离线，${event.message}`);
+    this.logger.mark(`该账号已离线，${event.message}`);
   }
 }
 
