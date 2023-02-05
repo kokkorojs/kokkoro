@@ -63,8 +63,8 @@ export class Command<K extends CommandType = any> {
   private stop: (ctx: CommandMap[K]) => void;
   private func?: (ctx: CommandMap[K]) => void;
 
-  public name: string;
   public desc: string;
+  public name: string;
   public args: CommandArg[];
 
   constructor(
@@ -75,11 +75,11 @@ export class Command<K extends CommandType = any> {
     /** 消息类型 */
     private message_type: CommandType = 'all',
   ) {
-    this.name = removeBrackets(raw_name);
-    this.args = findAllBrackets(raw_name);
     this.desc = '';
     this.min_level = 0;
     this.max_level = 6;
+    this.name = removeBrackets(raw_name);
+    this.args = findAllBrackets(raw_name);
 
     this.stop = (ctx) => {
       const plugin_name = plugin.getName();
@@ -89,7 +89,7 @@ export class Command<K extends CommandType = any> {
 
   /**
    * 简介
-   *
+   * 
    * @param desc - 指令简单描述
    */
   public description(desc: string): Command<K> {
@@ -99,7 +99,7 @@ export class Command<K extends CommandType = any> {
 
   /**
    * 语法糖
-   *
+   * 
    * @param shortcut - 与之匹配的字符串或正则
    */
   public sugar(shortcut: string | RegExp): Command<K> {
@@ -115,7 +115,7 @@ export class Command<K extends CommandType = any> {
 
   /**
    * 指令执行
-   *
+   * 
    * @param callback 触发回调
    */
   public action(callback: (ctx: CommandMap[K]) => any): this {
@@ -205,6 +205,7 @@ export class Command<K extends CommandType = any> {
     return match;
   }
 
+  // public handle(ctx: CommandMap[K]) {
   public handle(ctx: CommandMap[K]) {
     if (!this.func) {
       return;
@@ -213,9 +214,8 @@ export class Command<K extends CommandType = any> {
     const name = this.plugin.getName();
     const option = setting?.[name];
 
-    if (option) {
-      ctx.option = option;
-    }
+    ctx.option = option ?? null;
+
     if (this.isLimit(permission_level)) {
       const scope = this.min_level !== this.max_level
         ? `范围：${this.min_level} ~ ${this.max_level}`
