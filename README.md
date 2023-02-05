@@ -64,6 +64,8 @@ npx kokkoro init
 ```text
 .
 ├─ data               资源目录
+├─ db                 数据库目录
+├─ logs               日志目录
 ├─ plugins            插件目录
 ├─ main.js            程序入口
 └─ kokkoro.json       配置文件
@@ -96,8 +98,8 @@ kokkoro start
   "bots": [
     // bot 账号
     "uin": 1145141919,
-    // 项目启动时自动登录，默认 true
-    "auto_login": true,
+    // 项目启动时自动登录，默认 false
+    // "auto_login": true,
     // 账号密码，若不填写则使用扫码登陆
     "password": null,
     // bot 主人，可添加多个
@@ -106,6 +108,8 @@ kokkoro start
     ],
     // 协议配置，不要随意修改，除非你知道自己在做什么
     "protocol": {
+      // 日志等级，与上面的 log_level 不同，只针对 bot 消息打印
+      "log_level": "info",
       // 1:安卓手机(默认) 2:aPad 3:安卓手表 4:MacOS 5:iPad
       "platform": 1,
       // 忽略自己的消息，默认 true
@@ -136,10 +140,10 @@ kokkoro start
 
 | Tables | Cool |
 | --- |---|
-| 配置文件热更 | 🟡 |
-| web api 服务 | 🟡 |
-| admin 后台 | 🟡 |
-| 多 bot 管理 | 🔴 |
+| 配置文件热更 | 🟢 |
+| web api 服务 | 🔵 |
+| admin 后台 | 🔵 |
+| 多 bot 管理 | 🟡 |
 | QQ 频道支持 | 🔴 |
 
 ### 插件适配
