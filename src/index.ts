@@ -21,3 +21,4 @@ export const logger = getLogger('[kokkoro]');
 export * from 'oicq';
 export * from '@/core';
 export * from '@/config';
+export * from '@/plugin';

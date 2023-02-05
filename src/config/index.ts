@@ -8,12 +8,15 @@ declare global {
   var __workname: string;
   /** 资源目录 */
   var __dataname: string;
+  /** 数据库目录 */
+  var __dbname: string;
   /** 日志目录 */
   var __logsname: string;
 }
 
 global.__workname = process.cwd();
 global.__dataname = resolve('data');
+global.__dbname = resolve('db');
 global.__logsname = resolve('logs');
 
 export type KokkoroConfig = {
@@ -35,6 +38,7 @@ export function getConfig<T extends keyof KokkoroConfig>(key: T): KokkoroConfig[
   return deepClone(config[key]);
 }
 
+export * from '@/config/database';
 export * from '@/config/env';
 export * from '@/config/logger';
-// export * from '@/config/profile';
+export * from '@/config/profile';
