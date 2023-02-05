@@ -21,7 +21,7 @@ export interface BotConfig {
   /** bot 账号 */
   uin: number;
   /** 自动登录，默认 true */
-  auto_login?: boolean;
+  // auto_login?: boolean;
   /** 登录密码，为空则扫码登录 */
   password?: string;
   /** bot 主人 */
@@ -37,7 +37,7 @@ export class Bot extends Client {
 
   constructor(config: BotConfig) {
     const defaultConfig: Omit<BotConfig, 'uin'> = {
-      auto_login: true,
+      // auto_login: true,
       masters: [],
       protocol: {
         log_level: 'info',
