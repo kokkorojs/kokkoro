@@ -1,7 +1,7 @@
 import { Plugin } from '@/plugin';
 import { Context, EventName } from '@/events';
 
-export class Listen<K extends EventName = any>  {
+export class Event<K extends EventName = any>  {
   private func?: (event: Context<K>) => any;
 
   constructor(
@@ -20,14 +20,12 @@ export class Listen<K extends EventName = any>  {
     if (option?.apply === false) {
       return;
     }
-    if (option) {
-      context.option = option;
-    }
+    context.option = option;
 
     this.func(context);
   }
 
-  public trigger(callback: (context: Context<K>) => any) {
+  public action(callback: (context: Context<K>) => any) {
     this.func = async (ctx) => {
       try {
         await callback(ctx)
