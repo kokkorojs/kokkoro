@@ -50,17 +50,13 @@ export class Bot extends Client {
     config = deepAssign(defaultConfig, config) as BotConfig;
 
     const { uin, protocol } = config;
-    const { data_dir, log_level } = protocol!;
+    const { data_dir } = protocol!;
 
     // 转换绝对路径
     protocol!.data_dir = isAbsolute(data_dir!) ? data_dir : resolve(data_dir!);
 
-    super(uin, {
-      ...config.protocol,
-      log_level: 'off',
-    });
+    super(uin, config.protocol);
 
-    this.log_level = log_level!;
     this.masters = config.masters!;
     this.password = config.password;
     this.profile = new Profile(this);
@@ -239,13 +235,13 @@ export class Bot extends Client {
   private onOnline(): void {
     const message = '该账号刚刚从离线中恢复，现在一切正常';
 
-    this.logger.mark(message);
+    this.logger.info(message);
     this.profile.refreshData();
     this.sendMasterMsg(message);
   }
 
   private onOffline(event: { message: string; }): void {
-    this.logger.mark(`该账号已离线，${event.message}`);
+    this.logger.info(`该账号已离线，${event.message}`);
   }
 }
 
