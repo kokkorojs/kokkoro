@@ -1,4 +1,3 @@
-import { refreshEnv } from '@/config';
 import { AUTHOR, LICENSE, UPDAY, VERSION } from '@/kokkoro';
 import { Plugin, retrievalPluginInfos, getPluginList, importPlugin, destroyPlugin } from '@/plugin';
 
@@ -26,18 +25,6 @@ plugin
   .sugar(/^(打印|输出)\s?(?<message>.+)$/)
   .action(async (ctx) => {
     await ctx.reply(ctx.query.message);
-  });
-//#endregion
-
-//#region 环境变量
-plugin
-  .command('env')
-  .description('读取配置文件刷新环境变量')
-  .limit(5)
-  .sugar(/^(刷新)$/)
-  .action(async (ctx) => {
-    refreshEnv();
-    await ctx.reply('已更新环境变量');
   });
 //#endregion
 
@@ -423,9 +410,9 @@ plugin
 
     for (let i = 0; i < commands_length; i++) {
       const command = plugin.commands[i];
-      const { raw_name, desc } = command;
+      const { raw_name, description } = command;
 
-      message.push(`  ${raw_name}  ${desc}`);
+      message.push(`  ${raw_name}  ${description}`);
     }
     message.push('\nMore: https://kokkoro.js.org/');
     await ctx.reply(message.join('\n'));
