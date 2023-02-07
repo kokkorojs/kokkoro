@@ -28,7 +28,7 @@ export class Event<K extends EventName = any>  {
   public action(callback: (context: Context<K>) => any) {
     this.func = async (ctx) => {
       try {
-        await callback(ctx)
+        await callback(ctx);
       } catch (error) {
         this.plugin.logger.error(error);
       }

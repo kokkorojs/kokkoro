@@ -123,11 +123,15 @@ export class Command<K extends CommandType = any> {
       try {
         await callback(ctx);
       } catch (error) {
-        ctx
-          .reply((<Error>error).toString())
-          .catch((error) => {
-            this.plugin.logger.error(error);
-          })
+        let message: string;
+
+        if (error instanceof Error) {
+          message = error.toString();
+        } else {
+          message = JSON.stringify(error, null, 2);
+        }
+        ctx.reply(message);
+        this.plugin.logger.error(error);
       }
     };
     return this;

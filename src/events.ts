@@ -53,6 +53,7 @@ export type ContextType<K extends EventName> = (
 
 /** 插件上下文 */
 export type Context<K extends EventName> = BotEvent<K> & ContextType<K> & {
+  bot: Bot;
   /** 快捷修改插件配置项 */
   revise: (key: string, value: any, plugin?: string) => Promise<boolean>;
   /** 获取 bot 实例 */
