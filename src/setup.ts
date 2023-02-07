@@ -48,7 +48,7 @@ async function createWebService(): Promise<void> {
   const { port, domain } = getConfig('server');
   const public_ip = await publicIpv4();
   const internal_ip = await internalIpv4();
-  const api_url = `http://${develop ? public_ip : internal_ip}:${port}/api`;
+  const api_url = `http://${develop ? internal_ip : public_ip}:${port}/api`;
 
   logger.info('View building, please wait patiently...');
   await buildView(api_url);
@@ -68,7 +68,7 @@ export async function setup(): Promise<void> {
     '┌─────────────────────────────────────────────────────────────────────────────┐',
     '│    |   _  |  |   _  ._ _    ._ _   _. o o   _|_  _  ._  ._   _ |_  o   |    │',
     '│    |< (_) |< |< (_) | (_)   | | | (_| | |    |_ (/_ | | | |  > | | |   |    │',
-    '│                                       ╯                                o    │',
+    '│                                      _|                                o    │',
     '└─────────────────────────────────────────────────────────────────────────────┘',
   ];
 
