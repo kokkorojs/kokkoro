@@ -136,7 +136,7 @@ export function importPlugin(info: PluginInfo): Plugin {
 
   try {
     require(filename);
-    logger.info(`plugin "${name}" import success`);
+    logger.debug(`plugin "${name}" import success`);
 
     return pluginList.get(name)!;
   } catch (error) {
