@@ -213,7 +213,7 @@ plugin
 
     for (let i = 0; i < names_length; i++) {
       const name = names[i];
-      enableQueue.push(bot.enablePlugin(name));
+      enableQueue.push(bot.profile.enablePlugin(name));
     }
     await Promise.allSettled(enableQueue)
       .then((results) => {
@@ -254,7 +254,7 @@ plugin
 
     for (let i = 0; i < names_length; i++) {
       const name = names[i];
-      disableQueue.push(bot.disablePlugin(name));
+      disableQueue.push(bot.profile.disablePlugin(name));
     }
     await Promise.allSettled(disableQueue)
       .then((results) => {
@@ -323,7 +323,7 @@ plugin
 
       for (let i = 0; i < names_length; i++) {
         const name = names[i];
-        applyQueue.push(bot.updateOption(group_id, name, 'apply', true));
+        applyQueue.push(bot.profile.updateOption(group_id, name, 'apply', true));
       }
       await Promise.allSettled(applyQueue)
         .then((results) => {
@@ -369,7 +369,7 @@ plugin
 
       for (let i = 0; i < names_length; i++) {
         const name = names[i];
-        applyQueue.push(bot.updateOption(group_id, name, 'apply', false));
+        applyQueue.push(bot.profile.updateOption(group_id, name, 'apply', false));
       }
       await Promise.allSettled(applyQueue)
         .then((results) => {
@@ -410,9 +410,9 @@ plugin
 
     for (let i = 0; i < commands_length; i++) {
       const command = plugin.commands[i];
-      const { raw_name, description } = command;
+      const { raw_name, desc } = command;
 
-      message.push(`  ${raw_name}  ${description}`);
+      message.push(`  ${raw_name}  ${desc}`);
     }
     message.push('\nMore: https://kokkoro.js.org/');
     await ctx.reply(message.join('\n'));

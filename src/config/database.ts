@@ -1,6 +1,10 @@
 import { join } from 'path';
-import { Database } from '@kokkoro/jsondb';
+import { Database as DB } from '@kokkoro/jsondb';
 
-export function createDatabase(path: string) {
-  return new Database(join(__dbname, path));
+export class Database extends DB {
+  constructor(path: string) {
+    path = join(__dbname, path);
+
+    super(path);
+  }
 }

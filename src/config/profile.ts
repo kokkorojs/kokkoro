@@ -253,4 +253,52 @@ export class Profile {
       throw error;
     }
   }
+
+  public async enablePlugin(name: string): Promise<void> {
+    let message;
+
+    if (!this.defaultSetting[name]) {
+      message = `插件 ${name} 未挂载`;
+    } else if (!this.disable.has(name)) {
+      message = `插件 ${name} 不在禁用列表`;
+    } else {
+      this.disable.delete(name);
+
+      try {
+        await this.write();
+        this.bot.logger.info(`更新了禁用列表，移除了插件：${name}`);
+      } catch (error) {
+        message = `更新禁用列表失败，${(<Error>error).message}`;
+        this.disable.add(name);
+      }
+    }
+    if (message) {
+      this.bot.logger.error(message);
+      throw new Error(message);
+    }
+  }
+
+  public async disablePlugin(name: string): Promise<void> {
+    let error;
+
+    if (!this.defaultSetting[name]) {
+      error = `插件 ${name} 未挂载`;
+    } else if (this.disable.has(name)) {
+      error = `插件 ${name} 已在禁用列表`;
+    } else {
+      this.disable.add(name);
+
+      try {
+        await this.write();
+        this.bot.logger.info(`更新了禁用列表，新增了插件：${name}`);
+      } catch (err) {
+        error = `更新禁用列表失败，${(<Error>err).message}`;
+        this.disable.delete(name);
+      }
+    }
+    if (error) {
+      this.bot.logger.error(error);
+      throw new Error(error);
+    }
+  }
 }

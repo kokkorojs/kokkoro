@@ -1,7 +1,7 @@
 import { join } from 'path';
-import { v4 } from 'public-ip';
 import { app } from '@kokkoro/web';
 import { buildView } from '@kokkoro/admin';
+import { internalIpv4, publicIpv4 } from '@kokkoro/utils';
 
 import { Bot } from '@/core';
 import { getConfig } from '@/config';
@@ -44,16 +44,20 @@ async function createPluginService(): Promise<void> {
 }
 
 async function createWebService(): Promise<void> {
+  const develop = process.env['KOKKORO_DEVELOP'] === 'open';
   const { port, domain } = getConfig('server');
+  const public_ip = await publicIpv4();
+  const internal_ip = await internalIpv4();
+  const api_url = `http://${develop ? public_ip : internal_ip}:${port}/api`;
 
   logger.info('View building, please wait patiently...');
-  await buildView(port);
+  await buildView(api_url);
   logger.info('View build success');
 
   app.listen(port, async () => {
     logger.info(`----------`);
-    logger.info(`Web serve started public IP at http://${domain ?? await v4()}:${port}`);
-    logger.info(`Web serve started internal IP at http://localhost:${port}`);
+    !develop && logger.info(`Web serve started public IP at http://${domain ?? public_ip}:${port}`);
+    logger.info(`Web serve started internal IP at http://${internal_ip}:${port}`);
     logger.info(`----------`);
   });
 }
