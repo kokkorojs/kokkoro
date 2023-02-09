@@ -15,7 +15,9 @@
 
 ## 介绍
 
-原项目 [yumemi_bot](https://github.com/rumicchi/yumemi_bot) 最初为个人自用 bot，主要围绕 [公主连结☆Re:Dive](https://priconne-redive.jp/) 开发相关功能，因代码严重耦合不利于维护，使用 ts 分离重构为插件一对多形式的框架
+> 目前 kokkoro 处于 alpha 状态，不过她已经适用于开箱即用，极少部分 API 和配置项可能会在未来版本中发生变化。
+
+原项目 [yumemi_bot](https://github.com/rumicchi/yumemi_bot) 最初为个人自用 bot，主要围绕 [公主连结☆Re:Dive](https://priconne-redive.jp/) 开发相关功能，因代码严重耦合不利于维护，使用 ts 分离重构为插件一对多形式的框架。
 
 - [x] 多群插件管理，所有插件针对不同群聊均支持参数自定义
 - [x] 支持扫码登录，能有效避免因操作不当导致账号风控、掉线等问题
@@ -75,13 +77,19 @@ npx kokkoro init
 
 ## 启动
 
-一切准备就绪，开始启动你的项目吧
+一切准备就绪，开始启动你的项目吧。如果你是使用的本地安装，就要使用 `npx kokkoro start -d` 启动项目。
 
 ```shell
-kokkoro start
+kokkoro start -d
 ```
 
-如果你是使用的本地安装，就要使用 `npx kokkoro start` 启动项目
+首次启动项目会将 admin 编译为静态页面，因为要动态配置例如 api url 等参数，所以时间会稍微有点慢，第一次编译完成后只要不修改相关 config 就不会再次编译。
+
+> `-d` 代表着 develop 模式，会将 web serve 指向内网 ip 运行，方便用于本地调试。若要在服务器部署可以直接使用 `kokkoro start` 或者 `node main.js`，后者指向公网 ip。
+
+如上述步骤无误，控制台会输出服务地址，首次访问会提示创建 admin 账号，之后进入后台即可管理账号登录与插件状态。
+
+账号登录成功后，会在根目录下的 `data/bot` 自动生成 QQ 账号的缓存及相关配置文件。
 
 ## 配置参数
 
@@ -145,10 +153,10 @@ kokkoro start
 
 | Tables | Cool |
 | --- |---|
-| 配置文件热更 | 🟢 |
 | web api 服务 | 🔵 |
 | admin 后台 | 🔵 |
-| 多 bot 管理 | 🟡 |
+| 多 bot 管理 | 🔵 |
+| 数据库支持 | 🟡 |
 | QQ 频道支持 | 🔴 |
 
 ### 插件适配
