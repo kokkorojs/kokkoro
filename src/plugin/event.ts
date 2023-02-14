@@ -1,5 +1,5 @@
 import { Plugin } from '@/plugin';
-import { Context, EventName } from '@/events';
+import { Context, EventName } from '@/types';
 
 export class Event<K extends EventName = any>  {
   private func?: (event: Context<K>) => any;

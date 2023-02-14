@@ -5,7 +5,7 @@ import { resolve, isAbsolute, join } from 'path';
 import { Client, Config, GroupRole, MessageRet } from 'oicq';
 
 import { Profile } from '@/core';
-import { Context } from '@/events';
+import { Context } from '@/types';
 import { getPluginList } from '@/plugin';
 
 // TODO ／人◕ ‿‿ ◕人＼ 维护组联系方式，目前没什么用（just yuki）
