@@ -1,12 +1,27 @@
-import { join } from 'path';
+import { join, resolve } from 'path';
 import { app } from '@kokkoro/web';
 import { buildView } from '@kokkoro/admin';
 import { internalIpv4, publicIpv4 } from '@kokkoro/utils';
 
 import { Bot } from '@/core';
-import { getConfig } from '@/config';
+import { getConfig, getPackage, logger } from '@/config';
 import { importPlugin, retrievalPluginInfos } from '@/plugin';
-import { CHANGELOGS, logger, UPDAY, VERSION } from '@/kokkoro';
+
+declare global {
+  /** 当前进程目录 */
+  var __workname: string;
+  /** 资源目录 */
+  var __dataname: string;
+  /** 数据库目录 */
+  var __dbname: string;
+  /** 日志目录 */
+  var __logsname: string;
+}
+
+global.__workname = process.cwd();
+global.__dataname = resolve('data');
+global.__dbname = resolve('db');
+global.__logsname = resolve('logs');
 
 /**
  * 创建机器人服务
@@ -71,13 +86,14 @@ export async function setup(): Promise<void> {
     '│                                      _|                                o    │',
     '└─────────────────────────────────────────────────────────────────────────────┘',
   ];
+  const pkg = getPackage();
 
   process.title = 'kokkoro';
   console.log(`\u001b[32m${logo.join('\n')}\u001b[0m`);
 
   logger.info(`----------`);
-  logger.info(`Package Version: kokkoro@${VERSION} (Released on ${UPDAY})`);
-  logger.info(`View Changelogs: ${CHANGELOGS}`);
+  logger.info(`Package Version: kokkoro@${pkg.version} (Released on ${pkg.upday})`);
+  logger.info(`View Changelogs: ${pkg.changelogs}`);
   logger.info(`----------`);
 
   try {

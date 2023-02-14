@@ -4,7 +4,7 @@ import { deepAssign } from '@kokkoro/utils';
 import { resolve, isAbsolute, join } from 'path';
 import { Client, Config, GroupRole, MessageRet } from 'oicq';
 
-import { Profile } from '@/config';
+import { Profile } from '@/core';
 import { Context } from '@/events';
 import { getPluginList } from '@/plugin';
 
