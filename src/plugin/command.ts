@@ -1,5 +1,5 @@
 import { Plugin } from '@/plugin';
-import { Context } from '@/events';
+import { Context } from '@/types';
 import { PermissionLevel } from '@/core';
 
 /** 指令参数 */
