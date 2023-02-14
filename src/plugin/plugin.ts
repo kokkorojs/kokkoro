@@ -8,7 +8,7 @@ import { decache, getStack } from '@kokkoro/utils';
 
 import { getBotList, Bot } from '@/core';
 import { logger, getConfig } from '@/config';
-import { Context, EventName } from '@/events';
+import { Context, EventName } from '@/types';
 import { Command, CommandType, Event } from '@/plugin';
 
 /** 插件消息事件 */
