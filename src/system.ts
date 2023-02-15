@@ -1,5 +1,5 @@
-import { AUTHOR, LICENSE, UPDAY, VERSION } from '@/kokkoro';
-import { Plugin, retrievalPluginInfos, getPluginList, importPlugin, destroyPlugin } from '@/plugin';
+import { getPackage } from '@/config';
+import { Plugin, retrievalPluginInfos, getPluginList, importPlugin, destroyPlugin, getPlugin } from '@/plugin';
 
 interface AllSettledResult {
   status: 'fulfilled' | 'rejected';
@@ -13,10 +13,11 @@ interface AllSettledMessage {
   error: string[];
 }
 
+const pkg = getPackage();
 const plugin = new Plugin();
 
 plugin
-  .version(VERSION)
+  .version(pkg.version)
 
 //#region 打印
 plugin
@@ -426,11 +427,11 @@ plugin
   .sugar(/^(版本|ver)$/)
   .action(async (ctx) => {
     const version = {
-      name: 'kokkoro',
-      version: VERSION,
-      upday: UPDAY,
-      author: AUTHOR,
-      license: LICENSE,
+      name: pkg.name,
+      version: pkg.version,
+      upday: pkg.upday,
+      author: pkg.author,
+      license: pkg.license,
       repository: 'https://github.com/kokkorojs/kokkoro/'
     };
     await ctx.reply(JSON.stringify(version, null, 2));
@@ -483,13 +484,5 @@ async function unmountPlugin(name: string): Promise<void> {
   if (!pl.has(name)) {
     throw new Error(`插件 ${name} 未被挂载`);
   }
-
-  try {
-    const plugin = pl.get(name)!;
-
-    plugin.emit('plugin.destroy');
-    destroyPlugin(plugin.info);
-  } catch (error) {
-    throw error;
-  }
+  destroyPlugin(name);
 }

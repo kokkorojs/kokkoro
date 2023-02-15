@@ -1,7 +1,7 @@
+import { watch } from 'fs';
 import { join } from 'path';
-import { watch } from 'chokidar';
 import { config, DotenvConfigOptions } from 'dotenv';
-import { logger } from '@/kokkoro';
+import { logger } from '@/config';
 
 const env_path = join(__workname, '.env');
 
@@ -13,10 +13,9 @@ function refreshEnv(): void {
   config(option);
 }
 
-watch(env_path).on('change', async () => {
-  setTimeout(() => {
-    refreshEnv();
-    logger.info('.env 已热更');
-  });
+watch(env_path, () => {
+  refreshEnv();
+  logger.info('.env 已热更');
 });
+
 config();

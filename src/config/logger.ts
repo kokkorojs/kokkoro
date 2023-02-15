@@ -1,5 +1,5 @@
 import { join } from 'path';
-import { configure } from 'log4js';
+import { configure, getLogger } from 'log4js';
 import { getConfig } from '@/config';
 
 const log_level = getConfig('log_level');
@@ -34,3 +34,5 @@ configure({
     default: { appenders: ['everything', 'just-errors', 'just-outputs'], level: 'all' },
   },
 });
+
+export const logger = getLogger('[kokkoro]');
