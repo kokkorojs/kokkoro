@@ -1,6 +1,7 @@
 import { LogLevel } from 'oicq';
 import { deepClone } from '@kokkoro/utils';
 import { BotConfig } from '@/core';
+import { join } from 'path';
 
 export interface Package {
   name: string;
@@ -23,8 +24,8 @@ export type KokkoroConfig = {
   bots: BotConfig[];
 };
 
-const pkg = require('../package.json') as Package;
-const config = require('kokkoro.json') as KokkoroConfig;
+const pkg = require('../../package.json') as Package;
+const config = require(join(__workname, 'kokkoro.json')) as KokkoroConfig;
 
 /**
  * 获取配置项信息
