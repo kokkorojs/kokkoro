@@ -1,7 +1,6 @@
 import { DiscussMessageEvent, EventMap, GroupMessageEvent, PrivateMessageEvent } from 'oicq';
-import { Bot, PermissionLevel } from '@/core';
 import { Option } from '@/plugin';
-import { Setting } from '@/config';
+import { Bot, PermissionLevel, Setting } from '@/core';
 
 export type AllMessageEvent = PrivateMessageEvent | GroupMessageEvent | DiscussMessageEvent;
 

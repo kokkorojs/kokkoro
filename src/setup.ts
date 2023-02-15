@@ -1,12 +1,12 @@
 import { join } from 'path';
-import { app } from '@kokkoro/web';
-import { buildView } from '@kokkoro/admin';
+import { app } from '../../web';
+// import { app } from '@kokkoro/web';
+import { rewriteBaseUrl } from '@kokkoro/admin';
 import { internalIpv4, publicIpv4 } from '@kokkoro/utils';
 
 import { Bot } from '@/core';
-import { getConfig } from '@/config';
+import { getConfig, getPackage, logger } from '@/config';
 import { importPlugin, retrievalPluginInfos } from '@/plugin';
-import { CHANGELOGS, logger, UPDAY, VERSION } from '@/kokkoro';
 
 /**
  * 创建机器人服务
@@ -44,20 +44,20 @@ async function createPluginService(): Promise<void> {
 }
 
 async function createWebService(): Promise<void> {
-  const develop = process.env['KOKKORO_DEVELOP'] === 'open';
   const { port, domain } = getConfig('server');
-  const public_ip = await publicIpv4();
+  const develop = process.env['KOKKORO_DEVELOP'] === 'open';
+  const public_ip = domain ?? await publicIpv4();
   const internal_ip = await internalIpv4();
   const api_url = `http://${develop ? internal_ip : public_ip}:${port}/api`;
 
   logger.info('View building, please wait patiently...');
-  await buildView(api_url);
+  await rewriteBaseUrl(api_url);
   logger.info('View build success');
 
-  app.listen(port, async () => {
+  app.listen(port, () => {
     logger.info(`----------`);
-    !develop && logger.info(`Web serve started public IP at http://${domain ?? public_ip}:${port}`);
-    logger.info(`Web serve started internal IP at http://${internal_ip}:${port}`);
+    !develop && logger.info(`Web serve started public IP at \u001b[34mhttp://${public_ip}:${port}\u001b[0m`);
+    logger.info(`Web serve started internal IP at \u001b[34mhttp://${internal_ip}:${port}\u001b[0m`);
     logger.info(`----------`);
   });
 }
@@ -71,13 +71,14 @@ export async function setup(): Promise<void> {
     '│                                      _|                                o    │',
     '└─────────────────────────────────────────────────────────────────────────────┘',
   ];
+  const pkg = getPackage();
 
   process.title = 'kokkoro';
   console.log(`\u001b[32m${logo.join('\n')}\u001b[0m`);
 
   logger.info(`----------`);
-  logger.info(`Package Version: kokkoro@${VERSION} (Released on ${UPDAY})`);
-  logger.info(`View Changelogs: ${CHANGELOGS}`);
+  logger.info(`Package Version: kokkoro@${pkg.version} (Released on ${pkg.upday})`);
+  logger.info(`View Changelogs: ${pkg.changelogs}`);
   logger.info(`----------`);
 
   try {
