@@ -4,7 +4,7 @@ specifiers:
   '@kokkoro/admin': ^0.2.0
   '@kokkoro/database': ^1.0.1
   '@kokkoro/utils': ^0.7.1
-  '@kokkoro/web': ^0.1.2
+  '@kokkoro/web': ^0.1.3
   '@types/cron': ^2.0.0
   '@types/node': ^18.13.0
   '@types/pngjs': ^6.0.1
@@ -22,7 +22,7 @@ dependencies:
   '@kokkoro/admin': 0.2.0
   '@kokkoro/database': 1.0.1
   '@kokkoro/utils': 0.7.1
-  '@kokkoro/web': 0.1.2
+  '@kokkoro/web': 0.1.3
   cron: 2.2.0
   dotenv: 16.0.3
   jsqr: 1.4.0
@@ -75,8 +75,8 @@ packages:
       public-ip: 4.0.4
     dev: false
 
-  /@kokkoro/web/0.1.2:
-    resolution: {integrity: sha512-vn/WhAHYFko5L6EpSzhE1eakGXc5PD6qNuoafapmwOoqmzWfriJi+6d6/eo4B4eijzjgIqirHjF/dnBTfq/FBw==}
+  /@kokkoro/web/0.1.3:
+    resolution: {integrity: sha512-295i6Tn+aW69nCrSdJBZ5EKXltGgE0vWfydjIvNPjUSHVgDq4FG4e0A8q64jNZjYO3fosQGINkuu/6L7eOCoqA==}
     dependencies:
       '@koa/cors': 4.0.0
       '@koa/router': 12.0.0
