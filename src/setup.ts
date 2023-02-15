@@ -47,10 +47,10 @@ async function createWebService(): Promise<void> {
   const develop = process.env['KOKKORO_DEVELOP'] === 'open';
   const public_ip = domain ?? await publicIpv4();
   const internal_ip = await internalIpv4();
-  const api_url = `http://${develop ? internal_ip : public_ip}:${port}/api`;
+  const base_url = `http://${develop ? internal_ip : public_ip}:${port}`;
 
   logger.info('View building, please wait patiently...');
-  await rewriteBaseUrl(api_url);
+  await rewriteBaseUrl(base_url);
   logger.info('View build success');
 
   app.listen(port, () => {
