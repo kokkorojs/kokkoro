@@ -1,6 +1,5 @@
 import { join } from 'path';
-import { app } from '../../web';
-// import { app } from '@kokkoro/web';
+import { app } from '@kokkoro/web';
 import { rewriteBaseUrl } from '@kokkoro/admin';
 import { internalIpv4, publicIpv4 } from '@kokkoro/utils';
 
