@@ -1,7 +1,7 @@
 {
   "name": "kokkoro",
-  "version": "2.0.0-alpha.5",
-  "upday": "2023/2/7",
+  "version": "2.0.0-alpha.6",
+  "upday": "2023/2/15",
   "description": "とある咕咕の QQ 机器人框架",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -32,11 +32,10 @@
   "homepage": "https://github.com/kokkorojs/kokkoro#readme",
   "changelogs": "https://github.com/kokkorojs/kokkoro/releases",
   "dependencies": {
-    "@kokkoro/admin": "^0.1.2",
-    "@kokkoro/jsondb": "^1.2.3",
+    "@kokkoro/admin": "^0.2.0",
+    "@kokkoro/database": "^1.0.1",
     "@kokkoro/utils": "^0.7.1",
     "@kokkoro/web": "^0.1.2",
-    "chokidar": "^3.5.3",
     "cron": "^2.2.0",
     "dotenv": "^16.0.3",
     "jsqr": "^1.4.0",
@@ -44,12 +43,13 @@
   },
   "devDependencies": {
     "@types/cron": "^2.0.0",
-    "@types/node": "^18.11.19",
+    "@types/node": "^18.13.0",
     "@types/pngjs": "^6.0.1",
     "concurrently": "^7.6.0",
     "log4js": "^6.7.1",
     "pngjs": "^6.0.0",
-    "tsc-alias": "^1.8.2"
+    "tsc-alias": "^1.8.2",
+    "typescript": "^4.9.5"
   },
   "files": [
     "lib"

@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
+    "target": "esnext",
     "lib": [
-      "ES2022"
+      "esnext"
     ],
     "module": "commonjs",
     "rootDir": "src",
@@ -11,9 +11,6 @@
     "paths": {
       "@/*": [
         "src/*"
-      ],
-      "@/kokkoro": [
-        "src/index"
       ],
     },
     "declaration": true,
