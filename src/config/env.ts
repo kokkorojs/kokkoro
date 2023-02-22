@@ -1,7 +1,7 @@
-import { watch } from 'fs';
 import { join } from 'path';
+import { existsSync, watch, writeFileSync } from 'fs';
 import { config, DotenvConfigOptions } from 'dotenv';
-import { logger } from '@/config';
+import { logger } from './logger';
 
 const env_path = join(__workname, '.env');
 
@@ -11,6 +11,10 @@ function refreshEnv(): void {
   };
 
   config(option);
+}
+
+if (!existsSync(env_path)) {
+  writeFileSync(env_path, '');
 }
 
 watch(env_path, () => {
