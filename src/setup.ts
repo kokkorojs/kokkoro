@@ -1,7 +1,7 @@
+import { Bot, mountPlugin, retrievalPluginInfos } from '@kokkoro/core';
 import { app } from '@kokkoro/web';
 import { rewriteBaseUrl } from '@kokkoro/admin';
 import { internalIpv4, publicIpv4 } from '@kokkoro/utils';
-import { Bot, mountPlugin, retrievalPluginInfos } from '@kokkoro/core';
 
 import { getConfig, getPackage, logger } from './config';
 
