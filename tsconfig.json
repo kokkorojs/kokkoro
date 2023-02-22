@@ -7,12 +7,6 @@
     "module": "commonjs",
     "rootDir": "src",
     "moduleResolution": "node",
-    "baseUrl": ".",
-    "paths": {
-      "@/*": [
-        "src/*"
-      ],
-    },
     "declaration": true,
     "outDir": "lib",
     "esModuleInterop": true,
@@ -22,12 +16,5 @@
   },
   "include": [
     "src"
-  ],
-  "tsc-alias": {
-    "replacers": {
-      "base-url": {
-        "enabled": false
-      }
-    }
-  }
+  ]
 }

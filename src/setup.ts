@@ -1,11 +1,9 @@
-import { join } from 'path';
 import { app } from '@kokkoro/web';
 import { rewriteBaseUrl } from '@kokkoro/admin';
 import { internalIpv4, publicIpv4 } from '@kokkoro/utils';
+import { Bot, mountPlugin, retrievalPluginInfos } from '@kokkoro/core';
 
-import { Bot } from '@/core';
-import { getConfig, getPackage, logger } from '@/config';
-import { importPlugin, retrievalPluginInfos } from '@/plugin';
+import { getConfig, getPackage, logger } from './config';
 
 /**
  * 创建机器人服务
@@ -25,20 +23,11 @@ function createBotService(): void {
  */
 async function createPluginService(): Promise<void> {
   const pluginInfos = await retrievalPluginInfos();
-  const system = {
-    name: 'kokkoro',
-    folder: 'kokkoro',
-    filename: join(__dirname, 'system.js'),
-    local: true,
-  };
-
-  pluginInfos.unshift(system);
-
   const infos_length = pluginInfos.length;
 
   for (let i = 0; i < infos_length; i++) {
     const info = pluginInfos[i];
-    const plugin = importPlugin(info);
+    const plugin = mountPlugin(info);
   }
 }
 

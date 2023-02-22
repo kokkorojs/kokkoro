@@ -1,6 +1,6 @@
 import { join } from 'path';
 import { configure, getLogger } from 'log4js';
-import { getConfig } from '@/config';
+import { getConfig } from './config';
 
 const log_level = getConfig('log_level');
 
