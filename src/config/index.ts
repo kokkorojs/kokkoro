@@ -1,3 +1,3 @@
-export * from '@/config/config';
-export * from '@/config/env';
-export * from '@/config/logger';
+export * from './config';
+export * from './env';
+export * from './logger';

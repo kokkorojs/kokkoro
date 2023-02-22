@@ -1,7 +1,7 @@
 {
   "name": "kokkoro",
-  "version": "2.0.0-alpha.8",
-  "upday": "2023/2/15",
+  "version": "2.0.0-alpha.9",
+  "upday": "2023/2/22",
   "description": "とある咕咕の QQ 机器人框架",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -9,9 +9,7 @@
     "node": ">= v15"
   },
   "scripts": {
-    "build": "tsc && tsc-alias",
-    "build:watch": "tsc && (pnpm concurrently \"tsc -w\" \"tsc-alias -w\")",
-    "test": "node test/main.js"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
@@ -33,23 +31,16 @@
   "changelogs": "https://github.com/kokkorojs/kokkoro/releases",
   "dependencies": {
     "@kokkoro/admin": "^0.2.0",
+    "@kokkoro/core": "^2.0.1",
     "@kokkoro/database": "^1.0.1",
     "@kokkoro/utils": "^0.7.1",
     "@kokkoro/web": "^0.1.3",
-    "cron": "^2.2.0",
-    "dotenv": "^16.0.3",
-    "jsqr": "^1.4.0",
-    "oicq": "^2.3.1"
+    "dotenv": "^16.0.3"
   },
   "devDependencies": {
-    "@types/cron": "^2.0.0",
-    "@types/node": "^18.13.0",
-    "@types/pngjs": "^6.0.1",
-    "concurrently": "^7.6.0",
-    "log4js": "^6.7.1",
-    "pngjs": "^6.0.0",
-    "tsc-alias": "^1.8.2",
-    "typescript": "^4.9.5"
+    "@types/node": "^18.14.0",
+    "amesu": "^1.3.0",
+    "log4js": "^6.8.0"
   },
   "files": [
     "lib"
