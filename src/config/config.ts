@@ -1,7 +1,7 @@
 import { join } from 'path';
-import { LogLevel } from 'oicq';
+import { LogLevel } from 'amesu';
+import { BotConfig } from '@kokkoro/core';
 import { deepClone } from '@kokkoro/utils';
-import { BotConfig } from '@/core';
 
 export interface Package {
   name: string;
