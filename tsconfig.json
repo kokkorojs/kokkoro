@@ -1,20 +1,3 @@
 {
-  "compilerOptions": {
-    "target": "esnext",
-    "lib": [
-      "esnext"
-    ],
-    "module": "commonjs",
-    "rootDir": "src",
-    "moduleResolution": "node",
-    "declaration": true,
-    "outDir": "lib",
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "strict": true,
-    "skipLibCheck": true
-  },
-  "include": [
-    "src"
-  ]
+  "extends": "./tsconfig.base"
 }
