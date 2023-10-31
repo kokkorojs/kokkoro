@@ -1,0 +1,19 @@
+{
+  "name": "kokkoro-plugin-base",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "scripts": {
+    "build": "tsc && tsc-alias",
+    "build:watch": "tsc && (concurrently \"tsc -w\" \"tsc-alias -w\")"
+  },
+  "keywords": [
+    "bot",
+    "kokkoro",
+    "qq"
+  ],
+  "author": "Xue Elf <xueelf@outlook.com>",
+  "license": "MIT"
+}

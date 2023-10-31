@@ -1,0 +1,25 @@
+{
+  "name": "@kokkoro/utils",
+  "version": "1.0.0",
+  "description": "Utilities for kokkoro.",
+  "engines": {
+    "node": ">=16"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "scripts": {
+    "build": "tsc && tsc-alias",
+    "build:watch": "tsc && (concurrently \"tsc -w\" \"tsc-alias -w\")"
+  },
+  "keywords": [
+    "bot",
+    "kokkoro",
+    "qq"
+  ],
+  "author": "Xue Elf <xueelf@outlook.com>",
+  "license": "MIT",
+  "dependencies": {
+    "nanoid": "^5.0.1"
+  }
+}

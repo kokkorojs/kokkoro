@@ -1,0 +1,26 @@
+{
+  "name": "@kokkoro/core",
+  "version": "2.0.0-beta.1",
+  "description": "Core features for kokkoro.",
+  "engines": {
+    "node": ">=16"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "scripts": {
+    "build": "tsc && tsc-alias",
+    "build:watch": "tsc && (concurrently \"tsc -w\" \"tsc-alias -w\")"
+  },
+  "keywords": [
+    "bot",
+    "kokkoro",
+    "qq"
+  ],
+  "author": "Xue Elf <xueelf@outlook.com>",
+  "license": "MIT",
+  "dependencies": {
+    "@kokkoro/utils": "workspace:^1.0.0",
+    "cron": "^3.1.6"
+  }
+}
