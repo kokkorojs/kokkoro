@@ -1,9 +1,9 @@
 {
   "name": "@kokkoro/core",
-  "version": "2.0.0-beta.1",
+  "version": "3.0.0",
   "description": "Core features for kokkoro.",
   "engines": {
-    "node": ">=16"
+    "node": ">=18"
   },
   "type": "module",
   "main": "lib/index.js",
@@ -12,15 +12,26 @@
     "build": "tsc && tsc-alias",
     "build:watch": "tsc && (concurrently \"tsc -w\" \"tsc-alias -w\")"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kokkorojs/core.git"
+  },
   "keywords": [
     "bot",
     "kokkoro",
     "qq"
   ],
-  "author": "Xue Elf <xueelf@outlook.com>",
+  "author": "Yuki <admin@yuki.sh>",
   "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kokkorojs/core/issues"
+  },
+  "homepage": "https://github.com/kokkorojs/core#readme",
   "dependencies": {
     "@kokkoro/utils": "workspace:^1.0.0",
-    "cron": "^3.1.6"
-  }
+    "amesu": "^2.0.8"
+  },
+  "files": [
+    "lib"
+  ]
 }
