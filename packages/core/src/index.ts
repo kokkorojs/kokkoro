@@ -1,1 +1,2 @@
-// TODO: ／人◕ ‿‿ ◕人＼
+export * from '@/bot.js';
+export * from '@/plugin.js';
