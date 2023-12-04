@@ -1,0 +1,24 @@
+{
+  "name": "kokkoro-plugin-pcr",
+  "version": "0.0.1",
+  "description": "我不想打公会战.jpg",
+  "type": "module",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "scripts": {
+    "build": "tsc && tsc-alias",
+    "build:watch": "tsc && (concurrently \"tsc -w\" \"tsc-alias -w\")"
+  },
+  "keywords": [
+    "bot",
+    "kokkoro",
+    "priconne",
+    "qq"
+  ],
+  "author": "Yuki <admin@yuki.sh>",
+  "license": "MIT",
+  "dependencies": {
+    "@kokkoro/core": "workspace:^3.0.1",
+    "lowdb": "^6.1.1"
+  }
+}
