@@ -1,5 +1,6 @@
 import { pathToFileURL } from 'url';
 import { Bot } from '@/bot.js';
+import { logger } from '@/logger.js';
 import { Command } from '@/plugin/command.js';
 import { PluginError, Metadata, pluginList, EventName, EventType } from '@/plugin/index.js';
 
@@ -50,20 +51,37 @@ export function useCommand<T = any>(statement: string, callback: Command['action
 }
 
 export async function mountPlugin(path: string): Promise<void> {
-  const { href } = pathToFileURL(path);
-  const { default: effect, metadata } = <PluginModule>await import(href);
-  const { name, description = null } = metadata;
+  let url: string;
 
-  plugin = {
-    name,
-    description,
-    memoizedEvent: null,
-  };
-  workInProgressEvent = plugin.memoizedEvent;
+  if (path.startsWith('.')) {
+    url = pathToFileURL(path).href;
+  } else {
+    url = import.meta.resolve(path);
+  }
 
-  effect();
-  pluginList.set(plugin.name, plugin);
+  try {
+    const { default: effect, metadata } = <PluginModule>await import(url);
+    const { name, description = null } = metadata;
+    const is_use = pluginList.has(name);
 
-  plugin = null;
-  workInProgressEvent = null;
+    if (is_use) {
+      throw new Error(`Plugin "${name}" is already registered.`);
+    }
+    plugin = {
+      name,
+      description,
+      memoizedEvent: null,
+    };
+    workInProgressEvent = plugin.memoizedEvent;
+
+    effect();
+    logger.info(`Mount plugin: "${name}"`);
+    pluginList.set(plugin.name, plugin);
+
+    plugin = null;
+    workInProgressEvent = null;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : JSON.stringify(error);
+    logger.error(`Failed to mount plugin, ${message}`);
+  }
 }
