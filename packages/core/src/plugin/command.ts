@@ -98,7 +98,7 @@ export class Command<T = any> {
     if (args.length < args_count) {
       const message = `缺少指令参数，有效语句为："${this.statement}"`;
 
-      event.reply({ msg_type: 0, content: message }).catch(() => {});
+      event.reply({ msg_type: 0, msg_id: event.id, content: message }).catch(() => {});
       return false;
     }
     const query: CommandEvent['query'] = {};
