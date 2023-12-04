@@ -236,7 +236,7 @@ function getStage(lap: number, service: Service): number {
  * @param timestamp - 时间戳
  * @returns 布尔值
  */
-function isToday(timestamp: number) {
+function isToday(timestamp: number): boolean {
   const nowDate = new Date();
   const hitDate = new Date(timestamp);
 
@@ -254,7 +254,7 @@ function isToday(timestamp: number) {
  * @param hits - 出刀记录
  * @returns 当日出刀总数
  */
-function getMemberTodayHitCount(id: string, hits: Hit[]) {
+function getMemberTodayHitCount(id: string, hits: Hit[]): number {
   const todayHits = hits.filter(hit => hit.member.id === id && isToday(hit.timestamp));
   const kill_count = todayHits.filter(hit => hit.is_kill).length;
   const hit_count = todayHits.reduce(
@@ -305,7 +305,7 @@ function nextLap(progress: Progress) {
  *
  * @param id - 群聊 id
  */
-export async function terminateClanBattle(id: string) {
+export async function terminateClanBattle(id: string): Promise<string> {
   if (!getProgress(id)) {
     return '当月未发起会战 (⊙x⊙;)';
   }
@@ -320,7 +320,7 @@ export async function terminateClanBattle(id: string) {
  * @param id - 群聊 id
  * @param service - 服务器
  */
-export async function initClanBattle(id: string, service: Service) {
+export async function initClanBattle(id: string, service: Service): Promise<string> {
   if (db.data[id]) {
     return '当月已发起过会战，如果要开启新一轮会战，请先结束当前会战 (oﾟvﾟ)ノ';
   }
@@ -384,7 +384,7 @@ export function parseProgress(id: string): string {
  * @param boss - boss
  * @returns 出刀信息
  */
-export function killMonster(id: string, member: Member, boss: number) {
+export function killMonster(id: string, member: Member, boss: number): Promise<string> {
   return hitMonster(id, member, boss, Infinity);
 }
 
@@ -397,7 +397,7 @@ export function killMonster(id: string, member: Member, boss: number) {
  * @param damage - 伤害
  * @returns 出刀信息
  */
-export async function hitMonster(id: string, member: Member, boss: number, damage: number) {
+export async function hitMonster(id: string, member: Member, boss: number, damage: number): Promise<string> {
   if (!getProgress(id)) {
     return '当月未发起会战 (⊙x⊙;)';
   }
@@ -464,7 +464,7 @@ export async function hitMonster(id: string, member: Member, boss: number, damag
  * @param member - 成员
  * @returns 撤销信息
  */
-export async function revokeHit(id: string, member: Member) {
+export async function revokeHit(id: string, member: Member): Promise<string> {
   if (!getProgress(id)) {
     return '当月未发起会战 (⊙x⊙;)';
   }
@@ -508,7 +508,7 @@ export async function revokeHit(id: string, member: Member) {
  * @param member - 成员
  * @returns 下班信息
  */
-export async function knockOff(id: string, member: Member) {
+export async function knockOff(id: string, member: Member): Promise<string | void> {
   if (!getProgress(id)) {
     return '当月未发起会战 (⊙x⊙;)';
   }
@@ -532,5 +532,4 @@ export async function knockOff(id: string, member: Member) {
     progress.hits.push(hit);
   }
   await setProgress(id, progress);
-  return;
 }
