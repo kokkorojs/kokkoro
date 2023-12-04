@@ -40,11 +40,9 @@ importers:
 
   packages/core:
     specifiers:
-      '@kokkoro/utils': workspace:^1.0.0
-      amesu: ^2.0.8
+      amesu: ^2.1.0
     dependencies:
-      '@kokkoro/utils': link:../utils
-      amesu: 2.0.8
+      amesu: 2.1.0
 
   packages/database:
     specifiers:
@@ -714,8 +712,8 @@ packages:
       uri-js: 4.4.1
     dev: true
 
-  /amesu/2.0.8:
-    resolution: {integrity: sha512-kWYy3VMgQJiahGzeb2QlCZYA1NitqjLSuXk5RToVApYuEnzvXgCe0UTrso4sf3LVJO5UVhqJWm53hUl3lLezYw==}
+  /amesu/2.1.0:
+    resolution: {integrity: sha512-uUQe/HPqOCF8GeewfJbB8pGdx13iu2bu8RMKXEBtLhx6RBMzC6aAkXhx5q6CEAGwiqYCTFgjKE4p98uo+X53Ig==}
     engines: {node: '>=18'}
     dependencies:
       log4js: 6.9.1
