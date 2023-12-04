@@ -1,4 +1,4 @@
-import { Metadata, useCommand } from '@kokkoro/core';
+import { Bot, Metadata, useCommand } from '@kokkoro/core';
 import { CommandEvent } from '@kokkoro/core/lib/plugin/command.js';
 import {
   hitMonster,
@@ -33,6 +33,37 @@ function parseMember(event: CommandEvent): Member {
     return {
       id: event.author.member_openid,
     };
+  }
+}
+
+async function sendImage(event: CommandEvent, bot: Bot, url: string) {
+  if (event.t === 'AT_MESSAGE_CREATE') {
+    return bot.api.sendChannelMessage(event.channel_id, {
+      msg_id: event.id,
+      image: url,
+    });
+  }
+  const result: any = await bot.api.sendGroupFile(event.group_openid, {
+    file_type: 1,
+    srv_send_msg: false,
+    url,
+  });
+
+  if (result.data?.code) {
+    return bot.api.sendGroupMessage(event.group_openid, {
+      msg_type: 0,
+      content: `图片发送失败 (っ °Д °;)っ\nCode ${result.data.code}, ${result.data?.message}`,
+      msg_id: event.id,
+    });
+  } else {
+    return bot.api.sendGroupMessage(event.group_openid, {
+      msg_type: 7,
+      content: '(oﾟvﾟ)ノ',
+      msg_id: event.id,
+      media: {
+        file_info: result.data.file_info,
+      },
+    });
   }
 }
 
@@ -75,10 +106,22 @@ export default function Priconne() {
     return revokeHit(id, member);
   });
   useCommand('/预约', () => '目前机器人无法获取到用户昵称，也不能在群聊 at 成员，暂未支持');
-  useCommand('/激爽下班', event => {
+  useCommand('/激爽下班', async (event, bot) => {
+    const memes = [
+      'https://vip2.loli.io/2023/11/23/SR19wsgjAQ4HVi6.png',
+      'https://vip2.loli.io/2023/11/23/Jo9q6uDTfEbv4c7.png',
+      'https://vip2.loli.io/2023/11/23/val9ThHxz1MVNuF.png',
+    ];
+    const random = Math.floor(Math.random() * memes.length);
+    const image = memes[random];
     const id = parseId(event);
     const member = parseMember(event);
+    const message = await knockOff(id, member);
 
-    return knockOff(id, member);
+    if (message) {
+      return message;
+    } else {
+      await sendImage(event, bot, image);
+    }
   });
 }

@@ -1,6 +1,6 @@
 {
   "name": "kokkoro-plugin-pcr",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "我不想打公会战.jpg",
   "type": "module",
   "main": "lib/index.js",
