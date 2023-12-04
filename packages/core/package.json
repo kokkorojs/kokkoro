@@ -1,6 +1,6 @@
 {
   "name": "@kokkoro/core",
-  "version": "3.0.2",
+  "version": "3.0.3",
   "description": "Core features for kokkoro.",
   "engines": {
     "node": ">=20.6.0"
