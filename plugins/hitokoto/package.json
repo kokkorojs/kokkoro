@@ -1,0 +1,23 @@
+{
+  "name": "kokkoro-plugin-hitokoto",
+  "version": "2.0.0",
+  "description": "ヒトコト",
+  "type": "module",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "scripts": {
+    "build": "tsc && tsc-alias",
+    "build:watch": "tsc && (concurrently \"tsc -w\" \"tsc-alias -w\")"
+  },
+  "keywords": [
+    "bot",
+    "kokkoro",
+    "hitokoto",
+    "qq"
+  ],
+  "author": "Yuki <admin@yuki.sh>",
+  "license": "MIT",
+  "dependencies": {
+    "@kokkoro/core": "workspace:^3.0.1"
+  }
+}
