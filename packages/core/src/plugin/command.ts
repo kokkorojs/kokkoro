@@ -1,31 +1,8 @@
-import { none } from '@kokkoro/utils';
-import { BotEvent } from 'amesu';
 import { Bot } from '@/bot.js';
-import { logger } from '@/logger.js';
-
-export type EventType<K extends keyof BotEvent> = BotEvent[K] extends (event: infer E) => void ? E : never;
-
-/** 插件信息 */
-export interface PluginInfo {
-  /** 名称 */
-  name: string;
-  /** 描述 */
-  description?: string;
-}
-
-export type CommandEvent<T = any> = (EventType<'at.message.create'> | EventType<'group.at.message.create'>) & {
-  query: T;
-};
-
-interface PluginHandle {
-  /** 事件 */
-  event: string | null;
-  /** 方法 */
-  method: (event: any, bot: Bot) => string | void | Promise<string | void>;
-}
+import { EventType } from '@/plugin/index.js';
 
 /** 指令参数 */
-type CommandArg = {
+export type CommandArg = {
   /** 是否必填 */
   required: boolean;
   /** 参数值 */
@@ -34,7 +11,18 @@ type CommandArg = {
   variadic: boolean;
 };
 
-class Command {
+export type CommandEvent<T = any> = EventType<['at.message.create', 'group.at.message.create']> & {
+  query: T;
+};
+
+export class CommandError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'CommandError';
+  }
+}
+
+export class Command<T = any> {
   public prefix: string;
   public args: CommandArg[];
 
@@ -46,7 +34,7 @@ class Command {
     this.args = this.parseArguments();
   }
 
-  public action(event: CommandEvent, bot: Bot) {
+  public action(event: CommandEvent<T>, bot: Bot): ReturnType<Command['callback']> {
     const is_match = this.isMatch(event);
 
     if (!is_match) {
@@ -87,7 +75,7 @@ class Command {
       const { variadic, value } = args[i];
 
       if (variadic && i !== args.length - 1) {
-        throw new Error(`only the last argument can be variadic "...${value}"`);
+        throw new CommandError(`only the last argument can be variadic "...${value}"`);
       }
     }
     return args;
@@ -110,7 +98,7 @@ class Command {
     if (args.length < args_count) {
       const message = `缺少指令参数，有效语句为："${this.statement}"`;
 
-      event.reply({ msg_type: 0, content: message }).catch(none);
+      event.reply({ msg_type: 0, content: message }).catch(() => {});
       return false;
     }
     const query: CommandEvent['query'] = {};
@@ -125,58 +113,4 @@ class Command {
 
     return true;
   }
-}
-
-class Plugin {
-  public name: string;
-  public description?: string;
-  public handles: PluginHandle[];
-
-  constructor(info: PluginInfo) {
-    this.name = info.name;
-    this.description = info.description;
-    this.handles = [];
-
-    logger.info(`Load plugin: "${this.name}"`);
-    pluginList.set(this.name, this);
-  }
-
-  public command<T = Record<string, any>>(
-    statement: string,
-    callback: (event: CommandEvent<T>, bot: Bot) => string | void | Promise<string | void>,
-  ) {
-    const command = new Command(statement, callback);
-    const handle: PluginHandle = {
-      event: null,
-      method: command.action.bind(command),
-    };
-
-    this.handles.push(handle);
-    return this;
-  }
-
-  public event<K extends keyof BotEvent>(name: K, callback: (event: EventType<K>, bot: Bot) => void) {
-    const handle: PluginHandle = {
-      event: name,
-      method: callback,
-    };
-
-    this.handles.push(handle);
-    return this;
-  }
-}
-
-export const pluginList = new Map<string, Plugin>();
-
-export function usePlugin(info: PluginInfo): Plugin {
-  const { name } = info;
-  const is_use = pluginList.has(name);
-
-  if (is_use) {
-    const message = `Plugin "${name}" is already registered.`;
-
-    logger.error(message);
-    throw new Error(message);
-  }
-  return new Plugin(info);
 }

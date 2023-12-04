@@ -1,8 +1,6 @@
-import { none } from '@kokkoro/utils';
-import { Bot as Client, BotConfig as ClientConfig } from 'amesu';
-import { CommandEvent, pluginList } from '@/plugin.js';
-
-type Reply = CommandEvent['reply'];
+import { Client, ClientConfig } from 'amesu';
+import { CommandEvent } from '@/plugin/command.js';
+import { EventName, pluginList } from '@/plugin/index.js';
 
 export interface BotConfig extends ClientConfig {
   plugins?: string[];
@@ -20,43 +18,39 @@ export class Bot extends Client {
 
   private usePluginEvent() {
     this.useEventInterceptor(dispatch => {
-      const event = this.parseEvent(dispatch.t);
+      const data = { t: dispatch.t, ...dispatch.d };
+      const name = this.parseEventName(dispatch.t);
 
-      pluginList.forEach(plugin => {
+      pluginList.forEach(async plugin => {
         if (this.plugins.size && !this.plugins.has(plugin.name)) {
           return;
         }
-        plugin.handles.forEach(async handle => {
-          const is_event = event === handle.event;
-          const is_command = !handle.event && /at\.message/.test(event);
+        let event = plugin.memoizedEvent;
 
-          if (!is_event && !is_command) {
-            return;
-          }
-          const data = { t: dispatch.t, ...dispatch.d };
+        while (event !== null) {
+          let message: string | null;
 
-          try {
-            const message = await handle.method(data, this);
-
-            if (is_command && message) {
-              <Reply>data.reply({ msg_type: 0, content: message }).catch(none);
+          if (event.names.includes(name)) {
+            try {
+              message = (await event.action(data, this)) ?? null;
+            } catch (error) {
+              message = error instanceof Error ? error.message : JSON.stringify(error);
+              this.logger.error(message);
             }
-          } catch (error) {
-            const message = error instanceof Error ? error.message : JSON.stringify(error);
 
-            if (is_command) {
-              <Reply>data.reply({ msg_type: 0, content: message }).catch(none);
+            if (data.reply && message) {
+              <CommandEvent['reply']>data.reply({ msg_type: 0, content: message }).catch(() => {});
             }
-            this.logger.error(message);
           }
-        });
+          event = event.next;
+        }
       });
       return dispatch;
     });
   }
 
-  private parseEvent(type: string): string {
-    const event = type.replace(/_/g, '.').toLowerCase();
-    return /\./.test(event) ? event : `session.${event}`;
+  private parseEventName(type: string): EventName {
+    const name = type.replace(/_/g, '.').toLowerCase();
+    return /\./.test(name) ? <EventName>name : <EventName>`session.${name}`;
   }
 }

@@ -28,8 +28,7 @@
   },
   "homepage": "https://github.com/kokkorojs/core#readme",
   "dependencies": {
-    "@kokkoro/utils": "workspace:^1.0.0",
-    "amesu": "^2.0.8"
+    "amesu": "^2.1.0"
   },
   "files": [
     "lib"
