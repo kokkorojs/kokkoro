@@ -100,18 +100,22 @@ plugins/
 ```
 
 ```js
-import { usePlugin } from '@kokkoro/core';
+import { useCommand, useEvent } from '@kokkoro/core';
 
-const plugin = new usePlugin({
+/**
+ * @type {import('@kokkoro/core').Metadata}
+ */
+export const metadata = {
   name: 'demo',
-});
+  description: '插件示例',
+};
 
-plugin.command('/测试', () => 'hello world');
-plugin.command('/复读 <message>', event => event.query.message);
+export default function Demo() {
+  useEvent(event => console.log('Bot online.'), ['session.ready']);
 
-plugin.event('session.ready', () => {
-  console.log('Bot online.');
-});
+  useCommand('/测试', () => 'hello world');
+  useCommand('/复读 <message>', event => event.query.message);
+}
 ```
 
 ### JSX 支持
