@@ -26,3 +26,4 @@ export class PluginError extends Error {
 export const pluginList = new Map<string, Plugin>();
 
 export * from '@/plugin/hooks.js';
+export * from '@/plugin/command.js';
