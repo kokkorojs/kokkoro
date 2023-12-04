@@ -1,4 +1,4 @@
-import { pathToFileURL } from 'url';
+import { pathToFileURL } from 'node:url';
 import { Bot } from '@/bot.js';
 import { logger } from '@/logger.js';
 import { Command } from '@/plugin/command.js';
@@ -51,13 +51,8 @@ export function useCommand<T = any>(statement: string, callback: Command['action
 }
 
 export async function mountPlugin(path: string): Promise<void> {
-  let url: string;
-
-  if (path.startsWith('.')) {
-    url = pathToFileURL(path).href;
-  } else {
-    url = import.meta.resolve(path);
-  }
+  const parent = pathToFileURL('index.js');
+  const url = import.meta.resolve(path, parent);
 
   try {
     const { default: effect, metadata } = <PluginModule>await import(url);

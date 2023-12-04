@@ -39,7 +39,7 @@ export class Bot extends Client {
             }
 
             if (data.reply && message) {
-              <CommandEvent['reply']>data.reply({ msg_type: 0, content: message }).catch(() => {});
+              <CommandEvent['reply']>data.reply({ msg_type: 0, msg_id: data.id, content: message }).catch(() => {});
             }
           }
           event = event.next;
