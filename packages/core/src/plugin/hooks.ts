@@ -1,82 +1,60 @@
-import { pathToFileURL } from 'node:url';
-import { Bot } from '@/bot.js';
-import { logger } from '@/logger.js';
-import { Command } from '@/plugin/command.js';
-import { PluginError, Metadata, pluginList, EventName, EventType } from '@/plugin/index.js';
+import { Order } from '@/plugin/order.js';
+import { PluginError, Metadata, pluginList, EventName, EventState, Fiber } from '@/plugin/index.js';
 
-export interface Event<T extends EventName[] = any> {
-  action: (event: EventType<T>, bot: Bot) => string | void | Promise<string | void>;
-  names: T;
-  next: Event<T> | null;
-}
-
-export interface Plugin {
-  name: string;
-  description: string | null;
-  memoizedEvent: Event | null;
-}
-
-export interface PluginModule {
+export interface HookModule {
   default: () => void;
   metadata: Metadata;
 }
 
-let plugin: Plugin | null = null;
-let workInProgressEvent: Event | null = null;
+let plugin: Fiber | null = null;
+let workInProgressHook: EventState | null = null;
 
-export function useEvent<T extends EventName[] = any>(action: Event<T>['action'], names: T) {
+export function useEvent<T extends EventName[] = any>(action: EventState<T>['action'], events: T) {
   if (!plugin) {
     throw new PluginError('useEvent must be called inside a plugin.');
   }
-  const event: Event = {
-    action: <Event['action']>action,
-    names,
+  const state: EventState = {
+    action: <EventState['action']>action,
+    events,
     next: null,
   };
 
-  if (!plugin.memoizedEvent) {
-    plugin.memoizedEvent = event;
+  if (!plugin.memoizedState) {
+    plugin.memoizedState = state;
   } else {
-    workInProgressEvent!.next = event;
+    workInProgressHook!.next = state;
   }
-  workInProgressEvent = event;
+  workInProgressHook = state;
 }
 
-export function useCommand<T = any>(statement: string, callback: Command['action']) {
+export function useCommand<T = any>(statement: string, callback: Order['action']) {
   if (!plugin) {
     throw new PluginError('useCommand must be called inside a plugin.');
   }
-  const command = new Command<T>(statement, callback);
-  useEvent(<Event['action']>command.action.bind(command), ['at.message.create', 'group.at.message.create']);
+  const order = new Order<T>(statement, callback);
+  useEvent(<EventState['action']>order.action.bind(order), ['at.message.create', 'group.at.message.create']);
 }
 
-export async function mountPlugin(path: string): Promise<void> {
-  const parent = pathToFileURL('index.js');
-  const url = import.meta.resolve(path, parent);
+export async function generateHookFiber(module: HookModule): Promise<Fiber> {
+  const { default: Effect, metadata } = module;
+  const { name, description = null } = metadata;
+  const is_use = pluginList.has(name);
 
-  try {
-    const { default: effect, metadata } = <PluginModule>await import(url);
-    const { name, description = null } = metadata;
-    const is_use = pluginList.has(name);
-
-    if (is_use) {
-      throw new Error(`Plugin "${name}" is already registered.`);
-    }
-    plugin = {
-      name,
-      description,
-      memoizedEvent: null,
-    };
-    workInProgressEvent = plugin.memoizedEvent;
-
-    effect();
-    logger.info(`Mount plugin: "${name}"`);
-    pluginList.set(plugin.name, plugin);
-
-    plugin = null;
-    workInProgressEvent = null;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : JSON.stringify(error);
-    logger.error(`Failed to mount plugin, ${message}`);
+  if (is_use) {
+    throw new Error(`Plugin "${name}" is already registered.`);
   }
+  const fiber: Fiber = {
+    name,
+    description,
+    memoizedState: null,
+  };
+
+  plugin = fiber;
+  workInProgressHook = plugin.memoizedState;
+
+  Effect();
+  plugin = null;
+  workInProgressHook = null;
+
+  return fiber;
 }

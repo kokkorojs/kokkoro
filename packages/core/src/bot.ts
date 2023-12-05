@@ -1,5 +1,5 @@
 import { Client, ClientConfig } from 'amesu';
-import { CommandEvent } from '@/plugin/command.js';
+import { CommandEvent } from '@/plugin/order.js';
 import { EventName, pluginList } from '@/plugin/index.js';
 
 export interface BotConfig extends ClientConfig {
@@ -25,14 +25,14 @@ export class Bot extends Client {
         if (this.plugins.size && !this.plugins.has(plugin.name)) {
           return;
         }
-        let event = plugin.memoizedEvent;
+        let state = plugin.memoizedState;
 
-        while (event !== null) {
+        while (state !== null) {
           let message: string | null;
 
-          if (event.names.includes(name)) {
+          if (state.events.includes(name)) {
             try {
-              message = (await event.action(data, this)) ?? null;
+              message = (await state.action(data, this)) ?? null;
             } catch (error) {
               message = error instanceof Error ? error.message : JSON.stringify(error);
               this.logger.error(message);
@@ -42,7 +42,7 @@ export class Bot extends Client {
               <CommandEvent['reply']>data.reply({ msg_type: 0, msg_id: data.id, content: message }).catch(() => {});
             }
           }
-          event = event.next;
+          state = state.next;
         }
       });
       return dispatch;
