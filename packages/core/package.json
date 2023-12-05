@@ -1,6 +1,6 @@
 {
   "name": "@kokkoro/core",
-  "version": "3.0.3",
+  "version": "3.0.4",
   "description": "Core features for kokkoro.",
   "engines": {
     "node": ">=20.6.0"
@@ -14,7 +14,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kokkorojs/core.git"
+    "url": "git+https://github.com/kokkorojs/kokkoro.git"
   },
   "keywords": [
     "bot",
@@ -24,9 +24,9 @@
   "author": "Yuki <admin@yuki.sh>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/kokkorojs/core/issues"
+    "url": "https://github.com/kokkorojs/issues"
   },
-  "homepage": "https://github.com/kokkorojs/core#readme",
+  "homepage": "https://kokkoro.js.org",
   "dependencies": {
     "amesu": "^2.1.0"
   },

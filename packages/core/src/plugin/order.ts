@@ -1,8 +1,12 @@
 import { Bot } from '@/bot.js';
-import { EventType } from '@/plugin/index.js';
+import { EventType } from '@/index.js';
+
+export type CommandEvent<T = any> = EventType<['at.message.create', 'group.at.message.create']> & {
+  query: T;
+};
 
 /** 指令参数 */
-export type CommandArg = {
+export type OrderArg = {
   /** 是否必填 */
   required: boolean;
   /** 参数值 */
@@ -11,20 +15,16 @@ export type CommandArg = {
   variadic: boolean;
 };
 
-export type CommandEvent<T = any> = EventType<['at.message.create', 'group.at.message.create']> & {
-  query: T;
-};
-
-export class CommandError extends Error {
+export class OrderError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'CommandError';
+    this.name = 'OrderError';
   }
 }
 
-export class Command<T = any> {
+export class Order<T = any> {
   public prefix: string;
-  public args: CommandArg[];
+  public args: OrderArg[];
 
   constructor(
     public statement: string,
@@ -34,7 +34,7 @@ export class Command<T = any> {
     this.args = this.parseArguments();
   }
 
-  public action(event: CommandEvent<T>, bot: Bot): ReturnType<Command['callback']> {
+  public action(event: CommandEvent<T>, bot: Bot): ReturnType<Order['callback']> {
     const is_match = this.isMatch(event);
 
     if (!is_match) {
@@ -47,11 +47,11 @@ export class Command<T = any> {
     return this.statement.replace(/[<[].+/, '').trim();
   }
 
-  private parseArguments(): CommandArg[] {
+  private parseArguments(): OrderArg[] {
     const args = [];
     const BRACKET_RE_GLOBAL = /<([^>]+)>|\[([^\]]+)\]/g;
 
-    const parse = (match: string[]): CommandArg => {
+    const parse = (match: string[]): OrderArg => {
       let variadic = false;
       let value = match[1] ?? match[2];
 
@@ -75,7 +75,7 @@ export class Command<T = any> {
       const { variadic, value } = args[i];
 
       if (variadic && i !== args.length - 1) {
-        throw new CommandError(`only the last argument can be variadic "...${value}"`);
+        throw new OrderError(`only the last argument can be variadic "...${value}"`);
       }
     }
     return args;
