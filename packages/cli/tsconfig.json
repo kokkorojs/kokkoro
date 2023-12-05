@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base",
+  "compilerOptions": {
+    "rootDir": "src",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+    // "resolveJsonModule": true,
+    "declaration": false,
+    "outDir": "lib"
+  },
+  "include": ["src"]
+}
