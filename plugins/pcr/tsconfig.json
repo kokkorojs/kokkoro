@@ -6,8 +6,8 @@
     "paths": {
       "@/*": ["src/*"]
     },
-    "outDir": "lib",
-    "declaration": false
+    "declaration": false,
+    "outDir": "lib"
   },
   "include": ["src"]
 }
