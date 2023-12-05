@@ -18,40 +18,37 @@
 
 ## 介绍
 
-> 腾讯近期已开放官方 Bot API，协议库时代已成为历史。kokkoro 代码全被移除，并开始进行重构。
-
 原项目 [yumemi_bot](https://github.com/rumicchi/yumemi_bot) 最初为个人自用，主要围绕游戏 [公主连结☆Re:Dive](https://priconne-redive.jp/) 开发相关功能。因代码严重耦合不利于维护，使用 ts 分离重构为插件一对多形式的框架。
 
 ## 使用
 
-> 现在是幻想时间，下列的伪代码是理想中的开发效果，可能会在未来发生变化。
-
 你可以使用 CLI 来快速构建项目：
 
 ```shell
-npx @kokkoro/cli init
+npm i -g @kokkoro/cli
+
+mkdir bot && cd bot
+kokkoro init
 ```
 
 ```shell
-✔ Project name: … <your-project-name>
-✔ Server Port? … <your-server-port>
+✔ Your bot appid: … <appid>
+✔ Your bot token … <token>
+✔ Your bot secret … <secret>
 
-Scaffolding project in ./<your-project-name>...
-Done.
+Success: project is initialized successfully.
 ```
 
 ### 目录结构
 
 ```tex
 .
-├─ db                 数据库
-├─ logs               日志
-├─ plugins            插件
-├─ main.js            主程序
+├─ plugins            插件目录
+├─ app.js             启动程序
 └─ kokkoro.json       配置文件
 ```
 
-安装好依赖文件后使用 `npm start` 或 `node main.js` 启动项目，必须要配置 `kokkoro.json` 文件。
+安装好依赖文件后，使用 `kokkoro start` 启动项目。
 
 ### 配置项
 
@@ -65,41 +62,38 @@ Done.
     "domain": null
   },
   // 日志等级
-  "logLevel": "info",
+  "logLevel": "INFO",
   // bot 信息，可添加多个
   "bots": [
     {
-      "appid": "BotAppID",
-      "token": "BotToken",
-      "secret": "BotSecret"
+      "appid": "1145141919",
+      "token": "38bc73e16208135fb111c0c573a44eaa",
+      "secret": "6208135fb111c0c5"
     }
   ]
 }
 ```
 
-若要开发插件，可以在项目根目录使用下列命令：
+若要开发插件，可以在**项目根目录**使用下列命令：
 
 ```shell
-npx @kokkoro/cli create
+kokkoro create <plugin>
 ```
 
 ```shell
-✔ Plugin name: … <your-plugin-name>
-✔ Add JSX Support? … No / Yes
+✔ Which plugin style would you like to use:
+>   Javascript
+    Typescript (Hook)
+    Typescript (Decorator)
 
-Scaffolding plugin in ./<your-plugin-name>...
-Done.
+Info: plugin module create successful.
 ```
 
 ### 插件
 
-```tex
-plugins/
-└─ demo/
-   └─ index.js
-```
+#### Javascript (Hook)
 
-```js
+```javascript
 import { useCommand, useEvent } from '@kokkoro/core';
 
 /**
@@ -118,12 +112,49 @@ export default function Demo() {
 }
 ```
 
-### JSX 支持
+#### Typescript (Hook)
 
-```jsx
-<>
-  <at id={}/>
-  <text>hello world</text>
-  <image url="" />
-</>
+```typescript
+import { Metadata, useCommand, useEvent } from '@kokkoro/core';
+
+export const metadata: Metadata = {
+  name: 'example',
+  description: '示例插件',
+};
+
+export default function Example(): void {
+  useEvent(() => {
+    console.log('Bot online.');
+  }, ['session.ready']);
+
+  useCommand('/测试', () => 'hello world');
+  useCommand('/复读 <message>', event => event.query.message);
+}
+```
+
+#### Typescript (Decorator)
+
+```typescript
+import { Command, CommandEvent, Event, Plugin } from '@kokkoro/core';
+
+@Plugin({
+  name: 'example',
+  description: '示例插件',
+})
+export default class Example {
+  @Event('session.ready')
+  onReady() {
+    console.log('Bot online.');
+  }
+
+  @Command('/测试')
+  testMessage() {
+    return 'hello world';
+  }
+
+  @Command('/复读 <message>')
+  replayMessage(event: CommandEvent) {
+    return event.query.message;
+  }
+}
 ```
