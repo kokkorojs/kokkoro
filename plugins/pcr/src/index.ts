@@ -1,5 +1,4 @@
-import { Bot, Metadata, useCommand } from '@kokkoro/core';
-import { CommandEvent } from '@kokkoro/core/lib/plugin/command.js';
+import { Bot, CommandEvent, Metadata, useCommand } from '@kokkoro/core';
 import {
   hitMonster,
   initClanBattle,
@@ -51,15 +50,15 @@ async function sendImage(event: CommandEvent, bot: Bot, url: string) {
 
   if (result.data?.code) {
     return bot.api.sendGroupMessage(event.group_openid, {
+      msg_id: event.id,
       msg_type: 0,
       content: `图片发送失败 (っ °Д °;)っ\nCode ${result.data.code}, ${result.data?.message}`,
-      msg_id: event.id,
     });
   } else {
     return bot.api.sendGroupMessage(event.group_openid, {
+      msg_id: event.id,
       msg_type: 7,
       content: '(oﾟvﾟ)ノ',
-      msg_id: event.id,
       media: {
         file_info: result.data.file_info,
       },
