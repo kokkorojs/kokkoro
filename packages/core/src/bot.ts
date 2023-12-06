@@ -37,9 +37,6 @@ export class Bot extends Client {
               message = error instanceof Error ? error.message : JSON.stringify(error);
               this.logger.error(message);
             }
-            console.log(111);
-            console.log(message);
-            console.log(111);
 
             if (data.reply && message) {
               <CommandEvent['reply']>data.reply({ msg_type: 0, content: message }).catch(() => {});
