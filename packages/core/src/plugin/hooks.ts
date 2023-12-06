@@ -9,7 +9,7 @@ export interface HookModule {
 let plugin: Fiber | null = null;
 let workInProgressHook: EventState | null = null;
 
-export function useEvent<T extends EventName[] = any>(action: EventState<T>['action'], events: T) {
+export function useEvent<Name extends EventName>(action: EventState<Name>['action'] | CommandAction, events: Name[]) {
   if (!plugin) {
     throw new PluginError('useEvent must be called inside a plugin.');
   }
@@ -31,7 +31,7 @@ export function useCommand(statement: string, callback: CommandAction) {
   if (!plugin) {
     throw new PluginError('useCommand must be called inside a plugin.');
   }
-  const action = <EventState['action']>useCommandAction(statement, callback);
+  const action = useCommandAction(statement, callback);
   useEvent(action, ['at.message.create', 'group.at.message.create']);
 }
 
