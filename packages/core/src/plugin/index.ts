@@ -8,9 +8,14 @@ import { DecoratorModule, generateDecoratorFiber } from '@/plugin/decorators.js'
 /** 事件名 */
 export type EventName = keyof ClientEvent;
 /** 事件类型 */
-export type EventType<K extends EventName[]> = {
-  [P in K[number]]: ClientEvent[P] extends (event: infer E) => void ? E : never;
-}[K[number]];
+export type EventType<Name extends EventName> = {
+  [Key in Name]: ClientEvent[Key] extends (event: infer Event) => void ? Event : never;
+}[Name];
+/** 上下文 */
+export type Context<Name extends EventName = any> = EventType<Name> & {
+  api: Bot['api'];
+  bot: Bot;
+};
 
 /** 元数据 */
 export interface Metadata {
@@ -20,10 +25,10 @@ export interface Metadata {
   description?: string;
 }
 
-export interface EventState<T extends EventName[] = any> {
-  action: (event: EventType<T>, bot: Bot) => string | void | Promise<string | void>;
-  events: T;
-  next: EventState<T> | null;
+export interface EventState<Name extends EventName = any> {
+  action: (ctx: Context<Name>) => string | void | Promise<string | void>;
+  events: Name;
+  next: EventState<Name> | null;
 }
 
 export class PluginError extends Error {

@@ -35,29 +35,29 @@ bot.online();
 ```tex
 .
 ├ plugins/
-│ └ demo/
+│ └ example/
 └ index.js
 ```
 
 当然，这并不是强制要求，推荐这么做只是为了方便模块管理。
 
 ```javascript
-// plugins/demo/index.js
+// plugins/example/index.js
 import { useCommand, useEvent } from '@kokkoro/core';
 
 /**
  * @type {import('@kokkoro/core').Metadata}
  */
 export const metadata = {
-  name: 'demo',
+  name: 'example',
   description: '插件示例',
 };
 
-export default function Demo() {
+export default function Example() {
   useEvent(() => console.log('Bot online.'), ['session.ready']);
 
   useCommand('/测试', () => 'hello world');
-  useCommand('/复读 <message>', event => event.query.message);
+  useCommand('/复读 <message>', ctx => ctx.query.message);
 }
 ```
 
@@ -67,7 +67,7 @@ export default function Demo() {
 // index.js
 import { Bot, mountPlugin } from '@kokkoro/core';
 
-await mountPlugin('./plugins/demo/index.js');
+await mountPlugin('./plugins/example/index.js');
 
 /**
  * @type {import('@kokkoro/core').BotConfig}
@@ -88,7 +88,7 @@ npm i kokkoro-plugin-hitokoto
 // index.js
 import { Bot, mountPlugin } from '@kokkoro/core';
 
-await mountPlugin('./plugins/demo/index.js');
+await mountPlugin('./plugins/example/index.js');
 await mountPlugin('kokkoro-plugin-hitokoto');
 
 /**
@@ -113,7 +113,7 @@ node --experimental-import-meta-resolve index.js
 ```javascript
 import { Bot, mountPlugin } from '@kokkoro/core';
 
-await mountPlugin('./plugins/demo/index.js');
+await mountPlugin('./plugins/example/index.js');
 await mountPlugin('kokkoro-plugin-hitokoto');
 
 /**
@@ -129,4 +129,4 @@ bot.online();
 
 如果 `plugins` 不传入，则默认所有已挂载的插件会对 bot 生效。如果添加了相应字段，那么只有被添加 name（编写插件时导出的 metadata 属性）的插件才会被实例对象使用。
 
-例如上面的例子，当前 bot 只有 hitokoto 插件被应用，demo 插件不会对指令作出响应，这便于多个 bot 实例针对不同插件来管理。
+例如上面的例子，当前 bot 只有 hitokoto 插件被应用，example 插件不会对指令作出响应，这便于多个 bot 实例针对不同插件来管理。

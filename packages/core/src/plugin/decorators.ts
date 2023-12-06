@@ -13,7 +13,7 @@ interface PluginDecoratorContext extends ClassDecoratorContext {
 }
 
 export function Plugin(metadata: Metadata) {
-  return (_: any, context: PluginDecoratorContext) => {
+  return (_: unknown, context: PluginDecoratorContext) => {
     if (context.metadata.name) {
       throw new Error('Plugin metadata is already set.');
     }
@@ -34,9 +34,9 @@ export interface DecoratorPlugin {
   memoizedState: EventState | null;
 }
 
-function useState<T extends EventName>(
-  name: T,
-  target: EventState<[T]>['action'],
+function useState<Name extends EventName>(
+  name: Name,
+  target: EventState<Name>['action'] | CommandAction,
   context: PluginMethodDecoratorContext,
 ) {
   const metadata = context.metadata;
@@ -62,15 +62,15 @@ function useState<T extends EventName>(
   metadata.workInProgressHook = state;
 }
 
-export function Event<T extends EventName>(name: T) {
-  return function (target: EventState<[T]>['action'], context: PluginMethodDecoratorContext) {
+export function Event<Name extends EventName>(name: Name) {
+  return function (target: EventState<Name>['action'], context: PluginMethodDecoratorContext) {
     useState(name, target, context);
   };
 }
 
 export function Command(statement: string) {
   return (callback: CommandAction, context: PluginMethodDecoratorContext) => {
-    const action = <EventState['action']>useCommandAction(statement, callback);
+    const action = useCommandAction(statement, callback);
 
     useState('at.message.create', action, context);
     useState('group.at.message.create', action, context);

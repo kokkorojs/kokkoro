@@ -1,10 +1,10 @@
-import { Bot } from '@/bot.js';
-import { EventType } from '@/index.js';
+import { Context } from '@/index.js';
 
-export type CommandEvent<T = any> = EventType<['at.message.create', 'group.at.message.create']> & {
+export type Query = Record<string, string | number | Array<string | number>> | null;
+export type CommandContext<T = Query> = Context<'at.message.create' | 'group.at.message.create'> & {
   query: T;
 };
-export type CommandAction = (event: CommandEvent, bot: Bot) => string | void | Promise<string | void>;
+export type CommandAction = (ctx: CommandContext) => string | void | Promise<string | void>;
 /** 指令参数 */
 export type CommandArg = {
   /** 是否必填 */
@@ -75,8 +75,8 @@ function parseCommandArguments(statement: string): CommandArg[] {
 export function useCommandAction(statement: string, callback: CommandAction) {
   const command = parseCommand(statement);
   const args = parseCommandArguments(statement);
-  const isMatch = (event: CommandEvent): boolean => {
-    const { content } = event;
+  const isMatch = (ctx: CommandContext): boolean => {
+    const { content } = ctx;
     const message = content.replace(/^.+(?=\/)/, '').trimEnd();
 
     if (!message.startsWith(command)) {
@@ -92,28 +92,27 @@ export function useCommandAction(statement: string, callback: CommandAction) {
     if (raw_args.length < args_count) {
       const message = `缺少指令参数，有效语句为："${statement}"`;
 
-      event.reply({ msg_type: 0, content: message }).catch(() => {});
+      ctx.reply({ msg_type: 0, content: message }).catch(() => {});
       return false;
     }
-    const query: CommandEvent['query'] = {};
+    ctx.query = null;
 
     for (let i = 0; i < args.length; i++) {
       const arg = args[i];
       const { variadic, value } = arg;
 
-      query[value] = variadic ? raw_args.slice(i) : raw_args[i] ?? null;
+      ctx.query ??= {};
+      ctx.query[value] = variadic ? raw_args.slice(i) : raw_args[i] ?? null;
     }
-    event.query = query;
-
     return true;
   };
 
-  return async function (this: unknown, event: CommandEvent, bot: Bot) {
-    const is_match = isMatch(event);
+  return async function (this: unknown, ctx: CommandContext) {
+    const is_match = isMatch(ctx);
 
     if (!is_match) {
       return;
     }
-    return await callback.call(this, event, bot);
+    return await callback.call(this, ctx);
   };
 }
