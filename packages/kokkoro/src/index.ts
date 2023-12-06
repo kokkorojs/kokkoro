@@ -31,11 +31,11 @@ async function mountAllPlugin(): Promise<void> {
  * 创建机器人服务
  */
 async function createBotService(): Promise<void> {
-  const { bots } = await getConfig();
+  const { log_level, bots } = await getConfig();
 
   for (let i = 0; i < bots.length; i++) {
     const config = bots[i];
-    const bot = new Bot(config);
+    const bot = new Bot({ ...config, log_level });
 
     bot.online();
   }
