@@ -43,4 +43,4 @@ export function isClass(value: unknown): boolean {
   return value.toString().startsWith('class');
 }
 
-export * from 'nanoid';
+export function none(): void {}

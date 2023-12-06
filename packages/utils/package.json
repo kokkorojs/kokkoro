@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Utilities for kokkoro.",
   "engines": {
-    "node": ">=16"
+    "node": ">=20.6.0"
   },
   "type": "module",
   "main": "lib/index.js",
@@ -12,14 +12,19 @@
     "build": "tsc && tsc-alias",
     "build:watch": "tsc && (concurrently \"tsc -w\" \"tsc-alias -w\")"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kokkorojs/kokkoro.git"
+  },
   "keywords": [
     "bot",
     "kokkoro",
     "qq"
   ],
-  "author": "Xue Elf <xueelf@outlook.com>",
+  "author": "Yuki <admin@yuki.sh>",
   "license": "MIT",
-  "dependencies": {
-    "nanoid": "^5.0.1"
-  }
+  "bugs": {
+    "url": "https://github.com/kokkorojs/issues"
+  },
+  "homepage": "https://kokkoro.js.org"
 }
