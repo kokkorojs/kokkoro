@@ -70,13 +70,13 @@ importers:
 
   plugins/hitokoto:
     specifiers:
-      '@kokkoro/core': workspace:^3.0.1
+      '@kokkoro/core': workspace:^3.0.5
     dependencies:
       '@kokkoro/core': link:../../packages/core
 
   plugins/pcr:
     specifiers:
-      '@kokkoro/core': workspace:^3.0.1
+      '@kokkoro/core': workspace:^3.0.5
       lowdb: ^6.1.1
     dependencies:
       '@kokkoro/core': link:../../packages/core
