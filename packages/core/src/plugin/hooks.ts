@@ -1,5 +1,5 @@
-import { Order } from '@/plugin/order.js';
-import { PluginError, Metadata, pluginList, EventName, EventState, Fiber } from '@/plugin/index.js';
+import { CommandAction, useCommandAction } from '@/plugin/command.js';
+import { EventName, EventState, Fiber, Metadata, PluginError, pluginList } from '@/plugin/index.js';
 
 export interface HookModule {
   default: () => void;
@@ -27,16 +27,16 @@ export function useEvent<T extends EventName[] = any>(action: EventState<T>['act
   workInProgressHook = state;
 }
 
-export function useCommand<T = any>(statement: string, callback: Order['action']) {
+export function useCommand(statement: string, callback: CommandAction) {
   if (!plugin) {
     throw new PluginError('useCommand must be called inside a plugin.');
   }
-  const order = new Order<T>(statement, callback);
-  useEvent(<EventState['action']>order.action.bind(order), ['at.message.create', 'group.at.message.create']);
+  const action = <EventState['action']>useCommandAction(statement, callback);
+  useEvent(action, ['at.message.create', 'group.at.message.create']);
 }
 
 export async function generateHookFiber(module: HookModule): Promise<Fiber> {
-  const { default: Effect, metadata } = module;
+  const { default: effect, metadata } = module;
   const { name, description = null } = metadata;
   const is_use = pluginList.has(name);
 
@@ -46,13 +46,13 @@ export async function generateHookFiber(module: HookModule): Promise<Fiber> {
   const fiber: Fiber = {
     name,
     description,
+    effect,
     memoizedState: null,
   };
 
   plugin = fiber;
   workInProgressHook = plugin.memoizedState;
-
-  Effect();
+  effect();
   plugin = null;
   workInProgressHook = null;
 

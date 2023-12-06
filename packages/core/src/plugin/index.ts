@@ -36,6 +36,7 @@ export class PluginError extends Error {
 export interface Fiber {
   name: string;
   description: string | null;
+  effect: unknown;
   memoizedState: EventState | null;
 }
 
@@ -66,6 +67,6 @@ export async function mountPlugin(path: string) {
   }
 }
 
-export * from '@/plugin/order.js';
+export * from '@/plugin/command.js';
 export * from '@/plugin/hooks.js';
 export * from '@/plugin/decorators.js';

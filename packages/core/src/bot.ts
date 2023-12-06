@@ -1,5 +1,5 @@
 import { Client, ClientConfig } from 'amesu';
-import { CommandEvent } from '@/plugin/order.js';
+import { CommandEvent } from '@/plugin/command.js';
 import { EventName, pluginList } from '@/plugin/index.js';
 
 export interface BotConfig extends ClientConfig {
@@ -32,14 +32,17 @@ export class Bot extends Client {
 
           if (state.events.includes(name)) {
             try {
-              message = (await state.action(data, this)) ?? null;
+              message = (await state.action.call(plugin.effect, data, this)) ?? null;
             } catch (error) {
               message = error instanceof Error ? error.message : JSON.stringify(error);
               this.logger.error(message);
             }
+            console.log(111);
+            console.log(message);
+            console.log(111);
 
             if (data.reply && message) {
-              <CommandEvent['reply']>data.reply({ msg_type: 0, msg_id: data.id, content: message }).catch(() => {});
+              <CommandEvent['reply']>data.reply({ msg_type: 0, content: message }).catch(() => {});
             }
           }
           state = state.next;
