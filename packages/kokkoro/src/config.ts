@@ -9,7 +9,7 @@ export type KokkoroConfig = {
     domain: string;
   };
   /** 日志等级，打印日志会降低性能，若消息量巨大建议修改此参数 */
-  logLevel: LogLevel;
+  log_level: LogLevel;
   /** bot 信息 */
   bots: BotConfig[];
 };
