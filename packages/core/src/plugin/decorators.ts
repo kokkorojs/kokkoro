@@ -1,4 +1,4 @@
-import { Order } from '@/plugin/order.js';
+import { CommandAction, useCommandAction } from '@/plugin/command.js';
 import { EventName, EventState, Fiber, Metadata, pluginList } from '@/plugin/index.js';
 
 export type PluginMetadata = {
@@ -34,7 +34,7 @@ export interface DecoratorPlugin {
   memoizedState: EventState | null;
 }
 
-function addEvent<T extends EventName>(
+function useState<T extends EventName>(
   name: T,
   target: EventState<[T]>['action'],
   context: PluginMethodDecoratorContext,
@@ -64,22 +64,21 @@ function addEvent<T extends EventName>(
 
 export function Event<T extends EventName>(name: T) {
   return function (target: EventState<[T]>['action'], context: PluginMethodDecoratorContext) {
-    addEvent(name, target, context);
+    useState(name, target, context);
   };
 }
 
-export function Command<T = any>(statement: string) {
-  return (callback: Order['action'], context: PluginMethodDecoratorContext) => {
-    const order = new Order<T>(statement, callback);
-    const action = <EventState['action']>order.action.bind(order);
+export function Command(statement: string) {
+  return (callback: CommandAction, context: PluginMethodDecoratorContext) => {
+    const action = <EventState['action']>useCommandAction(statement, callback);
 
-    addEvent('at.message.create', action, context);
-    addEvent('group.at.message.create', action, context);
+    useState('at.message.create', action, context);
+    useState('group.at.message.create', action, context);
   };
 }
 
 export interface DecoratorModule {
-  default: (new () => void) & {
+  default: (new () => unknown) & {
     [Symbol.metadata]: Required<PluginMetadata>;
   };
 }
@@ -92,12 +91,13 @@ export async function generateDecoratorFiber(module: DecoratorModule): Promise<F
   if (is_use) {
     throw new Error(`Plugin "${name}" is already registered.`);
   }
-  const plugin: Fiber = {
+  const effect = new Effect();
+  const fiber: Fiber = {
     name,
     description,
+    effect,
     memoizedState,
   };
 
-  new Effect();
-  return plugin;
+  return fiber;
 }
