@@ -1,5 +1,7 @@
-import { Bot, CommandEvent, Metadata, useCommand } from '@kokkoro/core';
+import { CommandContext, Metadata, useCommand } from '@kokkoro/core';
 import {
+  Service,
+  getKnockOffMeme,
   hitMonster,
   initClanBattle,
   killMonster,
@@ -14,49 +16,49 @@ export interface Member {
   name?: string;
 }
 
-function parseId(event: CommandEvent): string {
-  if (event.t === 'AT_MESSAGE_CREATE') {
-    return event.guild_id;
+function parseId(ctx: CommandContext): string {
+  if (ctx.t === 'AT_MESSAGE_CREATE') {
+    return ctx.guild_id;
   } else {
-    return event.group_openid;
+    return ctx.group_openid;
   }
 }
 
-function parseMember(event: CommandEvent): Member {
-  if (event.t === 'AT_MESSAGE_CREATE') {
+function parseMember(ctx: CommandContext): Member {
+  if (ctx.t === 'AT_MESSAGE_CREATE') {
     return {
-      id: event.author.id,
-      name: event.author.username,
+      id: ctx.author.id,
+      name: ctx.author.username,
     };
   } else {
     return {
-      id: event.author.member_openid,
+      id: ctx.author.member_openid,
     };
   }
 }
 
-async function sendImage(event: CommandEvent, bot: Bot, url: string) {
-  if (event.t === 'AT_MESSAGE_CREATE') {
-    return bot.api.sendChannelMessage(event.channel_id, {
-      msg_id: event.id,
+async function sendImage(ctx: CommandContext, url: string) {
+  if (ctx.t === 'AT_MESSAGE_CREATE') {
+    return ctx.api.sendChannelMessage(ctx.channel_id, {
+      msg_id: ctx.id,
       image: url,
     });
   }
-  const result: any = await bot.api.sendGroupFile(event.group_openid, {
+  const result: any = await ctx.api.sendGroupFile(ctx.group_openid, {
     file_type: 1,
     srv_send_msg: false,
     url,
   });
 
   if (result.data?.code) {
-    return bot.api.sendGroupMessage(event.group_openid, {
-      msg_id: event.id,
+    return ctx.api.sendGroupMessage(ctx.group_openid, {
+      msg_id: ctx.id,
       msg_type: 0,
       content: `图片发送失败 (っ °Д °;)っ\nCode ${result.data.code}, ${result.data?.message}`,
     });
   } else {
-    return bot.api.sendGroupMessage(event.group_openid, {
-      msg_id: event.id,
+    return ctx.api.sendGroupMessage(ctx.group_openid, {
+      msg_id: ctx.id,
       msg_type: 7,
       content: '(oﾟvﾟ)ノ',
       media: {
@@ -72,55 +74,49 @@ export const metadata: Metadata = {
 };
 
 export default function Priconne() {
-  useCommand('/发起会战 <service>', event => {
-    const id = parseId(event);
-    return initClanBattle(id, event.query.service);
+  useCommand<{ service: Service }>('/发起会战 <service>', ctx => {
+    const id = parseId(ctx);
+    return initClanBattle(id, ctx.query.service);
   });
-  useCommand('/结束会战', event => {
-    const id = parseId(event);
+  useCommand('/结束会战', ctx => {
+    const id = parseId(ctx);
     return terminateClanBattle(id);
   });
-  useCommand('/状态', event => {
-    const id = parseId(event);
+  useCommand('/状态', ctx => {
+    const id = parseId(ctx);
     return parseProgress(id);
   });
-  useCommand('/报刀 <boss> <damage>', event => {
-    const id = parseId(event);
-    const member = parseMember(event);
-    const { boss, damage } = event.query;
+  useCommand<{ boss: number; damage: number }>('/报刀 <boss> <damage>', ctx => {
+    const id = parseId(ctx);
+    const member = parseMember(ctx);
+    const { boss, damage } = ctx.query;
 
-    return hitMonster(id, member, +boss, +damage);
+    return hitMonster(id, member, boss, damage);
   });
-  useCommand('/尾刀 <boss>', event => {
-    const id = parseId(event);
-    const member = parseMember(event);
-    const { boss } = event.query;
+  useCommand<{ boss: number }>('/尾刀 <boss>', ctx => {
+    const id = parseId(ctx);
+    const member = parseMember(ctx);
+    const { boss } = ctx.query;
 
-    return killMonster(id, member, +boss);
+    return killMonster(id, member, boss);
   });
-  useCommand('/撤销', event => {
-    const id = parseId(event);
-    const member = parseMember(event);
+  useCommand('/撤销', ctx => {
+    const id = parseId(ctx);
+    const member = parseMember(ctx);
 
     return revokeHit(id, member);
   });
   useCommand('/预约', () => '目前机器人无法获取到用户昵称，也不能在群聊 at 成员，暂未支持');
-  useCommand('/激爽下班', async (event, bot) => {
-    const memes = [
-      'https://vip2.loli.io/2023/11/23/SR19wsgjAQ4HVi6.png',
-      'https://vip2.loli.io/2023/11/23/Jo9q6uDTfEbv4c7.png',
-      'https://vip2.loli.io/2023/11/23/val9ThHxz1MVNuF.png',
-    ];
-    const random = Math.floor(Math.random() * memes.length);
-    const image = memes[random];
-    const id = parseId(event);
-    const member = parseMember(event);
+  useCommand('/激爽下班', async ctx => {
+    const id = parseId(ctx);
+    const member = parseMember(ctx);
     const message = await knockOff(id, member);
 
     if (message) {
       return message;
     } else {
-      await sendImage(event, bot, image);
+      const image = getKnockOffMeme();
+      await sendImage(ctx, image);
     }
   });
 }

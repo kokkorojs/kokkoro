@@ -1,7 +1,7 @@
 import { JSONPreset } from 'lowdb/node';
 import { Member } from '@/index.js';
 
-type Service = 'jp' | 'tw' | 'cn';
+export type Service = 'jp' | 'tw' | 'cn';
 
 interface ClanBattleInfo {
   /** 服务器 */
@@ -22,6 +22,11 @@ enum Stage {
   E,
 }
 
+const memes = [
+  'https://vip2.loli.io/2023/11/23/SR19wsgjAQ4HVi6.png',
+  'https://vip2.loli.io/2023/11/23/Jo9q6uDTfEbv4c7.png',
+  'https://vip2.loli.io/2023/11/23/val9ThHxz1MVNuF.png',
+];
 const digits = ['一', '二', '三', '四', '五'];
 const clanBattleInfos: ClanBattleInfo[] = [
   {
@@ -532,4 +537,11 @@ export async function knockOff(id: string, member: Member): Promise<string | voi
     progress.hits.push(hit);
   }
   await setProgress(id, progress);
+}
+
+export function getKnockOffMeme(): string {
+  const random = Math.floor(Math.random() * memes.length);
+  const image = memes[random];
+
+  return image;
 }

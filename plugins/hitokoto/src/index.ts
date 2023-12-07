@@ -32,8 +32,8 @@ export const metadata: Metadata = {
 };
 
 export default function Hitokoto() {
-  useCommand('/来点骚话', async (_, bot) => {
-    const { data } = await bot.request.get<Hitokoto>('https://v1.hitokoto.cn?c=a&c=b');
+  useCommand('/来点骚话', async ctx => {
+    const { data } = await ctx.bot.request.get<Hitokoto>('https://v1.hitokoto.cn?c=a&c=b');
     const { hitokoto, from } = data;
     const message = `『${hitokoto}』——「${from}」`;
 
