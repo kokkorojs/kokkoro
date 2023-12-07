@@ -1,6 +1,6 @@
 {
   "name": "kokkoro-plugin-hitokoto",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "ヒトコト",
   "type": "module",
   "main": "lib/index.js",
@@ -18,6 +18,6 @@
   "author": "Yuki <admin@yuki.sh>",
   "license": "MIT",
   "dependencies": {
-    "@kokkoro/core": "workspace:^3.0.5"
+    "@kokkoro/core": "workspace:^3.0.8"
   }
 }
