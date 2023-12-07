@@ -1,5 +1,5 @@
 import { Client, ClientConfig } from 'amesu';
-import { CommandContext, EventName, pluginList } from '@/plugin/index.js';
+import { CommandContext, Context, EventName, pluginList } from '@/plugin/index.js';
 
 export interface BotConfig extends ClientConfig {
   plugins?: string[];
@@ -17,8 +17,10 @@ export class Bot extends Client {
 
   private usePluginEvent() {
     this.useEventInterceptor(dispatch => {
-      const ctx = {
+      const ctx: Context = {
+        bot: this,
         api: this.api,
+        logger: this.logger,
         t: dispatch.t,
         ...dispatch.d,
       };
@@ -31,7 +33,7 @@ export class Bot extends Client {
         let state = plugin.memoizedState;
 
         while (state !== null) {
-          let message: string | null;
+          let message: unknown | null;
 
           if (state.events.includes(name)) {
             try {
@@ -40,9 +42,10 @@ export class Bot extends Client {
               message = error instanceof Error ? error.message : JSON.stringify(error);
               this.logger.error(message);
             }
+            const reply = <CommandContext['reply'] | undefined>dispatch.d.reply;
 
-            if (ctx.reply && message) {
-              <CommandContext['reply']>ctx.reply({ msg_type: 0, content: message }).catch(() => {});
+            if (reply && message) {
+              reply({ msg_type: 0, content: JSON.stringify(message) }).catch(() => {});
             }
           }
           state = state.next;
