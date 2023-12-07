@@ -62,7 +62,7 @@ Success: project is initialized successfully.
     "domain": null
   },
   // 日志等级
-  "logLevel": "INFO",
+  "log_level": "INFO",
   // bot 信息，可添加多个
   "bots": [
     {
@@ -77,7 +77,7 @@ Success: project is initialized successfully.
 若要开发插件，可以在**项目根目录**使用下列命令：
 
 ```shell
-kokkoro create <plugin>
+kokkoro plugin <name>
 ```
 
 ```shell
@@ -100,15 +100,15 @@ import { useCommand, useEvent } from '@kokkoro/core';
  * @type {import('@kokkoro/core').Metadata}
  */
 export const metadata = {
-  name: 'demo',
+  name: 'example',
   description: '插件示例',
 };
 
-export default function Demo() {
-  useEvent(event => console.log('Bot online.'), ['session.ready']);
+export default function Example() {
+  useEvent(() => console.log('Bot online.'), ['session.ready']);
 
   useCommand('/测试', () => 'hello world');
-  useCommand('/复读 <message>', event => event.query.message);
+  useCommand('/复读 <message>', ctx => ctx.query.message);
 }
 ```
 
@@ -123,19 +123,17 @@ export const metadata: Metadata = {
 };
 
 export default function Example(): void {
-  useEvent(() => {
-    console.log('Bot online.');
-  }, ['session.ready']);
+  useEvent(() => console.log('Bot online.'), ['session.ready']);
 
   useCommand('/测试', () => 'hello world');
-  useCommand('/复读 <message>', event => event.query.message);
+  useCommand('/复读 <message>', ctx => ctx.query.message);
 }
 ```
 
 #### Typescript (Decorator)
 
 ```typescript
-import { Command, CommandEvent, Event, Plugin } from '@kokkoro/core';
+import { Command, CommandContext, Event, Plugin } from '@kokkoro/core';
 
 @Plugin({
   name: 'example',
@@ -153,8 +151,8 @@ export default class Example {
   }
 
   @Command('/复读 <message>')
-  replayMessage(event: CommandEvent) {
-    return event.query.message;
+  replayMessage(ctx: CommandContext) {
+    return ctx.query.message;
   }
 }
 ```
