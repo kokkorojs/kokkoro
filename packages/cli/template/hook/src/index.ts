@@ -6,10 +6,13 @@ export const metadata: Metadata = {
 };
 
 export default function Example(): void {
-  useEvent(() => {
-    console.log('Bot online.');
-  }, ['session.ready']);
+  useEvent(
+    ctx => {
+      ctx.logger.mark('Bot online.');
+    },
+    ['session.ready'],
+  );
 
   useCommand('/测试', () => 'hello world');
-  useCommand('/复读 <message>', event => event.query.message);
+  useCommand<{ message: string }>('/复读 <message>', ctx => ctx.query.message);
 }

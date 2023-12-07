@@ -31,8 +31,8 @@ const onCancel = () => {
 
 export default function (program: Command) {
   program
-    .command('create <name>')
-    .description('create a kokkoro plugin project')
+    .command('plugin <name>')
+    .description('generate a kokkoro plugin project')
     .action(async name => {
       if (!existsSync(config_path)) {
         console.error(
@@ -47,6 +47,7 @@ export default function (program: Command) {
         const response = await prompts(questions, { onCancel });
         const { style } = response;
         const module_path = join(plugins_path, name);
+        const module_main = style === 'javascript' ? 'index.js' : 'lib/index.js';
 
         if (existsSync(module_path)) {
           console.warn(`${TIP_ERROR} plugin directory already exists.\n`);
@@ -58,7 +59,7 @@ export default function (program: Command) {
         await cp(path, module_path, {
           recursive: true,
         });
-        const command = `cd ./plugins/${name} && npm init -y && npm pkg set type="module"`;
+        const command = `cd ./plugins/${name} && npm init -y && npm pkg set type="module" && npm pkg set main="${module_main}"`;
         const spinner = ora(`Initialize ${name} package.json`).start();
 
         try {
