@@ -5,12 +5,17 @@ import { useCommand, useEvent } from '@kokkoro/core';
  */
 export const metadata = {
   name: 'example',
-  description: '示例插件',
+  description: '插件示例',
 };
 
 export default function Example() {
-  useEvent(() => console.log('Bot online.'), ['session.ready']);
+  useEvent(
+    ctx => {
+      ctx.logger.mark('Bot online.');
+    },
+    ['session.ready'],
+  );
 
   useCommand('/测试', () => 'hello world');
-  useCommand('/复读 <message>', event => event.query.message);
+  useCommand('/复读 <message>', ctx => ctx.query.message);
 }

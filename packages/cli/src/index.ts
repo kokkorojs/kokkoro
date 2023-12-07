@@ -8,7 +8,7 @@ import { readFile } from 'node:fs/promises';
 
 import init from '@/init.js';
 import start from '@/start.js';
-import create from '@/create.js';
+import plugin from '@/plugin.js';
 
 export const plugins_path = join(cwd(), `plugins`);
 export const config_path = join(cwd(), 'kokkoro.json');
@@ -31,7 +31,7 @@ const version = await getVersion();
 
 init(program);
 start(program);
-create(program);
+plugin(program);
 
 program.name('kokkoro').version(version, '-v, --version').parse();
 
