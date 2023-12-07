@@ -4,7 +4,7 @@ export type Query = Record<string, string | number | Array<string | number>> | n
 export type CommandContext<T = Query> = Context<'at.message.create' | 'group.at.message.create'> & {
   query: T;
 };
-export type CommandAction = (ctx: CommandContext) => string | void | Promise<string | void>;
+export type CommandAction<T = Query> = (ctx: CommandContext<T>) => unknown | Promise<unknown>;
 /** 指令参数 */
 export type CommandArg = {
   /** 是否必填 */
@@ -72,6 +72,10 @@ function parseCommandArguments(statement: string): CommandArg[] {
   return args;
 }
 
+function isNumber(string: string): boolean {
+  return /^\s*[+-]?(\d+|\d*\.\d+|\d+\.\d*)([Ee][+-]?\d+)?\s*$/.test(string);
+}
+
 export function useCommandAction(statement: string, callback: CommandAction) {
   const command = parseCommand(statement);
   const args = parseCommandArguments(statement);
@@ -86,7 +90,8 @@ export function useCommandAction(statement: string, callback: CommandAction) {
       .replace(command, '')
       .replace(/\s{2,}/, ' ')
       .split(' ')
-      .filter(arg => arg);
+      .filter(arg => arg)
+      .map(arg => (isNumber(arg) ? Number(arg) : arg));
     const args_count = args.filter(arg => arg.required).length;
 
     if (raw_args.length < args_count) {

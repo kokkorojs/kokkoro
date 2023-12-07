@@ -1,4 +1,4 @@
-import { CommandAction, useCommandAction } from '@/plugin/command.js';
+import { CommandAction, Query, useCommandAction } from '@/plugin/command.js';
 import { EventName, EventState, Fiber, Metadata, PluginError, pluginList } from '@/plugin/index.js';
 
 export interface HookModule {
@@ -9,7 +9,7 @@ export interface HookModule {
 let plugin: Fiber | null = null;
 let workInProgressHook: EventState | null = null;
 
-export function useEvent<Name extends EventName>(action: EventState<Name>['action'] | CommandAction, events: Name[]) {
+export function useEvent<Name extends EventName>(action: EventState<Name>['action'], events: Name[]) {
   if (!plugin) {
     throw new PluginError('useEvent must be called inside a plugin.');
   }
@@ -27,11 +27,11 @@ export function useEvent<Name extends EventName>(action: EventState<Name>['actio
   workInProgressHook = state;
 }
 
-export function useCommand(statement: string, callback: CommandAction) {
+export function useCommand<T = Query>(statement: string, callback: CommandAction<T>) {
   if (!plugin) {
     throw new PluginError('useCommand must be called inside a plugin.');
   }
-  const action = useCommandAction(statement, callback);
+  const action = <EventState['action']>useCommandAction(statement, <CommandAction>callback);
   useEvent(action, ['at.message.create', 'group.at.message.create']);
 }
 

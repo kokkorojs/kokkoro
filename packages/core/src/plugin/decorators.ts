@@ -1,5 +1,5 @@
-import { CommandAction, useCommandAction } from '@/plugin/command.js';
-import { EventName, EventState, Fiber, Metadata, pluginList } from '@/plugin/index.js';
+import { CommandAction, Query, useCommandAction } from '@/plugin/command.js';
+import { EventName, EventState, Fiber, Metadata, PluginError, pluginList } from '@/plugin/index.js';
 
 export type PluginMetadata = {
   name?: string;
@@ -15,7 +15,7 @@ interface PluginDecoratorContext extends ClassDecoratorContext {
 export function Plugin(metadata: Metadata) {
   return (_: unknown, context: PluginDecoratorContext) => {
     if (context.metadata.name) {
-      throw new Error('Plugin metadata is already set.');
+      throw new PluginError('Plugin metadata is already set.');
     }
     context.metadata.memoizedState ??= null;
     context.metadata.workInProgressHook ??= null;
@@ -36,7 +36,7 @@ export interface DecoratorPlugin {
 
 function useState<Name extends EventName>(
   name: Name,
-  target: EventState<Name>['action'] | CommandAction,
+  target: EventState<Name>['action'] | CommandAction<Query>,
   context: PluginMethodDecoratorContext,
 ) {
   const metadata = context.metadata;
@@ -69,8 +69,8 @@ export function Event<Name extends EventName>(name: Name) {
 }
 
 export function Command(statement: string) {
-  return (callback: CommandAction, context: PluginMethodDecoratorContext) => {
-    const action = useCommandAction(statement, callback);
+  return <T>(callback: CommandAction<T>, context: PluginMethodDecoratorContext) => {
+    const action = useCommandAction(statement, <CommandAction>callback);
 
     useState('at.message.create', action, context);
     useState('group.at.message.create', action, context);
@@ -89,7 +89,7 @@ export async function generateDecoratorFiber(module: DecoratorModule): Promise<F
   const is_use = pluginList.has(name);
 
   if (is_use) {
-    throw new Error(`Plugin "${name}" is already registered.`);
+    throw new PluginError(`Plugin "${name}" is already registered.`);
   }
   const effect = new Effect();
   const fiber: Fiber = {

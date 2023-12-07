@@ -12,9 +12,10 @@ export type EventType<Name extends EventName> = {
   [Key in Name]: ClientEvent[Key] extends (event: infer Event) => void ? Event : never;
 }[Name];
 /** 上下文 */
-export type Context<Name extends EventName = any> = EventType<Name> & {
-  api: Bot['api'];
+export type Context<Name extends EventName = EventName> = EventType<Name> & {
   bot: Bot;
+  api: Bot['api'];
+  logger: Bot['logger'];
 };
 
 /** 元数据 */
@@ -26,7 +27,7 @@ export interface Metadata {
 }
 
 export interface EventState<Name extends EventName = any> {
-  action: (ctx: Context<Name>) => string | void | Promise<string | void>;
+  action: (ctx: Context<Name>) => unknown | Promise<unknown>;
   events: Name;
   next: EventState<Name> | null;
 }

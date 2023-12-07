@@ -54,7 +54,12 @@ export const metadata = {
 };
 
 export default function Example() {
-  useEvent(() => console.log('Bot online.'), ['session.ready']);
+  useEvent(
+    ctx => {
+      ctx.logger.mark('Bot online.');
+    },
+    ['session.ready'],
+  );
 
   useCommand('/测试', () => 'hello world');
   useCommand('/复读 <message>', ctx => ctx.query.message);
