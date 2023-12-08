@@ -15,6 +15,7 @@ export type EventType<Name extends EventName> = {
 export type Context<Name extends EventName = EventName> = EventType<Name> & {
   bot: Bot;
   api: Bot['api'];
+  request: Bot['request'];
   logger: Bot['logger'];
 };
 
