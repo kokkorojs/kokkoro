@@ -20,6 +20,7 @@ export class Bot extends Client {
       const ctx: Context = {
         bot: this,
         api: this.api,
+        request: this.request,
         logger: this.logger,
         t: dispatch.t,
         ...dispatch.d,
