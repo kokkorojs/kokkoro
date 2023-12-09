@@ -32,9 +32,21 @@ importers:
       tsc-alias: 1.8.8
       typescript: 5.3.2
 
+  app/amesu:
+    specifiers:
+      '@kokkoro/cli': workspace:^2.0.0
+      '@kokkoro/core': workspace:^3.0.6
+      kokkoro: workspace:^2.0.1
+      kokkoro-plugin-hitokoto: workspace:^2.0.0
+    dependencies:
+      '@kokkoro/cli': link:../../packages/cli
+      '@kokkoro/core': link:../../packages/core
+      kokkoro: link:../../packages/kokkoro
+      kokkoro-plugin-hitokoto: link:../../plugins/hitokoto
+
   packages/cli:
     specifiers:
-      '@kokkoro/core': workspace:^3.0.4
+      '@kokkoro/core': workspace:^3.0.8
       '@types/prompts': ^2.4.9
       commander: ^11.1.0
       ora: ^7.0.1
@@ -70,13 +82,13 @@ importers:
 
   plugins/hitokoto:
     specifiers:
-      '@kokkoro/core': workspace:^3.0.5
+      '@kokkoro/core': workspace:^3.0.8
     dependencies:
       '@kokkoro/core': link:../../packages/core
 
   plugins/pcr:
     specifiers:
-      '@kokkoro/core': workspace:^3.0.5
+      '@kokkoro/core': workspace:^3.0.8
       lowdb: ^6.1.1
     dependencies:
       '@kokkoro/core': link:../../packages/core
