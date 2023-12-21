@@ -1,6 +1,6 @@
 {
   "name": "@kokkoro/core",
-  "version": "3.0.9",
+  "version": "3.0.10",
   "description": "Core features for kokkoro.",
   "engines": {
     "node": ">=20.6.0"
@@ -28,7 +28,7 @@
   },
   "homepage": "https://kokkoro.js.org",
   "dependencies": {
-    "amesu": "^2.1.1"
+    "amesu": "^2.1.2"
   },
   "files": [
     "lib"

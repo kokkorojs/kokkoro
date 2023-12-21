@@ -66,7 +66,7 @@ export default function Example() {
 }
 ```
 
-只要对插件进行 `mountPlugin` 操作就可将其挂载：
+只要对插件进行 `mountPlugin` 操作，就可将其挂载：
 
 ```javascript
 // index.js
@@ -83,7 +83,7 @@ const bot = new Bot(config);
 bot.online();
 ```
 
-当然，你也可以直接安装 npm 插件来进行使用。
+你也可以直接安装 npm 插件来进行使用。
 
 ```bash
 npm i kokkoro-plugin-hitokoto
@@ -105,7 +105,7 @@ const bot = new Bot(config);
 bot.online();
 ```
 
-运行项目时一定要使用 `--experimental-import-meta-resolve`，否则会导致插件无法被正常解析。
+运行项目时，一定要使用 `--experimental-import-meta-resolve` 命令，否则会导致插件无法被正常解析。
 
 ```bash
 node --experimental-import-meta-resolve index.js
@@ -125,6 +125,7 @@ await mountPlugin('kokkoro-plugin-hitokoto');
  * @type {import('@kokkoro/core').BotConfig}
  */
 const config = {
+  // ...
   plugins: ['hitokoto'],
 };
 const bot = new Bot(config);
