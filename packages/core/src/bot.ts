@@ -1,4 +1,4 @@
-import { Client, ClientConfig } from 'amesu';
+import { Client, ClientConfig, objectToString } from 'amesu';
 import { CommandContext, Context, EventName, pluginList } from '@/plugin/index.js';
 
 export interface BotConfig extends ClientConfig {
@@ -40,13 +40,13 @@ export class Bot extends Client {
             try {
               message = (await state.action.call(plugin.effect, ctx)) ?? null;
             } catch (error) {
-              message = error instanceof Error ? error.message : JSON.stringify(error);
+              message = error instanceof Error ? error.message : objectToString(error);
               this.logger.error(message);
             }
             const reply = <CommandContext['reply'] | undefined>dispatch.d.reply;
 
             if (reply && message) {
-              reply({ msg_type: 0, content: JSON.stringify(message) }).catch(() => {});
+              reply({ msg_type: 0, content: objectToString(message) }).catch(() => {});
             }
           }
           state = state.next;

@@ -1,4 +1,4 @@
-import { ClientEvent } from 'amesu';
+import { ClientEvent, objectToString } from 'amesu';
 import { pathToFileURL } from 'node:url';
 import { Bot } from '@/bot.js';
 import { logger } from '@/logger.js';
@@ -69,7 +69,7 @@ export async function mountPlugin(path: string) {
     logger.info(`Mount plugin: "${plugin.name}"`);
     pluginList.set(plugin.name, plugin);
   } catch (error) {
-    const message = error instanceof Error ? error.message : JSON.stringify(error);
+    const message = error instanceof Error ? error.message : objectToString(error);
     logger.error(`Failed to mount plugin, ${message}`);
   }
 }
