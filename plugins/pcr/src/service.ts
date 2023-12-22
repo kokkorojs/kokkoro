@@ -63,7 +63,7 @@ const clanBattleInfos: ClanBattleInfo[] = [
   },
   {
     service: 'cn',
-    ranges: [3, 10, 30, 40, Infinity],
+    ranges: [3, 10, 30, 38, Infinity],
     healths: [
       [6_000_000, 8_000_000, 10_000_000, 12_000_000, 15_000_000],
       [6_000_000, 8_000_000, 10_000_000, 12_000_000, 15_000_000],
