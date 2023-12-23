@@ -74,6 +74,9 @@ importers:
       kokkoro-plugin-hitokoto:
         specifier: workspace:^
         version: link:../../plugins/hitokoto
+      kokkoro-plugin-kfc:
+        specifier: workspace:^
+        version: link:../../plugins/kfc
       kokkoro-plugin-pcr:
         specifier: workspace:^
         version: link:../../plugins/pcr
@@ -127,6 +130,12 @@ importers:
     dependencies:
       '@kokkoro/core':
         specifier: workspace:^3.0.8
+        version: link:../../packages/core
+
+  plugins/kfc:
+    devDependencies:
+      '@kokkoro/core':
+        specifier: workspace:^
         version: link:../../packages/core
 
   plugins/pcr:
