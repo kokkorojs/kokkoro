@@ -1,5 +1,6 @@
-import { Client, ClientConfig, objectToString } from 'amesu';
-import { CommandContext, Context, EventName, pluginList } from '@/plugin/index.js';
+import { Client, ClientConfig } from 'amesu';
+import { none, objectToString } from '@kokkoro/utils';
+import { CommandContext, Context, pluginList } from '@/plugin/index.js';
 
 export interface BotConfig extends ClientConfig {
   plugins?: string[];
@@ -46,7 +47,7 @@ export class Bot extends Client {
             const reply = <CommandContext['reply'] | undefined>dispatch.d.reply;
 
             if (reply && message) {
-              reply({ msg_type: 0, content: objectToString(message) }).catch(() => {});
+              reply({ msg_type: 0, content: objectToString(message) }).catch(none);
             }
           }
           state = state.next;
@@ -56,8 +57,8 @@ export class Bot extends Client {
     });
   }
 
-  private parseEventName(type: string): EventName {
+  private parseEventName(type: string): string {
     const name = type.replace(/_/g, '.').toLowerCase();
-    return /\./.test(name) ? <EventName>name : <EventName>`session.${name}`;
+    return /\./.test(name) ? name : `session.${name}`;
   }
 }

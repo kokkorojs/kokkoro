@@ -1,6 +1,7 @@
+import { none } from '@kokkoro/utils';
 import { Context } from '@/index.js';
 
-export type Query = Record<string, string | number | Array<string | number>> | null;
+export type Query = Record<string, string | string[]> | null;
 export type CommandContext<T = Query> = Context<'at.message.create' | 'group.at.message.create'> & {
   query: T;
 };
@@ -72,10 +73,6 @@ function parseCommandArguments(statement: string): CommandArg[] {
   return args;
 }
 
-function isNumber(string: string): boolean {
-  return /^\s*[+-]?(\d+|\d*\.\d+|\d+\.\d*)([Ee][+-]?\d+)?\s*$/.test(string);
-}
-
 export function useCommandAction(statement: string, callback: CommandAction) {
   const command = parseCommand(statement);
   const args = parseCommandArguments(statement);
@@ -90,14 +87,13 @@ export function useCommandAction(statement: string, callback: CommandAction) {
       .replace(command, '')
       .replace(/\s{2,}/, ' ')
       .split(' ')
-      .filter(arg => arg)
-      .map(arg => (isNumber(arg) ? Number(arg) : arg));
+      .filter(arg => arg);
     const args_count = args.filter(arg => arg.required).length;
 
     if (raw_args.length < args_count) {
       const message = `缺少指令参数，有效语句为："${statement}"`;
 
-      ctx.reply({ msg_type: 0, content: message }).catch(() => {});
+      ctx.reply({ msg_type: 0, content: message }).catch(none);
       return false;
     }
     ctx.query = null;

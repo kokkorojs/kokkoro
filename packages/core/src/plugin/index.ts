@@ -1,5 +1,6 @@
-import { ClientEvent, objectToString } from 'amesu';
 import { pathToFileURL } from 'node:url';
+import { ClientEvent } from 'amesu';
+import { isClass, objectToString } from '@kokkoro/utils';
 import { Bot } from '@/bot.js';
 import { logger } from '@/logger.js';
 import { HookModule, generateHookFiber } from '@/plugin/hooks.js';
@@ -60,7 +61,7 @@ export async function mountPlugin(path: string) {
     if (typeof module.default !== 'function') {
       throw new PluginError('Plugin must be a class or a function');
     } else {
-      const is_class = module.default.toString().startsWith('class');
+      const is_class = isClass(module.default);
 
       plugin = is_class
         ? await generateDecoratorFiber(<DecoratorModule>module)

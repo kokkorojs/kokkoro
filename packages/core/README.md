@@ -56,7 +56,7 @@ export const metadata = {
 export default function Example() {
   useEvent(
     ctx => {
-      ctx.logger.mark('Bot online.');
+      ctx.logger.mark('link start');
     },
     ['session.ready'],
   );
