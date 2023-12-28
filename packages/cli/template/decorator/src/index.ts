@@ -7,7 +7,7 @@ import { Command, CommandContext, Context, Event, Plugin } from '@kokkoro/core';
 export default class Example {
   @Event('session.ready')
   onReady(ctx: Context<'session.ready'>) {
-    ctx.logger.mark('Bot online.');
+    ctx.logger.mark('link start');
   }
 
   @Command('/测试')

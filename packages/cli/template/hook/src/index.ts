@@ -5,10 +5,10 @@ export const metadata: Metadata = {
   description: '示例插件',
 };
 
-export default function Example(): void {
+export default function Example() {
   useEvent(
     ctx => {
-      ctx.logger.mark('Bot online.');
+      ctx.logger.mark('link start');
     },
     ['session.ready'],
   );

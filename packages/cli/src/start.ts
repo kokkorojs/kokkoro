@@ -2,8 +2,8 @@ import { Command } from 'commander';
 import { exit } from 'node:process';
 import { existsSync } from 'node:fs';
 import { spawn } from 'node:child_process';
-
-import { colors, config_path, TIP_ERROR, TIP_INFO } from '@/index.js';
+import { colorful } from '@kokkoro/utils';
+import { ERROR, INFO, config_path } from '@/index.js';
 
 export default function (program: Command) {
   program
@@ -13,7 +13,8 @@ export default function (program: Command) {
     .action(option => {
       if (!existsSync(config_path)) {
         console.error(
-          `${TIP_ERROR} config file is not exists. If you want to create the file, use ${colors.cyan(
+          `${ERROR}: config file is not exists. If you want to create the file, use ${colorful(
+            'Cyan',
             'kokkoro init',
           )}.\n`,
         );
@@ -29,6 +30,6 @@ export default function (program: Command) {
 
       node.stdout?.on('data', data => console.log(data.toString()));
       node.stderr?.on('data', data => console.error(data.toString()));
-      node.on('close', code => console.log(`${TIP_INFO} child process exited with code ${code}.\n`));
+      node.on('close', code => console.log(`${INFO}: child process exited with code ${code}.\n`));
     });
 }
