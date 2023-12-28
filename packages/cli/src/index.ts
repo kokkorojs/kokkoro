@@ -1,55 +1,38 @@
 #!/usr/bin/env node
 
-import { cwd } from 'process';
 import { join } from 'node:path';
-import { program } from 'commander';
-import { fileURLToPath } from 'node:url';
 import { readFile } from 'node:fs/promises';
-
+import { program } from 'commander';
+import { colorful } from '@kokkoro/utils';
 import init from '@/init.js';
 import start from '@/start.js';
 import plugin from '@/plugin.js';
 
-export const plugins_path = join(cwd(), `plugins`);
-export const config_path = join(cwd(), 'kokkoro.json');
+interface Package {
+  version: string;
+}
 
-export const colors = {
-  red: colorful(31),
-  green: colorful(32),
-  yellow: colorful(33),
-  blue: colorful(34),
-  magenta: colorful(35),
-  cyan: colorful(36),
-  white: colorful(37),
-};
-export const TIP_INFO = colors.cyan('Info:');
-export const TIP_ERROR = colors.red('Error:');
-export const TIP_WARN = colors.yellow('Warn:');
-export const TIP_SUCCESS = colors.green('Success:');
+async function getVersion(): Promise<string> {
+  const url = new URL('../package.json', import.meta.url);
+  const text = await readFile(url, 'utf-8');
+  const { version } = <Package>JSON.parse(text);
 
+  return version;
+}
+
+const root = process.cwd();
 const version = await getVersion();
+
+export const plugins_path = join(root, `plugins`);
+export const config_path = join(root, 'kokkoro.json');
+
+export const INFO = colorful('Cyan', 'Info');
+export const ERROR = colorful('Red', 'Error');
+export const WARN = colorful('Yellow', 'Warn');
+export const SUCCESS = colorful('Green', 'Success');
 
 init(program);
 start(program);
 plugin(program);
 
 program.name('kokkoro').version(version, '-v, --version').parse();
-
-/**
- * 控制台彩色打印
- *
- * @param {number} code - ANSI escape code
- * @returns {Function}
- */
-function colorful(code: number): (msg: string) => string {
-  return (msg: string) => `\u001b[${code}m${msg}\u001b[0m`;
-}
-
-async function getVersion() {
-  const url = join(import.meta.url, '../../package.json');
-  const path = fileURLToPath(url);
-  const text = await readFile(path, 'utf8');
-  const { version } = JSON.parse(text);
-
-  return version;
-}

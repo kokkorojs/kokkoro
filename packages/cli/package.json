@@ -5,6 +5,10 @@
   "engines": {
     "node": ">=20.6.0"
   },
+  "files": [
+    "lib",
+    "template"
+  ],
   "type": "module",
   "bin": {
     "kokkoro": "lib/index.js"
@@ -34,11 +38,8 @@
     "prompts": "^2.4.2"
   },
   "devDependencies": {
-    "@kokkoro/core": "workspace:^3.0.8",
+    "@kokkoro/core": "workspace:^",
+    "@kokkoro/utils": "workspace:^",
     "@types/prompts": "^2.4.9"
-  },
-  "files": [
-    "lib",
-    "template"
-  ]
+  }
 }

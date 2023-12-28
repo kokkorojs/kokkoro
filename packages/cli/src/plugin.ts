@@ -3,13 +3,13 @@ import { Command } from 'commander';
 import prompts, { PromptObject } from 'prompts';
 import { join } from 'node:path';
 import { exit } from 'node:process';
-import { existsSync } from 'node:fs';
 import { cp } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { exec } from 'node:child_process';
-
-import { colors, config_path, plugins_path, TIP_ERROR, TIP_INFO } from '@/index.js';
+import { colorful } from '@kokkoro/utils';
+import { ERROR, INFO, config_path, plugins_path } from '@/index.js';
 
 const promiseExec = promisify(exec);
 const questions: PromptObject[] = [
@@ -24,10 +24,6 @@ const questions: PromptObject[] = [
     ],
   },
 ];
-const onCancel = () => {
-  console.log(`${TIP_INFO} plugin module creation has been aborted.\n`);
-  exit(0);
-};
 
 export default function (program: Command) {
   program
@@ -36,7 +32,8 @@ export default function (program: Command) {
     .action(async name => {
       if (!existsSync(config_path)) {
         console.error(
-          `${TIP_ERROR} config file is not exists. If you want to create the file, use ${colors.cyan(
+          `${ERROR}: config file is not exists. If you want to create the file, use ${colorful(
+            'Cyan',
             'kokkoro init',
           )}.\n`,
         );
@@ -44,13 +41,18 @@ export default function (program: Command) {
       }
 
       try {
-        const response = await prompts(questions, { onCancel });
+        const response = await prompts(questions, {
+          onCancel() {
+            console.log(`${INFO}: plugin module creation has been aborted.\n`);
+            exit(0);
+          },
+        });
         const { style } = response;
         const module_path = join(plugins_path, name);
         const module_main = style === 'javascript' ? 'index.js' : 'lib/index.js';
 
         if (existsSync(module_path)) {
-          console.warn(`${TIP_ERROR} plugin directory already exists.\n`);
+          console.warn(`${ERROR}: plugin directory already exists.\n`);
           exit(1);
         }
         const url = join(import.meta.url, `../../template/${style}`);
@@ -68,11 +70,11 @@ export default function (program: Command) {
         } catch (error) {
           spinner.fail();
         }
-        console.log(`${TIP_INFO} plugin module create successful.\n`);
+        console.log(`${INFO}: plugin module create successful.\n`);
       } catch (error) {
         const message = error instanceof Error ? error.message : JSON.stringify(error);
 
-        console.warn(`\n${TIP_ERROR} ${message}.`);
+        console.warn(`\n${ERROR}: ${message}.`);
         exit(1);
       }
     });
