@@ -63,6 +63,8 @@ Success: project is initialized successfully.
   },
   // 日志等级
   "log_level": "INFO",
+  // 订阅事件
+  "events": [],
   // bot 信息，可添加多个
   "bots": [
     {
@@ -105,7 +107,12 @@ export const metadata = {
 };
 
 export default function Example() {
-  useEvent(() => console.log('Bot online.'), ['session.ready']);
+  useEvent(
+    ctx => {
+      ctx.logger.mark('link start');
+    },
+    ['session.ready'],
+  );
 
   useCommand('/测试', () => 'hello world');
   useCommand('/复读 <message>', ctx => ctx.query.message);
@@ -122,18 +129,23 @@ export const metadata: Metadata = {
   description: '示例插件',
 };
 
-export default function Example(): void {
-  useEvent(() => console.log('Bot online.'), ['session.ready']);
+export default function Example() {
+  useEvent(
+    ctx => {
+      ctx.logger.mark('link start');
+    },
+    ['session.ready'],
+  );
 
   useCommand('/测试', () => 'hello world');
-  useCommand('/复读 <message>', ctx => ctx.query.message);
+  useCommand<{ message: string }>('/复读 <message>', ctx => ctx.query.message);
 }
 ```
 
 #### Typescript (Decorator)
 
 ```typescript
-import { Command, CommandContext, Event, Plugin } from '@kokkoro/core';
+import { Command, CommandContext, Context, Event, Plugin } from '@kokkoro/core';
 
 @Plugin({
   name: 'example',
@@ -141,8 +153,8 @@ import { Command, CommandContext, Event, Plugin } from '@kokkoro/core';
 })
 export default class Example {
   @Event('session.ready')
-  onReady() {
-    console.log('Bot online.');
+  onReady(ctx: Context<'session.ready'>) {
+    ctx.logger.mark('link start');
   }
 
   @Command('/测试')
@@ -151,7 +163,7 @@ export default class Example {
   }
 
   @Command('/复读 <message>')
-  replayMessage(ctx: CommandContext) {
+  replayMessage(ctx: CommandContext<{ message: string }>) {
     return ctx.query.message;
   }
 }

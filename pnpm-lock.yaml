@@ -48,39 +48,6 @@ importers:
         specifier: ^5.3.3
         version: 5.3.3
 
-  app/amesu:
-    dependencies:
-      '@kokkoro/cli':
-        specifier: workspace:^2.0.0
-        version: link:../../packages/cli
-      '@kokkoro/core':
-        specifier: workspace:^3.0.6
-        version: link:../../packages/core
-      kokkoro:
-        specifier: workspace:^2.0.1
-        version: link:../../packages/kokkoro
-      kokkoro-plugin-hitokoto:
-        specifier: workspace:^2.0.0
-        version: link:../../plugins/hitokoto
-
-  app/kokkoro:
-    dependencies:
-      '@kokkoro/core':
-        specifier: workspace:^
-        version: link:../../packages/core
-      '@kokkoro/database':
-        specifier: workspace:^
-        version: link:../../packages/database
-      kokkoro-plugin-hitokoto:
-        specifier: workspace:^
-        version: link:../../plugins/hitokoto
-      kokkoro-plugin-kfc:
-        specifier: workspace:^
-        version: link:../../plugins/kfc
-      kokkoro-plugin-pcr:
-        specifier: workspace:^
-        version: link:../../plugins/pcr
-
   packages/cli:
     dependencies:
       commander:
@@ -94,17 +61,23 @@ importers:
         version: 2.4.2
     devDependencies:
       '@kokkoro/core':
-        specifier: workspace:^3.0.8
+        specifier: workspace:^
         version: link:../core
+      '@kokkoro/utils':
+        specifier: workspace:^
+        version: link:../utils
       '@types/prompts':
         specifier: ^2.4.9
         version: 2.4.9
 
   packages/core:
     dependencies:
+      '@kokkoro/utils':
+        specifier: workspace:^
+        version: link:../utils
       amesu:
-        specifier: ^2.1.2
-        version: 2.1.2
+        specifier: ^2.1.4
+        version: 2.1.4
 
   packages/database:
     dependencies:
@@ -115,12 +88,15 @@ importers:
   packages/kokkoro:
     dependencies:
       '@kokkoro/core':
-        specifier: workspace:^3.0.4
+        specifier: workspace:^
         version: link:../core
+      '@kokkoro/utils':
+        specifier: workspace:^
+        version: link:../utils
     devDependencies:
       amesu:
-        specifier: ^2.1.1
-        version: 2.1.1
+        specifier: ^2.1.4
+        version: 2.1.4
 
   packages/utils: {}
 
@@ -660,29 +636,16 @@ packages:
       uri-js: 4.4.1
     dev: true
 
-  /amesu@2.1.1:
-    resolution: {integrity: sha512-VAFJae5/DBwxzmqbLsPP+9J4Y5VTKVn/PMEi+wF0K5p1+GrcfSIfvZckHHVXxx3R80elgfOQKR88HqspPRqvLw==}
+  /amesu@2.1.4:
+    resolution: {integrity: sha512-IF5hZ0a2epw2vOZnSPCsCBklfAHtbZFegzsjs95MZDb+E5m5m/HxmIBebO4yPTF3bZz0Jre7rzG/UzQI1T+2Hw==}
     engines: {node: '>=18'}
     dependencies:
       log4js: 6.9.1
-      ws: 8.14.2
+      ws: 8.16.0
     transitivePeerDependencies:
       - bufferutil
       - supports-color
       - utf-8-validate
-    dev: true
-
-  /amesu@2.1.2:
-    resolution: {integrity: sha512-PGxT8ju9MlN+dxMwjL49BH+z+XhW8ZY4RwdNLK6Fa8wEYV3mmT7beNYNN4lxe0sQL7XxX9OwxGiHG79ExXMIew==}
-    engines: {node: '>=18'}
-    dependencies:
-      log4js: 6.9.1
-      ws: 8.15.1
-    transitivePeerDependencies:
-      - bufferutil
-      - supports-color
-      - utf-8-validate
-    dev: false
 
   /ansi-regex@5.0.1:
     resolution: {integrity: sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ==}
@@ -2681,8 +2644,8 @@ packages:
     resolution: {integrity: sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==}
     dev: true
 
-  /ws@8.14.2:
-    resolution: {integrity: sha512-wEBG1ftX4jcglPxgFCMJmZ2PLtSbJ2Peg6TmpJFTbe9GZYOQCDPdMYu/Tm0/bGZkw8paZnJY45J4K2PZrLYq8g==}
+  /ws@8.16.0:
+    resolution: {integrity: sha512-HS0c//TP7Ina87TfiPUz1rQzMhHrl/SG2guqRcTOIUYD2q8uhUdNHZYJUaQ8aTGPzCh+c6oawMKW35nFl1dxyQ==}
     engines: {node: '>=10.0.0'}
     peerDependencies:
       bufferutil: ^4.0.1
@@ -2692,20 +2655,6 @@ packages:
         optional: true
       utf-8-validate:
         optional: true
-    dev: true
-
-  /ws@8.15.1:
-    resolution: {integrity: sha512-W5OZiCjXEmk0yZ66ZN82beM5Sz7l7coYxpRkzS+p9PP+ToQry8szKh+61eNktr7EA9DOwvFGhfC605jDHbP6QQ==}
-    engines: {node: '>=10.0.0'}
-    peerDependencies:
-      bufferutil: ^4.0.1
-      utf-8-validate: '>=5.0.2'
-    peerDependenciesMeta:
-      bufferutil:
-        optional: true
-      utf-8-validate:
-        optional: true
-    dev: false
 
   /y18n@5.0.8:
     resolution: {integrity: sha512-0pfFzegeDWJHJIAmTLRP2DwHjdF5s7jo9tuztdQxAhINCdvS+3nGINqPd00AphqJR/0LhANUS6/+7SCb98YOfA==}
