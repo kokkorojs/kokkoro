@@ -49,7 +49,6 @@ export default function (program: Command) {
         });
         const { style } = response;
         const module_path = join(plugins_path, name);
-        const module_main = style === 'javascript' ? 'index.js' : 'lib/index.js';
 
         if (existsSync(module_path)) {
           console.warn(`${ERROR}: plugin directory already exists.\n`);
@@ -61,7 +60,7 @@ export default function (program: Command) {
         await cp(path, module_path, {
           recursive: true,
         });
-        const command = `cd ./plugins/${name} && npm init -y && npm pkg set type="module" && npm pkg set main="${module_main}"`;
+        const command = `cd ./plugins/${name} && npm pkg set name="${name}"`;
         const spinner = ora(`Initialize ${name} package.json`).start();
 
         try {
