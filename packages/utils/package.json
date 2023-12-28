@@ -1,10 +1,13 @@
 {
   "name": "@kokkoro/utils",
-  "version": "1.0.0",
+  "version": "0.8.1",
   "description": "Utilities for kokkoro.",
   "engines": {
     "node": ">=20.6.0"
   },
+  "files": [
+    "lib"
+  ],
   "type": "module",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
