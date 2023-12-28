@@ -2,8 +2,8 @@
   "private": true,
   "name": "@kokkoro/root",
   "engines": {
-    "node": ">=18",
-    "pnpm": ">=7"
+    "node": ">=20.6.0",
+    "pnpm": ">=8"
   },
   "type": "module",
   "scripts": {
