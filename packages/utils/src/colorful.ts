@@ -9,12 +9,12 @@ enum Color {
 }
 
 /**
- * 彩色字体
+ * 生成彩色字体
  *
- * @param color - 字体颜色
+ * @param type - 颜色
  * @param text - 文本
- * @returns 文本内容
+ * @returns 彩色字体
  */
-export function colorful(color: keyof typeof Color, text: string): string {
-  return `\u001b[${color}m${text}\u001b[0m`;
+export function colorful(type: keyof typeof Color, text: string): string {
+  return `\u001b[${Color[type]}m${text}\u001b[0m`;
 }
