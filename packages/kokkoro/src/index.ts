@@ -1,56 +1,42 @@
-import { Bot, mountPlugin } from '@kokkoro/core';
-import { logger } from '@kokkoro/core/lib/logger.js';
-import { getConfig } from '@/config.js';
-import { retrievalPlugins } from '@/plugin.js';
-import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { readFile } from 'node:fs/promises';
+import { colorful } from '@kokkoro/utils';
+import { Bot, logger } from '@kokkoro/core';
+import { getConfig } from '@/config.js';
+import { mountPlugins } from '@/plugin.js';
 
-/**
- * 挂载所有插件
- */
-async function mountAllPlugin(): Promise<void> {
-  const plugins = await retrievalPlugins();
-
-  for (let i = 0; i < plugins.length; i++) {
-    const { folder, local } = plugins[i];
-
-    if (local) {
-      const path = join('plugins', folder, 'package.json');
-      const pkg = JSON.parse(await readFile(path, 'utf8'));
-      const filename = join('plugins', folder, pkg.main);
-
-      await mountPlugin(`./${filename}`);
-    } else {
-      await mountPlugin(folder);
-    }
-  }
+export interface Package {
+  name: string;
+  version: string;
+  main: string;
+  homepage: string;
 }
 
 /**
- * 创建机器人服务
+ * 创建机器人
  */
-async function createBotService(): Promise<void> {
-  const { log_level, bots } = await getConfig();
+async function createBots(): Promise<void> {
+  const { log_level, bots, events } = await getConfig();
 
   for (let i = 0; i < bots.length; i++) {
     const config = bots[i];
-    const bot = new Bot({ ...config, log_level });
 
-    bot.online();
+    config.events ??= events;
+    config.log_level ??= log_level;
+
+    new Bot(config).online();
   }
 }
 
-async function getPackageInfo(): Promise<Record<string, string>> {
-  const url = join(import.meta.url, '../../package.json');
-  const path = fileURLToPath(url);
-  const text = await readFile(path, 'utf8');
-  const packageInfo = JSON.parse(text);
+async function getPackageInfo(): Promise<Package> {
+  const url = new URL('../package.json', import.meta.url);
+  const text = await readFile(url, 'utf-8');
+  const packageInfo = <Package>JSON.parse(text);
 
   return packageInfo;
 }
 
 export async function setup(): Promise<void> {
+  const { version, homepage } = await getPackageInfo();
   // ⎛⎝≥⏝⏝≤⎛⎝ コッコロマジ天使！
   const logo = [
     '┌─────────────────────────────────────────────────────────────────────────────┐',
@@ -59,10 +45,10 @@ export async function setup(): Promise<void> {
     '│                                      _|                                o    │',
     '└─────────────────────────────────────────────────────────────────────────────┘',
   ];
-  const { version, homepage } = await getPackageInfo();
+  const text = colorful('Green', logo.join('\n'));
 
   process.title = 'kokkoro';
-  console.log(`\u001b[32m${logo.join('\n')}\u001b[0m`);
+  console.log(text);
 
   logger.info(`----------`);
   logger.info(`Package Version: kokkoro@${version}`);
@@ -70,8 +56,8 @@ export async function setup(): Promise<void> {
   logger.info(`----------`);
 
   try {
-    await mountAllPlugin();
-    await createBotService();
+    await mountPlugins();
+    await createBots();
   } catch (error) {
     logger.fatal(error);
     process.exit(1);

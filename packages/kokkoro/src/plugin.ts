@@ -1,14 +1,8 @@
 import { Dirent } from 'node:fs';
-import { resolve } from 'node:path';
-import { mkdir, readdir } from 'fs/promises';
-
-/** 插件 */
-interface Plugin {
-  /** 文件夹 */
-  folder: string;
-  /** 是否是本地插件 */
-  local: boolean;
-}
+import { join, resolve } from 'node:path';
+import { mkdir, readFile, readdir } from 'node:fs/promises';
+import { mountPlugin } from '@kokkoro/core';
+import { Package } from './index.js';
 
 const plugins_path = resolve('plugins');
 const modules_path = resolve('node_modules');
@@ -28,10 +22,10 @@ function isPluginFolder(dir: Dirent): boolean {
  *
  * @returns 插件信息列表
  */
-export async function retrievalPlugins() {
+async function retrievalPlugins(): Promise<Dirent[]> {
   const pluginDirs: Dirent[] = [];
   const moduleDirs: Dirent[] = [];
-  const plugins: Plugin[] = [];
+  const dirs: Dirent[] = [];
 
   try {
     const dirs = await readdir(plugins_path, { withFileTypes: true });
@@ -46,14 +40,9 @@ export async function retrievalPlugins() {
     if (!is_plugin_folder) {
       continue;
     }
-    const folder = dir.name;
 
     try {
-      const plugin: Plugin = {
-        folder,
-        local: true,
-      };
-      plugins.push(plugin);
+      dirs.push(dir);
     } catch {}
   }
 
@@ -68,16 +57,33 @@ export async function retrievalPlugins() {
     const is_plugin_folder = isPluginFolder(dir);
 
     if (is_plugin_folder && dir.name.startsWith('kokkoro-plugin-')) {
-      const folder = dir.name;
-
       try {
-        const plugin: Plugin = {
-          folder,
-          local: false,
-        };
-        plugins.push(plugin);
+        dirs.push(dir);
       } catch {}
     }
   }
-  return plugins;
+  return dirs;
+}
+
+/**
+ * 挂载所有插件
+ */
+export async function mountPlugins(): Promise<void> {
+  const dirs = await retrievalPlugins();
+
+  for (let i = 0; i < dirs.length; i++) {
+    const { name, path } = dirs[i];
+    const is_local = path === plugins_path;
+
+    if (is_local) {
+      const module_path = join(path, name);
+      const json_path = join(module_path, 'package.json');
+      const text = await readFile(json_path, 'utf-8');
+      const { main } = <Package>JSON.parse(text);
+
+      await mountPlugin(`./plugins/${name}/${main}`);
+    } else {
+      await mountPlugin(name);
+    }
+  }
 }
