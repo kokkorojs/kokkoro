@@ -50,6 +50,9 @@ importers:
 
   packages/cli:
     dependencies:
+      '@kokkoro/utils':
+        specifier: workspace:^
+        version: link:../utils
       commander:
         specifier: ^11.1.0
         version: 11.1.0
@@ -63,9 +66,6 @@ importers:
       '@kokkoro/core':
         specifier: workspace:^
         version: link:../core
-      '@kokkoro/utils':
-        specifier: workspace:^
-        version: link:../utils
       '@types/prompts':
         specifier: ^2.4.9
         version: 2.4.9
