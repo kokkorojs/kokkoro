@@ -74,16 +74,15 @@ export async function mountPlugins(): Promise<void> {
   for (let i = 0; i < dirs.length; i++) {
     const { name, path } = dirs[i];
     const is_local = path === plugins_path;
+    const module = join(path, name);
+    const pkg = join(module, 'package.json');
+    const text = await readFile(pkg, 'utf-8');
+    const { main } = <Package>JSON.parse(text);
 
     if (is_local) {
-      const module_path = join(path, name);
-      const json_path = join(module_path, 'package.json');
-      const text = await readFile(json_path, 'utf-8');
-      const { main } = <Package>JSON.parse(text);
-
       await mountPlugin(`./plugins/${name}/${main}`);
     } else {
-      await mountPlugin(name);
+      await mountPlugin(`./node_modules/${name}/${main}`);
     }
   }
 }

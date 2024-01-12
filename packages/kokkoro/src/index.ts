@@ -1,7 +1,6 @@
 import { readFile } from 'node:fs/promises';
-import { colorful } from '@kokkoro/utils';
-import { Bot, logger } from '@kokkoro/core';
-import { getConfig } from '@/config.js';
+import { logger } from '@kokkoro/core';
+import { createBots } from '@/bot.js';
 import { mountPlugins } from '@/plugin.js';
 
 export interface Package {
@@ -12,43 +11,24 @@ export interface Package {
 }
 
 /**
- * 创建机器人
+ * ⎛⎝≥⏝⏝≤⎛⎝ コッコロマジ天使！
  */
-async function createBots(): Promise<void> {
-  const { log_level, bots, events } = await getConfig();
-
-  for (let i = 0; i < bots.length; i++) {
-    const config = bots[i];
-
-    config.events ??= events;
-    config.log_level ??= log_level;
-
-    new Bot(config).online();
-  }
-}
-
-async function getPackageInfo(): Promise<Package> {
-  const url = new URL('../package.json', import.meta.url);
-  const text = await readFile(url, 'utf-8');
-  const packageInfo = <Package>JSON.parse(text);
-
-  return packageInfo;
-}
-
-export async function setup(): Promise<void> {
-  const { version, homepage } = await getPackageInfo();
-  // ⎛⎝≥⏝⏝≤⎛⎝ コッコロマジ天使！
-  const logo = [
+export async function bootstrap(): Promise<void> {
+  const messages = [
     '┌─────────────────────────────────────────────────────────────────────────────┐',
     '│    |   _  |  |   _  ._ _    ._ _   _. o o   _|_  _  ._  ._   _ |_  o   |    │',
     '│    |< (_) |< |< (_) | (_)   | | | (_| | |    |_ (/_ | | | |  > | | |   |    │',
     '│                                      _|                                o    │',
     '└─────────────────────────────────────────────────────────────────────────────┘',
   ];
-  const text = colorful('Green', logo.join('\n'));
+  const slogan = `\u001b[32m${messages.join('\n')}\u001b[0m`;
 
   process.title = 'kokkoro';
-  console.log(text);
+  console.log(slogan);
+
+  const url = new URL('../package.json', import.meta.url);
+  const text = await readFile(url, 'utf-8');
+  const { version, homepage } = <Package>JSON.parse(text);
 
   logger.info(`----------`);
   logger.info(`Package Version: kokkoro@${version}`);
