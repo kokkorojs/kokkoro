@@ -1,9 +1,9 @@
 {
   "name": "@kokkoro/core",
-  "version": "3.0.11",
+  "version": "3.0.12",
   "description": "Core features for kokkoro.",
   "engines": {
-    "node": ">=20.6.0"
+    "node": ">=18.0.0"
   },
   "files": [
     "lib"
@@ -31,7 +31,6 @@
   },
   "homepage": "https://kokkoro.js.org",
   "dependencies": {
-    "@kokkoro/utils": "workspace:^",
     "amesu": "^2.1.4"
   }
 }
