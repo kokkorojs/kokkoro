@@ -1,9 +1,9 @@
 {
   "name": "kokkoro",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "とある咕咕の QQ 机器人框架",
   "engines": {
-    "node": ">=20.6.0"
+    "node": ">=18.0.0"
   },
   "files": [
     "lib"
@@ -33,10 +33,8 @@
   },
   "homepage": "https://kokkoro.js.org",
   "dependencies": {
-    "@kokkoro/core": "workspace:^",
-    "@kokkoro/utils": "workspace:^"
-  },
-  "devDependencies": {
-    "amesu": "^2.1.4"
+    "@kokkoro/core": "^3.0.12",
+    "@kokkoro/database": "^1.0.2",
+    "@kokkoro/utils": "^0.8.3"
   }
 }
