@@ -1,20 +1,19 @@
 # core
 
-[![group](https://img.shields.io/badge/qq-1030982964-12B7F5?style=flat-square&labelColor=FAFAFA&logo=data:image/png;base64,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&logoColor=000000)](https://jq.qq.com/?_wv=1027&k=3hcWCnhq)
 [![package](https://img.shields.io/npm/v/@kokkoro/core?color=57B497&label=@kokkoro/core&style=flat-square&labelColor=FAFAFA&logo=npm)](https://www.npmjs.com/package/@kokkoro/core)
 [![engine](https://img.shields.io/node/v/@kokkoro/core?color=339933&style=flat-square&labelColor=FAFAFA&logo=Node.js)](https://nodejs.org)
 
-如果你想快速开发机器人，建议直接使用 [kokkoro](https://github.com/kokkorojs/kokkoro) 框架，该库不包含 web 与 admin 等服务。
+如果你想快速开发机器人，建议直接使用 [kokkoro](https://github.com/kokkorojs/kokkoro) 框架，该库不包含 web 与 database 等服务。
 
-作为 kokkoro 的核心依赖库，特性与 [amesu](https://github.com/xueelf/amesu) 保持一致，并在此基础上做了 plugin 的扩展。
+作为 kokkoro 的核心依赖库，特性与 [amesu](https://github.com/xueelf/amesu) 保持一致，并在此基础上扩展了插件体系。
 
-**Install:**
+## Install:
 
 ```bash
 npm i @kokkoro/core
 ```
 
-**Usage:**
+## Usage:
 
 ```javascript
 import { Bot } from '@kokkoro/core';
@@ -28,7 +27,7 @@ const bot = new Bot(config);
 bot.online();
 ```
 
-**Plugin:**
+## Plugin:
 
 你可以在根目录创建 `plugins` 文件夹来存放你编写的插件。
 
@@ -39,7 +38,7 @@ bot.online();
 └ index.js
 ```
 
-当然，这并不是强制要求，推荐这么做只是为了方便模块管理。
+当然，这并不是强制要求，推荐这么做只是为了方便插件的分类与管理。
 
 ```javascript
 // plugins/example/index.js
@@ -105,13 +104,22 @@ const bot = new Bot(config);
 bot.online();
 ```
 
-运行项目时，一定要使用 `--experimental-import-meta-resolve` 命令，否则会导致插件无法被正常解析。
+使用 `mountPlugin` 方法所传入的路径，与 `import` 的规则是保持一致的。不过值得注意的是，kokkoro 是一个 **esm** 模块包，完全遵守 ESModule 规范，而不是 Commonjs。
 
-```bash
-node --experimental-import-meta-resolve index.js
+```javascript
+import { mountPlugin } from '@kokkoro/core';
+
+// Good
+await mountPlugin('./example.js');
+await mountPlugin('example');
+
+// Bad
+await mountPlugin('example.js');
+await mountPlugin('./example');
+await mountPlugin('./plugins/example');
 ```
 
-**Config:**
+## Config:
 
 配置项与 amesu 基本一致，在此基础上添加了 `plugins` 属性，传入字符串数组。
 

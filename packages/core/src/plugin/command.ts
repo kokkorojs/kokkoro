@@ -1,4 +1,3 @@
-import { none } from '@kokkoro/utils';
 import { Context } from '@/index.js';
 
 export type Query = Record<string, string | string[]> | null;
@@ -93,7 +92,7 @@ export function useCommandAction(statement: string, callback: CommandAction) {
     if (raw_args.length < args_count) {
       const message = `缺少指令参数，有效语句为："${statement}"`;
 
-      ctx.reply({ msg_type: 0, content: message }).catch(none);
+      ctx.reply({ msg_type: 0, content: message }).catch(() => {});
       return false;
     }
     ctx.query = null;

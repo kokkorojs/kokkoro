@@ -1,5 +1,4 @@
-import { Client, ClientConfig } from 'amesu';
-import { none, objectToString } from '@kokkoro/utils';
+import { Client, ClientConfig, objectToString } from 'amesu';
 import { CommandContext, Context, pluginList } from '@/plugin/index.js';
 
 export interface BotConfig extends ClientConfig {
@@ -47,7 +46,7 @@ export class Bot extends Client {
             const reply = <CommandContext['reply'] | undefined>dispatch.d.reply;
 
             if (reply && message) {
-              reply({ msg_type: 0, content: objectToString(message) }).catch(none);
+              reply({ msg_type: 0, content: objectToString(message) }).catch(() => {});
             }
           }
           state = state.next;
