@@ -1,0 +1,20 @@
+{
+  "name": "hook",
+  "version": "1.0.0",
+  "description": "",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "peerDependencies": {
+    "@kokkoro/core": "^3.0.11"
+  }
+}

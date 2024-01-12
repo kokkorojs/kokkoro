@@ -1,0 +1,10 @@
+{
+  "$schema": "https://kokkoro.js.org/schema.json",
+  "server": {
+    "port": 2333,
+    "domain": "http://localhost"
+  },
+  "log_level": "INFO",
+  "events": [],
+  "bots": []
+}
