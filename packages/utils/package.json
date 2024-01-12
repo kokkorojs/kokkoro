@@ -1,9 +1,9 @@
 {
   "name": "@kokkoro/utils",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "description": "Utilities for kokkoro.",
   "engines": {
-    "node": ">=20.6.0"
+    "node": ">=18.0.0"
   },
   "files": [
     "lib"
