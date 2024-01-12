@@ -17,7 +17,9 @@
   ],
   "author": "Yuki <admin@yuki.sh>",
   "license": "MIT",
-  "dependencies": {
-    "@kokkoro/core": "workspace:^3.0.8"
+  "peerDependencies": {
+    "@kokkoro/core": "^3.0.12",
+    "@kokkoro/database": "^1.0.2",
+    "@kokkoro/utils": "^0.8.3"
   }
 }
