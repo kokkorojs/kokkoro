@@ -5,8 +5,8 @@ import { mountPlugin } from '@kokkoro/core';
 import { Package } from './index.js';
 import { getConfig } from './config.js';
 
-const { plugins_dir } = await getConfig();
-const plugins_path = resolve(plugins_dir ?? 'plugins');
+const { plugins_dir = 'plugins' } = await getConfig();
+const plugins_path = resolve(plugins_dir);
 const modules_path = resolve('node_modules');
 
 /**
