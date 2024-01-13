@@ -34,7 +34,7 @@
   "homepage": "https://kokkoro.js.org",
   "dependencies": {
     "@kokkoro/core": "^3.0.12",
-    "@kokkoro/database": "^1.0.2",
+    "@kokkoro/database": "^1.0.3",
     "@kokkoro/utils": "^0.8.3"
   }
 }
