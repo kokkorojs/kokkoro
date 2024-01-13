@@ -1,10 +1,9 @@
 {
   "name": "kokkoro-plugin-pcr",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "我不想打公会战.jpg",
   "type": "module",
   "main": "lib/index.js",
-  "typings": "lib/index.d.ts",
   "scripts": {
     "build": "tsc && tsc-alias",
     "build:watch": "tsc && (concurrently \"tsc -w\" \"tsc-alias -w\")"
