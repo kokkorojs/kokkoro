@@ -3,8 +3,10 @@ import { join, resolve } from 'node:path';
 import { mkdir, readFile, readdir } from 'node:fs/promises';
 import { mountPlugin } from '@kokkoro/core';
 import { Package } from './index.js';
+import { getConfig } from './config.js';
 
-const plugins_path = resolve('plugins');
+const { plugins_dir } = await getConfig();
+const plugins_path = resolve(plugins_dir ?? 'plugins');
 const modules_path = resolve('node_modules');
 
 /**
@@ -80,7 +82,7 @@ export async function mountPlugins(): Promise<void> {
     const { main } = <Package>JSON.parse(text);
 
     if (is_local) {
-      await mountPlugin(`./plugins/${name}/${main}`);
+      await mountPlugin(`./${plugins_dir}/${name}/${main}`);
     } else {
       await mountPlugin(`./node_modules/${name}/${main}`);
     }
