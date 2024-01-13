@@ -1,0 +1,27 @@
+{
+  "name": "kokkoro-plugin-aircon",
+  "version": "2.0.0",
+  "description": "群空调，低碳环保无污染，就是没风",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "scripts": {
+    "build": "tsc && tsc-alias",
+    "build:watch": "tsc && (concurrently \"tsc -w\" \"tsc-alias -w\")"
+  },
+  "keywords": [
+    "bot",
+    "kokkoro",
+    "qq"
+  ],
+  "author": "Yuki <admin@yuki.sh>",
+  "license": "MIT",
+  "peerDependencies": {
+    "@kokkoro/core": "^3.0.12",
+    "@kokkoro/database": "^1.0.3",
+    "@kokkoro/utils": "^0.8.3"
+  }
+}
