@@ -1,6 +1,6 @@
 {
   "name": "@kokkoro/database",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Local database for kokkoro.",
   "engines": {
     "node": ">=18.0.0"
