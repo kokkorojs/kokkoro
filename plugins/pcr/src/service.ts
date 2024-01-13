@@ -239,11 +239,14 @@ function isToday(timestamp: number): boolean {
  */
 function getMemberTodayHitCount(id: string, hits: Hit[]): number {
   const todayHits = hits.filter(hit => hit.member.id === id && isToday(hit.timestamp));
-  const kill_count = todayHits.filter(hit => hit.is_kill).length;
-  const hit_count = todayHits.reduce(
-    (accumulator, current) => accumulator + (current.is_kill && kill_count <= 3 ? 0.5 : 1),
-    0,
-  );
+  const hit_count = todayHits.reduce((accumulator, current) => {
+    const is_integer = Number.isInteger(accumulator);
+
+    if (!is_integer) {
+      return Math.ceil(accumulator);
+    }
+    return accumulator + (current.is_kill ? 0.5 : 1);
+  }, 0);
 
   return hit_count;
 }
