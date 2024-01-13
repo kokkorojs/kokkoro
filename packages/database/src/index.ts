@@ -19,7 +19,7 @@ export interface Database<T = Record<string, string>> extends ClassicLevel<keyof
 
 export class Database<T = Record<string, string>> extends ClassicLevel<keyof T, T[keyof T]> {
   constructor(location: string, options?: DatabaseOptions<keyof T, T[keyof T]>) {
-    location = join(process.cwd(), 'db', location);
+    location = join(process.cwd(), 'data', 'database', location);
     super(location, options);
   }
 
