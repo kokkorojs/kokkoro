@@ -1,4 +1,4 @@
-import { JSONPreset } from 'lowdb/node';
+import { Database } from '@kokkoro/database';
 import { Member } from '@/index.js';
 
 export type Service = 'jp' | 'tw' | 'cn';
@@ -177,31 +177,9 @@ interface Progress {
   hits: Hit[];
 }
 
-interface Data {
-  [id: string]: Progress;
-}
-const db = await JSONPreset<Data>('db.json', {});
-
-/**
- * 获取会战进度
- *
- * @param id - 群聊 id
- * @returns 会战进度
- */
-function getProgress(id: string): Progress {
-  return db.data[id];
-}
-
-/**
- * 更新会战进度
- *
- * @param id - 群聊 id
- * @param progress 需要更新的进度内容
- */
-async function setProgress(id: string, progress: Progress): Promise<void> {
-  db.data[id] = progress;
-  return db.write();
-}
+const db = new Database<Record<string, Progress>>('pcr', {
+  valueEncoding: 'json',
+});
 
 /**
  * 获取会战信息
@@ -311,11 +289,12 @@ function nextLap(progress: Progress) {
  * @param id - 群聊 id
  */
 export async function terminateClanBattle(id: string): Promise<string> {
-  if (!getProgress(id)) {
+  const has_battle = await db.has(id);
+
+  if (!has_battle) {
     return '当月未发起会战 (⊙x⊙;)';
   }
-  delete db.data[id];
-  await db.write();
+  await db.del(id);
   return `会战已结束 (●'◡'●)`;
 }
 
@@ -326,7 +305,9 @@ export async function terminateClanBattle(id: string): Promise<string> {
  * @param service - 服务器
  */
 export async function initClanBattle(id: string, service: Service): Promise<string> {
-  if (db.data[id]) {
+  const has_battle = await db.has(id);
+
+  if (has_battle) {
     return '当月已发起过会战，如果要开启新一轮会战，请先结束当前会战 (oﾟvﾟ)ノ';
   }
   const clanBattleInfo = getClanBattleInfo(service);
@@ -351,8 +332,8 @@ export async function initClanBattle(id: string, service: Service): Promise<stri
     };
     monsters.push(monster);
   }
-  await setProgress(id, progress);
-  return `已开启${progress.zodiac}会战 (*/ω＼*)\n\n${parseProgress(id)}`;
+  await db.put(id, progress);
+  return `已开启${progress.zodiac}会战 (*/ω＼*)\n\n${await parseProgress(id)}`;
 }
 
 /**
@@ -361,11 +342,13 @@ export async function initClanBattle(id: string, service: Service): Promise<stri
  * @param id - 群聊 id
  * @returns 当前状态信息
  */
-export function parseProgress(id: string): string {
-  if (!getProgress(id)) {
+export async function parseProgress(id: string): Promise<string> {
+  const has_battle = await db.has(id);
+
+  if (!has_battle) {
     return '当月未发起会战 (⊙x⊙;)';
   }
-  const progress = getProgress(id);
+  const progress = await db.get(id);
   const messages = [];
   const stage = getStage(progress.lap, progress.service)!;
   const clanBattleInfo = getClanBattleInfo(progress.service)!;
@@ -403,14 +386,16 @@ export function killMonster(id: string, member: Member, boss: number): Promise<s
  * @returns 出刀信息
  */
 export async function hitMonster(id: string, member: Member, boss: number, damage: number): Promise<string> {
-  if (!getProgress(id)) {
+  const has_battle = await db.has(id);
+
+  if (!has_battle) {
     return '当月未发起会战 (⊙x⊙;)';
   }
   if (![1, 2, 3, 4, 5].includes(boss) || isNaN(damage)) {
     return '请输入合法的数值，boss 应为 1 ~ 5，damage 应该是数字 (╬▔皿▔)╯';
   }
   const monster_index = boss - 1;
-  const progress = getProgress(id);
+  const progress = await db.get(id);
   const monsters = progress.monsters;
   const hits = progress.hits;
   const stage = getStage(progress.lap, progress.service)!;
@@ -454,8 +439,8 @@ export async function hitMonster(id: string, member: Member, boss: number, damag
   if (!monsters[monster_index].hp) {
     next_message = nextLap(progress);
   }
-  await setProgress(id, progress);
-  const progress_message = parseProgress(id);
+  await db.put(id, progress);
+  const progress_message = await parseProgress(id);
 
   return `${member.name ?? ''}对${digits[monster_index]}王造成 ${damage} 点伤害${
     next_message ? `，${next_message}` : ''
@@ -470,10 +455,12 @@ export async function hitMonster(id: string, member: Member, boss: number, damag
  * @returns 撤销信息
  */
 export async function revokeHit(id: string, member: Member): Promise<string> {
-  if (!getProgress(id)) {
+  const has_battle = await db.has(id);
+
+  if (!has_battle) {
     return '当月未发起会战 (⊙x⊙;)';
   }
-  const progress = getProgress(id);
+  const progress = await db.get(id);
   const today_hit_count = getMemberTodayHitCount(member.id, progress.hits);
 
   if (!today_hit_count) {
@@ -501,9 +488,9 @@ export async function revokeHit(id: string, member: Member): Promise<string> {
     monster.hp = hit.damage;
   }
   progress.hits.splice(hit_index, 1);
-  await setProgress(id, progress);
+  await db.put(id, progress);
 
-  return `已撤销上一次出刀记录 (。・ω・。)\n\n${parseProgress(id)}`;
+  return `已撤销上一次出刀记录 (。・ω・。)\n\n${await parseProgress(id)}`;
 }
 
 /**
@@ -514,10 +501,12 @@ export async function revokeHit(id: string, member: Member): Promise<string> {
  * @returns 下班信息
  */
 export async function knockOff(id: string, member: Member): Promise<string | void> {
-  if (!getProgress(id)) {
+  const has_battle = await db.has(id);
+
+  if (!has_battle) {
     return '当月未发起会战 (⊙x⊙;)';
   }
-  const progress = getProgress(id);
+  const progress = await db.get(id);
   const today_hit_count = getMemberTodayHitCount(member.id, progress.hits);
 
   if (today_hit_count === 3) {
@@ -536,7 +525,7 @@ export async function knockOff(id: string, member: Member): Promise<string | voi
   for (let i = today_hit_count; i < 3; i++) {
     progress.hits.push(hit);
   }
-  await setProgress(id, progress);
+  await db.put(id, progress);
 }
 
 export function getKnockOffMeme(): string {

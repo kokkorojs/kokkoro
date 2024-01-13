@@ -1,6 +1,6 @@
 {
   "name": "kokkoro-plugin-pcr",
-  "version": "0.0.4",
+  "version": "0.1.0",
   "description": "我不想打公会战.jpg",
   "type": "module",
   "main": "lib/index.js",
@@ -17,8 +17,9 @@
   ],
   "author": "Yuki <admin@yuki.sh>",
   "license": "MIT",
-  "dependencies": {
-    "@kokkoro/core": "workspace:^3.0.8",
-    "lowdb": "^6.1.1"
+  "peerDependencies": {
+    "@kokkoro/core": "^3.0.12",
+    "@kokkoro/database": "^1.0.2",
+    "@kokkoro/utils": "^0.8.3"
   }
 }

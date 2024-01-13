@@ -1,3 +1,4 @@
+import { stringToNumber } from '@kokkoro/utils';
 import { CommandContext, Metadata, useCommand } from '@kokkoro/core';
 import {
   Service,
@@ -82,23 +83,23 @@ export default function Priconne() {
     const id = parseId(ctx);
     return terminateClanBattle(id);
   });
-  useCommand('/状态', ctx => {
+  useCommand('/状态', async ctx => {
     const id = parseId(ctx);
-    return parseProgress(id);
+    return await parseProgress(id);
   });
-  useCommand<{ boss: number; damage: number }>('/报刀 <boss> <damage>', ctx => {
+  useCommand<{ boss: string; damage: string }>('/报刀 <boss> <damage>', ctx => {
     const id = parseId(ctx);
     const member = parseMember(ctx);
     const { boss, damage } = ctx.query;
 
-    return hitMonster(id, member, boss, damage);
+    return hitMonster(id, member, stringToNumber(boss), stringToNumber(damage));
   });
-  useCommand<{ boss: number }>('/尾刀 <boss>', ctx => {
+  useCommand<{ boss: string }>('/尾刀 <boss>', ctx => {
     const id = parseId(ctx);
     const member = parseMember(ctx);
     const { boss } = ctx.query;
 
-    return killMonster(id, member, boss);
+    return killMonster(id, member, stringToNumber(boss));
   });
   useCommand('/撤销', ctx => {
     const id = parseId(ctx);
