@@ -29,6 +29,6 @@
   },
   "homepage": "https://kokkoro.js.org",
   "dependencies": {
-    "classic-level": "^1.3.0"
+    "classic-level": "^1.4.1"
   }
 }

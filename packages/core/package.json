@@ -31,6 +31,6 @@
   },
   "homepage": "https://kokkoro.js.org",
   "dependencies": {
-    "amesu": "^2.1.5"
+    "amesu": "^2.1.7"
   }
 }
