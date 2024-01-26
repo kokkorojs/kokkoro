@@ -2,7 +2,7 @@
     <a href="https://kokkoro.js.org">
       <img src="https://kokkoro.js.org/logo.png" width="200" alt="pixiv: 104321865" />
     </a>
-    <h3>kokkoro</h3>
+    <h3>Kokkoro</h3>
     <small> &gt; とある咕咕の QQ 机器人框架 &lt; </small>
 </div>
 
@@ -14,11 +14,9 @@
 [![engine](https://img.shields.io/node/v/kokkoro?color=339933&style=flat-square&labelColor=FAFAFA&logo=Node.js)](https://nodejs.org)
 ![downloads](https://img.shields.io/npm/dt/kokkoro?style=flat-square&logo=tinder&logoColor=FF8C00&labelColor=FAFAFA)
 
-本项目是一个基于 [amesu](https://github.com/xueelf/amesu) SDK，使用 [TypeScript](https://www.typescriptlang.org/) 语言开发的 [QQ](https://im.qq.com/) 机器人框架。
-
 ## 介绍
 
-原项目 [yumemi_bot](https://github.com/rumicchi/yumemi_bot) 最初为个人自用，主要围绕游戏 [公主连结☆Re:Dive](https://priconne-redive.jp/) 开发相关功能。因代码严重耦合不利于维护，使用 ts 分离重构为插件一对多形式的框架。
+本项目是一个基于 [Amesu](https://github.com/xueelf/amesu) SDK，使用 [TypeScript](https://www.typescriptlang.org/) 语言开发的 [QQ](https://im.qq.com/) 机器人框架。
 
 ## 使用
 
@@ -26,25 +24,27 @@
 
 ```shell
 npm i -g @kokkoro/cli
-
-mkdir bot && cd bot
 kokkoro init
 ```
 
 ```shell
-✔ Your bot appid: … <appid>
-✔ Your bot token … <token>
-✔ Your bot secret … <secret>
+✔ Please enter the project name: … <your-project-name>
+✔ Your robot appid: … <appid>
+✔ Your robot token … <token>
+✔ Your robot secret … <secret>
+✔ Is it a public domain robot? … No / Yes
 
-Success: project is initialized successfully.
+SUCCESS Project initialization completed.
 ```
 
 ### 目录结构
 
 ```tex
 .
+├─ data               项目资源
+├─ logs               日志列表
 ├─ plugins            插件目录
-├─ app.js             启动程序
+├─ index.js           程序入口
 └─ kokkoro.json       配置文件
 ```
 
@@ -59,7 +59,7 @@ Success: project is initialized successfully.
     // 端口号
     "port": 2333,
     // 域名
-    "domain": null
+    "domain": "http://localhost"
   },
   // 日志等级
   "log_level": "INFO",
@@ -88,7 +88,7 @@ kokkoro plugin <name>
     Typescript (Hook)
     Typescript (Decorator)
 
-Info: plugin module create successful.
+INFO Plugin creation has been aborted.
 ```
 
 ### 插件

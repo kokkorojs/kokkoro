@@ -10,6 +10,6 @@
     "start": "node index.js"
   },
   "dependencies": {
-    "kokkoro": "^2.0.5"
+    "kokkoro": "^2.0.6"
   }
 }
