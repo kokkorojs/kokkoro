@@ -14,6 +14,11 @@
     "kokkoro",
     "qq"
   ],
-  "author": "Xue Elf <xueelf@outlook.com>",
-  "license": "MIT"
+  "author": "Yuki <admin@yuki.sh>",
+  "license": "MIT",
+  "peerDependencies": {
+    "@kokkoro/core": "^3.0.12",
+    "@kokkoro/database": "^1.0.2",
+    "@kokkoro/utils": "^0.8.3"
+  }
 }
