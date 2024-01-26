@@ -1,6 +1,6 @@
 {
   "name": "kokkoro",
-  "version": "2.0.5",
+  "version": "2.0.6",
   "description": "とある咕咕の QQ 机器人框架",
   "engines": {
     "node": ">=18.0.0"
