@@ -12,6 +12,8 @@ export type KokkoroConfig = {
   };
   /** 插件目录 */
   plugins_dir: string;
+  /** 是否处于沙箱场景 */
+  sandbox: boolean;
   /** 日志等级，打印日志会降低性能，若消息量巨大建议修改此参数 */
   log_level: LogLevel;
   /** 订阅事件 */
