@@ -539,6 +539,26 @@ export function getKnockOffMeme(): string {
   return image;
 }
 
+export async function skipLap(id: string, lap: number) {
+  const has_battle = await db.has(id);
+
+  if (!has_battle) {
+    return '当月未发起会战 (⊙x⊙;)';
+  } else if (lap <= 0 || isNaN(lap)) {
+    return '请输入合法的数值，lap 应该是正整数 (╬▔皿▔)╯';
+  }
+  const progress = await db.get(id);
+
+  progress.lap = lap;
+  progress.monsters.map(monster => {
+    monster.hp = -1;
+    monster.lap = lap;
+  });
+  await db.put(id, progress);
+
+  return `已强制跳至 ${lap} 周目，当前功能仅供测试，可能会出现未知的问题 (っ °Д °;)っ`;
+}
+
 /**
  * 计算 [e=110-(90-t)/(d/b)] 的结果，方程式取自 {@link https://github.com/watermellye/pcr_calculator_plus PCR ClanBattle Calculator}。
  *

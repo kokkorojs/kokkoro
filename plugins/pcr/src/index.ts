@@ -10,6 +10,7 @@ import {
   knockOff,
   parseProgress,
   revokeHit,
+  skipLap,
   terminateClanBattle,
 } from '@/service.js';
 
@@ -120,6 +121,12 @@ export default function Priconne() {
       const image = getKnockOffMeme();
       await sendImage(ctx, image);
     }
+  });
+  useCommand<{ lap: string }>('/周目 <lap>', async ctx => {
+    const id = parseId(ctx);
+    const { lap } = ctx.query;
+
+    return await skipLap(id, stringToNumber(lap));
   });
   useCommand<{ health: string; first: string; last: string }>('/合刀计算 <health> <first> <last>', ctx => {
     const { health, first, last } = ctx.query;
