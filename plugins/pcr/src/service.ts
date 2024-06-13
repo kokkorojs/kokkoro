@@ -1,4 +1,5 @@
 import { Database } from '@kokkoro/database';
+import { stringToNumber } from '@kokkoro/utils';
 import { Member } from '@/index.js';
 
 export type Service = 'jp' | 'tw' | 'cn';
@@ -536,4 +537,42 @@ export function getKnockOffMeme(): string {
   const image = memes[random];
 
   return image;
+}
+
+/**
+ * 计算 [e=110-(90-t)/(d/b)] 的结果，方程式取自 {@link https://github.com/watermellye/pcr_calculator_plus PCR ClanBattle Calculator}。
+ *
+ * @param t - 剩余秒数
+ * @param d - 造成伤害
+ * @param b - boss 血量
+ * @returns 有解则返回解的向上取整结果
+ */
+function solveEquation(t: number, d: number, b: number) {
+  const x = d / b;
+  const y = 90 - t;
+  const e = Math.min(90, Math.ceil(110 - y / x));
+
+  return e;
+}
+
+/**
+ * 计算合刀补偿时间，目前仅支持 BDD 计算。
+ *
+ * @param health - boss 血量
+ * @param firstDamage - 第一次伤害
+ * @param lastDamage - 最后一次伤害
+ * @returns 补偿信息
+ */
+export function calcMakeUpTime(health: string, firstDamage: string, lastDamage: string): string {
+  // TODO: ／人◕ ‿‿ ◕人＼ 增加更多计算方式
+  const healthNumber = stringToNumber(health);
+  const firstDamageNumber = stringToNumber(firstDamage);
+  const lastDamageNumber = stringToNumber(lastDamage);
+
+  return [
+    `boss血量=${health}`,
+    `对boss伤害=${firstDamage} | ${lastDamage}`,
+    `若[${firstDamageNumber}]先出，[${lastDamageNumber}]后出，补偿${solveEquation(0, lastDamageNumber, healthNumber - firstDamageNumber)}s`,
+    `若[${lastDamageNumber}]先出，[${firstDamageNumber}]后出，补偿${solveEquation(0, firstDamageNumber, healthNumber - lastDamageNumber)}s`,
+  ].join('\n');
 }

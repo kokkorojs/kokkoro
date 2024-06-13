@@ -2,6 +2,7 @@ import { stringToNumber } from '@kokkoro/utils';
 import { CommandContext, Metadata, useCommand } from '@kokkoro/core';
 import {
   Service,
+  calcMakeUpTime,
   getKnockOffMeme,
   hitMonster,
   initClanBattle,
@@ -119,5 +120,9 @@ export default function Priconne() {
       const image = getKnockOffMeme();
       await sendImage(ctx, image);
     }
+  });
+  useCommand<{ health: string; first: string; last: string }>('/合刀计算 <health> <first> <last>', ctx => {
+    const { health, first, last } = ctx.query;
+    return calcMakeUpTime(health, first, last);
   });
 }
