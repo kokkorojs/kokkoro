@@ -15,7 +15,7 @@
   "author": "",
   "license": "ISC",
   "peerDependencies": {
-    "@kokkoro/core": "^3.0.12",
+    "@kokkoro/core": "^3.0.13",
     "@kokkoro/database": "^1.0.2",
     "@kokkoro/utils": "^0.8.3"
   }

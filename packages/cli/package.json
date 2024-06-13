@@ -33,7 +33,7 @@
   },
   "homepage": "https://kokkoro.js.org",
   "dependencies": {
-    "commander": "^11.1.0",
+    "commander": "^12.1.0",
     "enquirer": "^2.4.1"
   }
 }
