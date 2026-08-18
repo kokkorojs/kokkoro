@@ -1,36 +1,33 @@
 {
   "name": "@kokkoro/core",
-  "version": "3.0.13",
-  "description": "Core features for kokkoro.",
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "files": [
-    "lib"
-  ],
-  "type": "module",
-  "main": "lib/index.js",
-  "typings": "lib/index.d.ts",
-  "scripts": {
-    "build": "tsc && tsc-alias",
-    "build:watch": "tsc && (concurrently \"tsc -w\" \"tsc-alias -w\")"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/kokkorojs/kokkoro.git"
-  },
+  "version": "3.1.0",
+  "description": "The core of the Kokkoro QQ bot framework.",
   "keywords": [
     "bot",
     "kokkoro",
-    "qq"
+    "qq",
+    "qqbot"
   ],
-  "author": "Yuki <admin@yuki.sh>",
-  "license": "MIT",
+  "homepage": "https://kokkoro.js.org/",
   "bugs": {
-    "url": "https://github.com/kokkorojs/issues"
+    "url": "https://github.com/kokkorojs/kokkoro/issues"
   },
-  "homepage": "https://kokkoro.js.org",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kokkorojs/kokkoro.git",
+    "directory": "packages/core"
+  },
+  "license": "MIT",
+  "author": "Yuki <admin@yuki.sh>",
+  "type": "module",
+  "exports": "./src/index.ts",
+  "files": [
+    "src"
+  ],
   "dependencies": {
-    "amesu": "^2.1.9"
+    "chobits": "^1.1.1"
+  },
+  "peerDependencies": {
+    "typescript": "^6.0.3"
   }
 }
