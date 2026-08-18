@@ -1,3 +1,4 @@
-app/
-lib/
+.DS_Store
+.eslintcache
+.env.local
 node_modules/
