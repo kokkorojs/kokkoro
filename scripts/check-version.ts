@@ -1,20 +1,26 @@
-import { write } from 'bun';
+import { Glob, write } from 'bun';
 
 const tag = import.meta.env.GITHUB_REF_NAME;
 const output = import.meta.env.GITHUB_OUTPUT;
-const workspace = tag?.match(/^@kokkoro\/(?<workspace>[^/@]+)@.+$/)?.groups?.workspace;
 
-if (!tag || !workspace) {
+if (!tag) {
   throw new Error(`Invalid release tag: ${tag}`);
 }
 
 if (!output) {
   throw new Error('GITHUB_OUTPUT is not defined');
 }
-const directory = `packages/${workspace}`;
-const { default: manifest } = await import(`~/${directory}/package.json`, { with: { type: 'json' } });
+const workspaces = await Array.fromAsync(new Glob('packages/*/package.json').scan(), async path => {
+  const { default: manifest } = await import(`~/${path}`, { with: { type: 'json' } });
 
-if (`${manifest.name}@${manifest.version}` !== tag) {
-  throw new Error(`Git tag "${tag}" does not match package version "${manifest.name}@${manifest.version}"`);
+  return {
+    directory: path.replace(/\/package\.json$/u, ''),
+    tag: `${manifest.name}@${manifest.version}`,
+  };
+});
+const workspace = workspaces.find(workspace => workspace.tag === tag);
+
+if (!workspace) {
+  throw new Error(`Git tag "${tag}" does not match any workspace package version`);
 }
-await write(output, `directory=${directory}\n`);
+await write(output, `directory=${workspace.directory}\n`);
