@@ -1,0 +1,53 @@
+name: Publish Package
+
+on:
+  push:
+    tags:
+      - '@kokkoro/*@*'
+
+jobs:
+  publish:
+    permissions:
+      id-token: write
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: latest
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: bun ci --ignore-scripts
+
+      - name: Check formatting
+        run: bun run format:check
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Test
+        run: bun test
+
+      - name: Check version
+        id: package
+        run: bun run scripts/check-version.ts
+
+      - name: Add license
+        run: cp LICENSE "${{ steps.package.outputs.directory }}/LICENSE"
+
+      - name: Publish
+        working-directory: ${{ steps.package.outputs.directory }}
+        run: npm publish --ignore-scripts

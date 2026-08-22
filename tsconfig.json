@@ -6,6 +6,9 @@
 
     "module": "Preserve",
     "moduleResolution": "bundler",
+    "paths": {
+      "~/*": ["./*"]
+    },
     "types": ["bun"],
 
     "noEmit": true,
@@ -18,5 +21,5 @@
 
     "skipLibCheck": true
   },
-  "include": ["*.config.ts", "packages/*/examples", "packages/*/src", "packages/*/tests"]
+  "include": ["*.config.ts", "packages/*/examples", "packages/*/src", "packages/*/tests", "scripts"]
 }
