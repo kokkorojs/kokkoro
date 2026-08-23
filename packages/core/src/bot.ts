@@ -4,13 +4,13 @@ import { type CommandEventType, type MountedCommand, COMMAND_EVENT_TYPES, create
 import {
   type EffectScope,
   type EventType,
-  type PluginSource,
+  type PluginSetup,
   createEffectScope,
   dispatchEffects,
-  disposeEffects,
+  disposeScope,
   EVENT_TYPES,
   mountEffects,
-  renderPlugin,
+  render,
   trackPending,
 } from './plugin';
 
@@ -18,7 +18,7 @@ import {
 export class Bot<
   CustomEvents extends Record<keyof CustomEvents, unknown[]> = Record<never, never>,
 > extends Client<CustomEvents> {
-  private readonly scopes = new Map<PluginSource, EffectScope>();
+  private readonly scopes = new Map<PluginSetup, EffectScope>();
   private readonly commands = new Map<string, MountedCommand>();
 
   /** @param options Chobits 客户端选项。 */
@@ -33,40 +33,46 @@ export class Bot<
   /**
    * 挂载插件。
    *
-   * Core 以传入的函数引用识别插件。
+   * Core 以传入的 PluginSetup 引用识别挂载。
    */
-  public async mount(source: PluginSource): Promise<void> {
-    if (typeof source !== 'function') {
-      throw new TypeError('Plugin source must be a function');
+  public async mount(setup: PluginSetup): Promise<void> {
+    if (typeof setup !== 'function') {
+      throw new TypeError('Plugin setup must be a function');
     }
-    if (this.scopes.has(source)) {
-      throw new Error('Plugin is already mounted');
+    if (this.scopes.has(setup)) {
+      throw new Error('Plugin setup is already mounted');
     }
     const scope = createEffectScope();
 
-    this.scopes.set(source, scope);
+    this.scopes.set(setup, scope);
+    await using disposables = new AsyncDisposableStack();
 
     try {
-      await renderPlugin(scope, source);
+      const cleanup = await render(scope, setup);
+
+      if (cleanup) {
+        disposables.defer(cleanup);
+      }
       this.mountCommands(scope);
       await mountEffects(scope, this);
+      scope.disposables = disposables.move();
       scope.status = 'mounted';
     } catch (error) {
       this.unmountCommands(scope);
-      this.scopes.delete(source);
+      this.scopes.delete(setup);
       throw error;
     }
   }
 
-  /** 停止接收新任务，等待正在执行的任务结束，然后释放 Effect 资源。 */
-  public async unmount(source: PluginSource): Promise<void> {
-    if (typeof source !== 'function') {
-      throw new TypeError('Plugin source must be a function');
+  /** 停止接收新任务，等待正在执行的任务结束，然后执行清理函数。 */
+  public async unmount(setup: PluginSetup): Promise<void> {
+    if (typeof setup !== 'function') {
+      throw new TypeError('Plugin setup must be a function');
     }
-    const scope = this.scopes.get(source);
+    const scope = this.scopes.get(setup);
 
     if (!scope || scope.status !== 'mounted') {
-      throw new Error('Plugin is not mounted');
+      throw new Error('Plugin setup is not mounted');
     }
     scope.status = 'unmounting';
     this.unmountCommands(scope);
@@ -74,9 +80,9 @@ export class Bot<
     await Promise.allSettled([...scope.pending]);
 
     try {
-      await disposeEffects(scope);
+      await disposeScope(scope);
     } finally {
-      this.scopes.delete(source);
+      this.scopes.delete(setup);
     }
   }
 

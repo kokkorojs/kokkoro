@@ -50,25 +50,29 @@ declare const UNDEFINED_VOID_ONLY: unique symbol;
 
 type VoidOrUndefinedOnly = void | { [UNDEFINED_VOID_ONLY]: never };
 
-/** 同步调用 Hook 的插件函数。 */
-export type Plugin = () => VoidOrUndefinedOnly;
-
-/** 用于动态导入默认 Plugin 的函数。 */
-export type PluginLoader = () => Promise<{ readonly default: Plugin }>;
-
-/** `Bot.mount()` 与 `Bot.unmount()` 接受的插件来源。 */
-export type PluginSource = Plugin | PluginLoader;
-
-/** 释放 Effect 资源的函数。 */
+/** 释放资源的函数。 */
 export type Cleanup = () => void | Promise<void>;
 
-type EffectSetup = (context: Context | MountContext) => unknown;
+/** 挂载到 Bot 时同步登记 Hook，并可返回清理函数。 */
+export type PluginSetup = () => VoidOrUndefinedOnly | Cleanup;
+
+/** 用于动态导入默认导出为 PluginSetup 的模块。 */
+export type PluginLoader = () => Promise<{ readonly default: PluginSetup }>;
+
+/** 当前运行时中已加载的完整插件。 */
+export interface Plugin {
+  /** 模块默认导出的 PluginSetup。 */
+  readonly setup: PluginSetup;
+
+  /** 释放通过 `useDispose()` 登记的模块资源。 */
+  dispose(): Promise<void>;
+}
+
+type EffectCallback = (context: Context | MountContext) => void | Promise<void>;
 
 interface Effect {
-  readonly setup: EffectSetup;
+  readonly callback: EffectCallback;
   readonly dependencies: readonly EventType[] | undefined;
-  cleanup?: Cleanup;
-  transition: Promise<void>;
 }
 
 export interface EffectScope {
@@ -81,6 +85,9 @@ export interface EffectScope {
 
 /** 同步 render 期间使用的 Hook 收集作用域。 */
 let currentScope: EffectScope | null = null;
+
+/** 动态加载插件模块期间使用的资源栈。 */
+let currentDisposables: AsyncDisposableStack | null = null;
 
 const isPromiseLike = (value: unknown): value is PromiseLike<unknown> => {
   if (value === null || (typeof value !== 'object' && typeof value !== 'function')) {
@@ -98,7 +105,7 @@ const getCurrentScope = (): EffectScope => {
   return currentScope;
 };
 
-/** Hook 只在同步调用链中收集。等待 Loader 时立即恢复原作用域。 */
+/** Hook 只在 PluginSetup 的同步调用链中收集。 */
 const invokeWithScope = (scope: EffectScope, callback: () => unknown): unknown => {
   const previous = currentScope;
 
@@ -111,89 +118,40 @@ const invokeWithScope = (scope: EffectScope, callback: () => unknown): unknown =
   }
 };
 
-const getDefaultPlugin = (module: unknown): Plugin => {
-  // 异步 Plugin 会解析为 undefined，属于同步 render 约束错误。
-  if (module === undefined) {
-    throw new TypeError('Plugin must be synchronous');
-  }
+const getSetup = (module: unknown): PluginSetup => {
   if (typeof module !== 'object' || module === null || !Object.hasOwn(module, 'default')) {
     throw new TypeError('Plugin loader must resolve to a module with a default export');
   }
-  const plugin = (<{ readonly default: unknown }>module).default;
+  const setup = (<{ readonly default: unknown }>module).default;
 
-  if (typeof plugin !== 'function') {
+  if (typeof setup !== 'function') {
     throw new TypeError('Plugin module default export must be a function');
   }
-  return <Plugin>plugin;
+  return <PluginSetup>setup;
 };
 
-const validatePluginResult = async (result: unknown): Promise<void> => {
+const validateSetupResult = async (result: unknown): Promise<Cleanup | undefined> => {
   if (isPromiseLike(result)) {
     try {
       await result;
     } catch (cause) {
-      throw new TypeError('Plugin must be synchronous', { cause });
+      throw new TypeError('Plugin setup must be synchronous', { cause });
     }
 
-    throw new TypeError('Plugin must be synchronous');
+    throw new TypeError('Plugin setup must be synchronous');
   }
-  if (result !== undefined) {
-    throw new TypeError('Plugin must return void');
+  if (result === undefined) {
+    return undefined;
   }
+  if (typeof result !== 'function') {
+    throw new TypeError('Plugin setup must return void or a cleanup function');
+  }
+  return <Cleanup>result;
 };
 
-const disposeEffect = async (effect: Effect): Promise<void> => {
-  await effect.transition;
-  const cleanup = effect.cleanup;
-
-  effect.cleanup = undefined;
-  await cleanup?.();
-};
-
-const setupMountEffect = async (effect: Effect, context: MountContext): Promise<void> => {
-  const result = effect.setup(context);
-  const cleanup = isPromiseLike(result) ? await result : result;
-
-  if (cleanup === undefined) {
-    return;
-  }
-
-  if (typeof cleanup !== 'function') {
-    throw new TypeError('Effect setup must return void or a cleanup function');
-  }
-  effect.cleanup = <Cleanup>cleanup;
-};
-
-const setupEventEffect = async (effect: Effect, context: Context): Promise<void> => {
-  const previous = effect.transition;
-  const { promise, resolve } = Promise.withResolvers<void>();
-
-  effect.transition = promise;
-
-  try {
-    await previous;
-    const cleanup = effect.cleanup;
-
-    effect.cleanup = undefined;
-    await cleanup?.();
-
-    const result = effect.setup(context);
-
-    if (isPromiseLike(result)) {
-      // 异步处理函数不会返回 cleanup，无需阻塞同一 Effect 的下一次调用。
-      resolve();
-
-      if ((await result) !== undefined) {
-        throw new TypeError('Event setup promises must resolve to void');
-      }
-      return;
-    }
-    if (result !== undefined && typeof result !== 'function') {
-      throw new TypeError('Effect setup must return void, a Promise, or a cleanup function');
-    }
-    effect.cleanup = result === undefined ? undefined : <Cleanup>result;
-  } finally {
-    resolve();
+const runEffect = async (effect: Effect, context: Context | MountContext): Promise<void> => {
+  if ((await effect.callback(context)) !== undefined) {
+    throw new TypeError('Event callback must return void or Promise<void>');
   }
 };
 
@@ -218,38 +176,63 @@ export const assertCurrentScope = (scope: EffectScope): void => {
   }
 };
 
-export const renderPlugin = async (scope: EffectScope, source: PluginSource): Promise<void> => {
-  const result = invokeWithScope(scope, source);
+export const render = (scope: EffectScope, setup: PluginSetup): Promise<Cleanup | undefined> =>
+  validateSetupResult(invokeWithScope(scope, setup));
 
-  if (!isPromiseLike(result)) {
-    await validatePluginResult(result);
-    return;
+/**
+ * 加载默认导出为 PluginSetup 的插件模块。
+ *
+ * 同一时刻只能加载一个插件，使顶层 `useDispose()` 始终归属当前模块。
+ */
+export const loadPlugin = async (loader: PluginLoader): Promise<Plugin> => {
+  if (typeof loader !== 'function') {
+    throw new TypeError('Plugin loader must be a function');
   }
-  const module = await result;
-
-  if (scope.effects.length > 0 || scope.commands.length > 0) {
-    throw new TypeError('Plugin loader cannot register hooks');
+  if (currentDisposables) {
+    throw new Error('Plugins cannot be loaded concurrently');
   }
+  const disposables = new AsyncDisposableStack();
 
-  await validatePluginResult(invokeWithScope(scope, getDefaultPlugin(module)));
+  currentDisposables = disposables;
+  try {
+    const module = await loader();
+    const setup = getSetup(module);
+
+    return {
+      setup,
+      dispose: () => disposables.disposeAsync(),
+    };
+  } catch (error) {
+    try {
+      await disposables.disposeAsync();
+    } catch (disposeError) {
+      throw new SuppressedError(disposeError, error, 'Plugin loading failed and cleanup was incomplete');
+    }
+    throw error;
+  } finally {
+    currentDisposables = null;
+  }
+};
+
+/** 登记插件模块释放时执行的清理函数。 */
+export const useDispose = (cleanup: Cleanup): void => {
+  if (typeof cleanup !== 'function') {
+    throw new TypeError('Plugin cleanup must be a function');
+  }
+  if (!currentDisposables) {
+    throw new Error('useDispose() can only be called while loading a plugin');
+  }
+  currentDisposables.defer(cleanup);
 };
 
 export const mountEffects = async (scope: EffectScope, bot: Bot): Promise<void> => {
-  await using disposables = new AsyncDisposableStack();
   const context = Object.freeze({ bot });
 
   for (const effect of scope.effects) {
-    disposables.defer(() => disposeEffect(effect));
-  }
-
-  for (const effect of scope.effects) {
     if (effect.dependencies?.length === 0) {
-      await setupMountEffect(effect, context);
+      await runEffect(effect, context);
     }
   }
-
-  // 只有全部 setup 成功后才转移资源所有权。失败时资源栈会按 LIFO 顺序自动回滚。
-  scope.disposables = disposables.move();
 };
 
 export const dispatchEffects = async <Type extends EventType>(
@@ -266,7 +249,7 @@ export const dispatchEffects = async <Type extends EventType>(
   const effects = scope.effects.filter(
     effect => effect.dependencies === undefined || effect.dependencies.includes(type),
   );
-  const results = await Promise.allSettled(effects.map(effect => setupEventEffect(effect, context)));
+  const results = await Promise.allSettled(effects.map(effect => runEffect(effect, context)));
 
   for (const result of results) {
     if (result.status === 'rejected') {
@@ -285,7 +268,7 @@ export const trackPending = (scope: EffectScope, task: Promise<void>): Promise<v
   return task;
 };
 
-export const disposeEffects = async (scope: EffectScope): Promise<void> => {
+export const disposeScope = async (scope: EffectScope): Promise<void> => {
   if (!scope.disposables) {
     throw new Error('Plugin resources are unavailable');
   }
@@ -300,24 +283,21 @@ export const disposeEffects = async (scope: EffectScope): Promise<void> => {
  *
  * 不传入 dependencies 时监听所有事件。
  */
-export function useEvent(setup: (context: Context<EventType>) => void | Promise<void> | Cleanup): void;
+export function useEvent(callback: (context: Context<EventType>) => void | Promise<void>): void;
 
-/** 在插件挂载时执行一次 setup。 */
-export function useEvent(
-  setup: (context: MountContext) => void | Cleanup | Promise<void | Cleanup>,
-  dependencies: readonly [],
-): void;
+/** 在插件挂载时执行一次回调。 */
+export function useEvent(callback: (context: MountContext) => void | Promise<void>, dependencies: readonly []): void;
 
 /** 监听指定的 QQ Dispatch 事件。 */
 export function useEvent<const Dependencies extends readonly [EventType, ...EventType[]]>(
-  setup: (context: Context<Dependencies[number]>) => void | Promise<void> | Cleanup,
+  callback: (context: Context<Dependencies[number]>) => void | Promise<void>,
   // 元组交叉既提供事件名补全，也保留已选事件的精确联合类型。
   dependencies: Dependencies & readonly [EventType, ...EventType[]],
 ): void;
 
-export function useEvent(setup: unknown, dependencies?: readonly EventType[]): void {
-  if (typeof setup !== 'function') {
-    throw new TypeError('Effect setup must be a function');
+export function useEvent(callback: unknown, dependencies?: readonly EventType[]): void {
+  if (typeof callback !== 'function') {
+    throw new TypeError('Event callback must be a function');
   }
 
   if (dependencies !== undefined) {
@@ -334,8 +314,7 @@ export function useEvent(setup: unknown, dependencies?: readonly EventType[]): v
   const scope = getCurrentScope();
 
   scope.effects.push({
-    setup: <EffectSetup>setup,
+    callback: <EffectCallback>callback,
     dependencies: dependencies === undefined ? undefined : [...dependencies],
-    transition: Promise.resolve(),
   });
 }
