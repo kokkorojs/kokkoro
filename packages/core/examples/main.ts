@@ -1,5 +1,8 @@
 import { Bot } from '@kokkoro/core';
 
+import Echo from './plugins/echo';
+import Terminal from './plugins/terminal';
+
 const { APP_ID: appId, CLIENT_SECRET: clientSecret } = import.meta.env;
 
 if (!appId || !clientSecret) {
@@ -10,6 +13,6 @@ const bot = new Bot({
   clientSecret,
 });
 
-await bot.mount(() => import('./plugins/echo'));
-await bot.mount(() => import('./plugins/terminal'));
+await bot.mount(Echo);
+await bot.mount(Terminal);
 await bot.online();
