@@ -17,5 +17,3 @@ export const createMessageEvent = (
       replies.push(message);
     },
   });
-
-export const tick = (): Promise<void> => new Promise(resolve => setTimeout(resolve));
