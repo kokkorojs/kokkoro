@@ -9,7 +9,7 @@ import {
   type ParseCommand,
   type Plugin,
   type PluginLoader,
-  type PluginSource,
+  type PluginSetup,
   useEvent,
 } from '@kokkoro/core';
 
@@ -20,12 +20,21 @@ type Assignable<Source, Target> = [Source] extends [Target] ? true : false;
 const expectType = <Value extends true>(): Value => <Value>true;
 
 test('公开类型', () => {
-  expectType<Assignable<() => void, Plugin>>();
-  expectType<Equal<Assignable<() => Promise<void>, Plugin>, false>>();
-  expectType<Equal<Assignable<() => Promise<void>, PluginSource>, false>>();
-  expectType<Equal<Assignable<() => number, Plugin>, false>>();
+  type MountSetup = typeof useEvent extends {
+    (callback: infer Callback, dependencies: readonly []): void;
+  }
+    ? Callback
+    : never;
+  type MountContext = MountSetup extends (context: infer Context) => unknown ? Context : never;
+
+  expectType<Assignable<() => void, PluginSetup>>();
+  expectType<Assignable<() => Cleanup, PluginSetup>>();
+  expectType<Equal<Assignable<() => Promise<void>, PluginSetup>, false>>();
+  expectType<Equal<Assignable<() => number, PluginSetup>, false>>();
   expectType<Equal<Assignable<() => Promise<Plugin>, PluginLoader>, false>>();
   expectType<Equal<Assignable<() => Promise<{ default: () => Promise<void> }>, PluginLoader>, false>>();
+  expectType<Equal<Plugin['setup'], PluginSetup>>();
+  expectType<Equal<ReturnType<Plugin['dispose']>, Promise<void>>>();
 
   expectType<
     Equal<
@@ -44,17 +53,6 @@ test('公开类型', () => {
   expectType<Equal<Assignable<readonly EventType[], readonly [EventType, ...EventType[]]>, false>>();
   expectType<Equal<Assignable<'error', EventType>, false>>();
   expectType<Equal<Context<'C2C_MESSAGE_CREATE'>['id'], string>>();
-  expectType<
-    Equal<Assignable<() => Promise<Cleanup>, (context: Context<'READY'>) => void | Promise<void> | Cleanup>, false>
-  >();
-
-  const plugin = () => {
-    useEvent(context => {
-      void context;
-      expectType<Equal<keyof typeof context, 'bot'>>();
-    }, []);
-  };
-
-  void plugin;
-  expectType<Assignable<typeof plugin, Plugin>>();
+  expectType<Equal<keyof MountContext, 'bot'>>();
+  expectType<Equal<Assignable<() => Cleanup, (context: Context<'READY'>) => void | Promise<void>>, false>>();
 });

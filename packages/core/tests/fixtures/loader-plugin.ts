@@ -1,19 +1,27 @@
-import { useEvent } from '@kokkoro/core';
+import { useDispose, useEvent } from '@kokkoro/core';
 
 export const calls: string[] = [];
+
+calls.push('import');
+useDispose(() => {
+  calls.push('dispose:first');
+});
+useDispose(() => {
+  calls.push('dispose:second');
+});
 
 export const reset = (): void => {
   calls.length = 0;
 };
 
 export default function LoaderPlugin() {
-  calls.push('render');
+  calls.push('setup');
 
   useEvent(() => {
-    calls.push('setup');
-
-    return () => {
-      calls.push('cleanup');
-    };
+    calls.push('mount');
   }, []);
+
+  return () => {
+    calls.push('cleanup');
+  };
 }

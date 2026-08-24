@@ -1,20 +1,20 @@
 import { expect, test } from 'bun:test';
 
-import { type Command, type CommandReply, type PluginLoader, useCommand, useEvent } from '@kokkoro/core';
+import { type Command, type CommandReply, useCommand, useEvent } from '@kokkoro/core';
 
-import { createBot, createMessageEvent, tick } from './helpers';
+import { createBot, createMessageEvent } from './helpers';
 
 test('Command 参数', async () => {
   const bot = createBot();
   const args: unknown[] = [];
 
-  function plugin() {
+  function setup() {
     useCommand('/search <keyword> [page] [tags]...', context => {
       args.push(context.args);
     });
   }
 
-  await bot.mount(plugin);
+  await bot.mount(setup);
   await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('  /search kokkoro 2 bot qq'));
   await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/search bun'));
 
@@ -28,13 +28,13 @@ test('Command 分词', async () => {
   const bot = createBot();
   let values: string[] = [];
 
-  function plugin() {
+  function setup() {
     useCommand('/say <values>...', context => {
       values = context.args.values;
     });
   }
 
-  await bot.mount(plugin);
+  await bot.mount(setup);
   await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/say "hello world" \\path'));
 
   expect(values).toEqual(['"hello', 'world"', '\\path']);
@@ -44,12 +44,12 @@ test('Command 错误提示', async () => {
   const bot = createBot();
   const replies: CommandReply[] = [];
 
-  function plugin() {
+  function setup() {
     useCommand('/weather <city>', () => undefined);
     useCommand('/setu [tag]', () => undefined);
   }
 
-  await bot.mount(plugin);
+  await bot.mount(setup);
   await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/missing', replies));
   await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/weather', replies));
   await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/setu one extra', replies));
@@ -61,7 +61,7 @@ test('Shortcut 匹配', async () => {
   const bot = createBot();
   const args: unknown[] = [];
 
-  function plugin() {
+  function setup() {
     useCommand('/setu [tag] [tags]...', context => {
       args.push(context.args);
     })
@@ -70,7 +70,7 @@ test('Shortcut 匹配', async () => {
       .shortcut(/^来点(?<tags>.+)涩图$/);
   }
 
-  await bot.mount(plugin);
+  await bot.mount(setup);
   await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('没有命中'));
   await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('来点涩图'));
   await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('来点可可萝单图'));
@@ -86,33 +86,31 @@ test('Shortcut 匹配', async () => {
 test('Shortcut 并发', async () => {
   const bot = createBot();
   const gate = Promise.withResolvers<void>();
+  const started = Promise.withResolvers<void>();
   let running = 0;
-  let peak = 0;
-  let calls = 0;
 
-  function handler() {
-    return async () => {
-      calls += 1;
-      running += 1;
-      peak = Math.max(peak, running);
-      await gate.promise;
-      running -= 1;
-    };
+  async function handler() {
+    running += 1;
+
+    if (running === 3) {
+      started.resolve();
+    }
+    await gate.promise;
+    running -= 1;
   }
 
-  function plugin() {
-    useCommand('/first', handler())
+  function setup() {
+    useCommand('/first', handler)
       .shortcut('hello')
       .shortcut(/^hello$/);
-    useCommand('/second', handler()).shortcut('hello');
+    useCommand('/second', handler).shortcut('hello');
   }
 
-  await bot.mount(plugin);
+  await bot.mount(setup);
   const dispatch = bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('hello'));
 
-  await tick();
-  expect(calls).toBe(3);
-  expect(peak).toBe(3);
+  await started.promise;
+  expect(running).toBe(3);
 
   gate.resolve();
   await dispatch;
@@ -122,73 +120,70 @@ test('Command 前缀冲突', async () => {
   const first = createBot();
   const second = createBot();
 
-  function plugin() {
+  function setup() {
     useCommand('/same <value>', () => undefined);
     useCommand('/same [value]', () => undefined);
   }
 
-  await expect(first.mount(plugin)).rejects.toThrow('Command prefix is already mounted: /same');
+  await expect(first.mount(setup)).rejects.toThrow('Command prefix is already mounted: /same');
 
-  function valid() {
+  function otherSetup() {
     useCommand('/same', () => undefined);
   }
 
-  await first.mount(valid);
-  await second.mount(valid);
+  await first.mount(otherSetup);
+  await second.mount(otherSetup);
 });
 
 test('Command 并发挂载', async () => {
   const bot = createBot();
   const gate = Promise.withResolvers<void>();
 
-  function firstPlugin() {
+  function firstSetup() {
+    useEvent(async () => {
+      await gate.promise;
+    }, []);
     useCommand('/same', () => 'first');
   }
 
-  function secondPlugin() {
+  function secondSetup() {
     useCommand('/same', () => 'second');
   }
 
-  const firstLoader: PluginLoader = async () => {
-    await gate.promise;
-    return { default: firstPlugin };
-  };
-  const secondLoader: PluginLoader = async () => {
-    await gate.promise;
-    return { default: secondPlugin };
-  };
-  const firstMount = bot.mount(firstLoader);
-  const secondMount = bot.mount(secondLoader);
+  const firstMount = bot.mount(firstSetup);
+  const secondMount = bot.mount(secondSetup);
 
   gate.resolve();
-  const results = await Promise.allSettled([firstMount, secondMount]);
+  const [firstResult, secondResult] = await Promise.allSettled([firstMount, secondMount]);
 
-  expect(results.map(result => result.status)).toEqual(['fulfilled', 'rejected']);
-  expect(results[1]).toMatchObject({
+  expect(firstResult.status).toBe('fulfilled');
+  expect(secondResult).toMatchObject({
     reason: new Error('Command prefix is already mounted: /same'),
+    status: 'rejected',
   });
 
-  await bot.unmount(firstLoader);
+  await bot.unmount(firstSetup);
 });
 
 test('Command 生命周期', async () => {
   const bot = createBot();
   const mountGate = Promise.withResolvers<void>();
   const handlerGate = Promise.withResolvers<void>();
+  const handlerStarted = Promise.withResolvers<void>();
   let calls = 0;
 
-  function plugin() {
+  function setup() {
     useEvent(async () => {
       await mountGate.promise;
     }, []);
     useCommand('/wait', async () => {
       calls += 1;
+      handlerStarted.resolve();
       await handlerGate.promise;
     });
   }
 
-  const mount = bot.mount(plugin);
-  await tick();
+  const mount = bot.mount(setup);
   await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/wait'));
   expect(calls).toBe(0);
 
@@ -196,10 +191,10 @@ test('Command 生命周期', async () => {
   await mount;
 
   const dispatch = bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/wait'));
-  await tick();
+  await handlerStarted.promise;
   expect(calls).toBe(1);
 
-  const unmount = bot.unmount(plugin);
+  const unmount = bot.unmount(setup);
   await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/wait'));
   expect(calls).toBe(1);
 
@@ -211,7 +206,7 @@ test('Command 回复', async () => {
   const bot = createBot();
   const replies: CommandReply[] = [];
 
-  function plugin() {
+  function setup() {
     useCommand('/text', () => 'hello');
     useCommand('/object', () => ({ msg_type: 0, content: 'payload' }));
     useCommand('/record', () => ({ key: 'value' }));
@@ -221,7 +216,7 @@ test('Command 回复', async () => {
     });
   }
 
-  await bot.mount(plugin);
+  await bot.mount(setup);
   await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/text', replies));
   await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/object', replies));
   await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/record', replies));
@@ -237,11 +232,11 @@ test('Command 注册时机', async () => {
 
   expect(() => useCommand('/outside', () => undefined)).toThrow('Hooks can only be called while mounting a plugin');
 
-  function plugin() {
+  function setup() {
     command = useCommand('/hello', () => undefined);
   }
 
-  await bot.mount(plugin);
+  await bot.mount(setup);
   expect(() => command?.shortcut('hello')).toThrow('Command shortcuts can only be registered while mounting a plugin');
 });
 
@@ -258,6 +253,10 @@ test('Command 参数语法', async () => {
   for (const [syntax, message] of cases) {
     const bot = createBot();
 
-    await expect(bot.mount(() => void register(syntax, () => undefined))).rejects.toThrow(message);
+    await expect(
+      bot.mount(() => {
+        register(syntax, () => undefined);
+      }),
+    ).rejects.toThrow(message);
   }
 });
