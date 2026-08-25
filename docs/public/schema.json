@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kokkoro.js.org/schema.json",
+  "title": "Kokkoro 配置",
+  "description": "Kokkoro QQ 机器人框架配置文件。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocol", "bots"],
+  "properties": {
+    "$schema": {
+      "description": "用于编辑器提示的 JSON Schema 地址。",
+      "type": "string"
+    },
+    "protocol": {
+      "description": "所有机器人的默认接入方式。",
+      "$ref": "#/$defs/protocol"
+    },
+    "server": {
+      "description": "HTTP 服务配置。",
+      "$ref": "#/$defs/server"
+    },
+    "logger": {
+      "description": "日志输出配置。",
+      "$ref": "#/$defs/logger"
+    },
+    "bots": {
+      "description": "需要运行的机器人。",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/bot"
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "protocol": {
+            "const": "webhook"
+          }
+        },
+        "required": ["protocol"]
+      },
+      "then": {
+        "properties": {
+          "bots": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "webhook": {
+                      "$ref": "#/$defs/webhook"
+                    }
+                  },
+                  "required": ["webhook"]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "protocol": {
+                      "const": "websocket"
+                    }
+                  },
+                  "required": ["protocol"]
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "protocol": {
+      "type": "string",
+      "enum": ["websocket", "webhook"]
+    },
+    "server": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "port": {
+          "description": "HTTP 服务监听的端口。",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535,
+          "default": 3000
+        }
+      }
+    },
+    "logger": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "description": "最低日志等级。",
+          "type": "string",
+          "enum": ["debug", "info", "warn", "error"],
+          "default": "info"
+        }
+      }
+    },
+    "webhook": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path"],
+      "properties": {
+        "path": {
+          "description": "接收该机器人 WebHook 请求的路由。",
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^/"
+        }
+      }
+    },
+    "bot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["appId", "clientSecret"],
+      "properties": {
+        "appId": {
+          "description": "QQ 机器人的 AppID。",
+          "type": "string",
+          "minLength": 1
+        },
+        "clientSecret": {
+          "description": "QQ 机器人的 ClientSecret。",
+          "type": "string",
+          "minLength": 1
+        },
+        "protocol": {
+          "description": "覆盖顶层的默认接入方式。",
+          "$ref": "#/$defs/protocol"
+        },
+        "webhook": {
+          "description": "WebHook 接入配置。",
+          "$ref": "#/$defs/webhook"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "protocol": {
+                "const": "webhook"
+              }
+            },
+            "required": ["protocol"]
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "webhook": {
+                "$ref": "#/$defs/webhook"
+              }
+            },
+            "required": ["webhook"]
+          }
+        }
+      ]
+    }
+  }
+}
