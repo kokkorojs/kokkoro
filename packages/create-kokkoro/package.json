@@ -1,0 +1,32 @@
+{
+  "name": "create-kokkoro",
+  "version": "0.0.0",
+  "description": "The project scaffolding tool for the Kokkoro QQ bot framework.",
+  "keywords": [
+    "bot",
+    "kokkoro",
+    "qq",
+    "qqbot"
+  ],
+  "homepage": "https://kokkoro.js.org/",
+  "bugs": {
+    "url": "https://github.com/kokkorojs/kokkoro/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kokkorojs/kokkoro.git",
+    "directory": "packages/create-kokkoro"
+  },
+  "license": "MIT",
+  "author": "Yuki <admin@yuki.sh>",
+  "type": "module",
+  "bin": {
+    "create-kokkoro": "./src/index.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "peerDependencies": {
+    "typescript": "^6.0.3"
+  }
+}
