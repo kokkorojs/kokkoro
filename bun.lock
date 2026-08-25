@@ -31,9 +31,12 @@
     },
     "packages/create-kokkoro": {
       "name": "create-kokkoro",
-      "version": "0.0.0",
+      "version": "0.1.0",
       "bin": {
         "create-kokkoro": "./src/index.ts",
+      },
+      "dependencies": {
+        "komut": "^0.2.0",
       },
       "peerDependencies": {
         "typescript": "^6.0.3",
@@ -282,6 +285,8 @@
     "json-stable-stringify-without-jsonify": ["json-stable-stringify-without-jsonify@1.0.1", "", {}, "sha512-Bdboy+l7tA3OGW6FjyFHWkP5LuByj1Tk33Ljyq0axyzdk9//JSi2u3fP1QSmd1KNwq6VOKYGlAu87CisVir6Pw=="],
 
     "keyv": ["keyv@4.5.4", "", { "dependencies": { "json-buffer": "3.0.1" } }, "sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw=="],
+
+    "komut": ["komut@0.2.0", "", {}, "sha512-iE5fZyQsmu42jWlh+lltOhr/kFn1lZIyAfJYcwObjCFyeazFXfVASfPSlJRAwVgrpla9nQW+4+fV9U72q8QkpA=="],
 
     "levn": ["levn@0.4.1", "", { "dependencies": { "prelude-ls": "^1.2.1", "type-check": "~0.4.0" } }, "sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ=="],
 
