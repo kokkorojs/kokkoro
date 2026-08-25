@@ -1,0 +1,20 @@
+{
+  "protocol": "websocket",
+  "server": {
+    "port": 0
+  },
+  "bots": [
+    {
+      "appId": "APP_ID",
+      "clientSecret": "CLIENT_SECRET"
+    },
+    {
+      "appId": "SECOND_APP_ID",
+      "clientSecret": "SECOND_CLIENT_SECRET",
+      "protocol": "webhook",
+      "webhook": {
+        "path": "/webhook"
+      }
+    }
+  ]
+}
