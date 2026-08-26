@@ -34,10 +34,16 @@ test('机器人事件日志', async () => {
     group_openid: 'GROUP_OPENID',
     member_openid: 'MEMBER_OPENID',
   });
+  const [connected] = info.mock.calls;
   const output = info.mock.calls.flat().join(' ');
 
-  expect(output).toContain('已连接');
-  expect(output).toContain('Kokkoro');
+  if (!connected) {
+    throw new Error('未输出机器人连接日志');
+  }
+  const [format, , username] = connected;
+
+  expect(format).toBe('%s 已连接');
+  expect(username).toBe('Kokkoro');
   expect(output).toContain('群成员已加入');
 });
 
