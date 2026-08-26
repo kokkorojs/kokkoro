@@ -107,6 +107,8 @@ Kokkoro 会加载项目插件和社区插件。
 
 项目插件可以不提供 `package.json` 文件。没有该文件时，Bun 会按照 [模块解析规则](https://bun.sh/docs/runtime/module-resolution) 查找 `index.ts` 等入口文件。插件需要声明依赖或发布到 npm 时，再添加标准的 `package.json`。
 
+插件使用 `package.json` 中的 `name` 作为标识。项目插件没有 `package.json` 时，则使用一级子目录名称。
+
 ### 安装社区插件
 
 社区插件的包名以 `kokkoro-plugin-` 开头。使用 `bun add` 将插件添加到项目的 `dependencies`：
@@ -117,7 +119,7 @@ bun add kokkoro-plugin-example
 
 插件自动加载的范围仅限 `package.json#dependencies` 中包名以 **kokkoro-plugin-** 开头的包，不会遍历 `node_modules` 查找其他插件。
 
-插件按照项目插件、社区插件的顺序加载，同一类插件按名称排序。每个插件模块只导入一次，默认导出的插件函数会挂载到配置中的每个机器人。
+插件按照项目插件、社区插件的顺序加载。项目插件按照文件夹路径排序，社区插件按照包名排序。每个插件模块只导入一次，默认导出的插件函数会接收当前 Bot，并挂载到配置中的每个机器人。
 
 完成插件加载和挂载后，Kokkoro 才会启动 HTTP 服务并建立 WebSocket 连接。某个插件加载或挂载失败时，Kokkoro 会记录错误，继续处理其他插件并启动机器人。
 

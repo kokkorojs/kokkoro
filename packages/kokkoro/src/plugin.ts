@@ -10,13 +10,31 @@ interface PluginEntry {
   readonly loader: PluginLoader;
 }
 
+const getName = async (directory: string, path: string): Promise<string> => {
+  const directoryName = path.replace('plugins/', '');
+  const manifest = file(`${directory}/${path}/package.json`);
+  const hasManifest = await manifest.exists();
+
+  if (!hasManifest) {
+    return directoryName;
+  }
+  const { name } = await manifest.json();
+
+  if (typeof name !== 'string' || name.length === 0) {
+    throw new TypeError(`插件 ${directoryName} 的 package.json 缺少有效的 name`);
+  }
+  return name;
+};
+
 const scanDirectory = async (directory: string): Promise<PluginEntry[]> => {
   const paths = await Array.fromAsync(DIRECTORIES.scan({ cwd: directory, onlyFiles: false, followSymlinks: true }));
 
-  return paths.toSorted().map(path => ({
-    name: path.replace('plugins/', ''),
-    loader: () => import(pathToFileURL(`${directory}/${path}`).href),
-  }));
+  return Promise.all(
+    paths.toSorted().map(async path => ({
+      name: await getName(directory, path),
+      loader: () => import(pathToFileURL(`${directory}/${path}`).href),
+    })),
+  );
 };
 
 const scanDependencies = async (directory: string): Promise<PluginEntry[]> => {
@@ -37,6 +55,14 @@ const scanDependencies = async (directory: string): Promise<PluginEntry[]> => {
 export const findPlugins = async (directory = '.'): Promise<PluginEntry[]> => {
   const root = fileURLToPath(pathToFileURL(directory));
   const [plugins, dependencies] = await Promise.all([scanDirectory(root), scanDependencies(root)]);
+  const entries = [...plugins, ...dependencies];
+  const names = new Set<string>();
 
-  return [...plugins, ...dependencies];
+  for (const entry of entries) {
+    if (names.has(entry.name)) {
+      throw new Error(`插件 ${entry.name} 重复`);
+    }
+    names.add(entry.name);
+  }
+  return entries;
 };

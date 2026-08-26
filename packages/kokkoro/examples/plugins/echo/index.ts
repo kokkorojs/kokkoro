@@ -1,7 +1,7 @@
 import { useCommand } from '@kokkoro/core';
 
-export default function Echo() {
-  useCommand('/echo <messages>...', context => {
-    return context.args.messages.join(' ');
+export default () => {
+  useCommand('/echo <parts>...', context => {
+    return context.args.parts.join(' ');
   });
-}
+};

@@ -1,0 +1,5 @@
+{
+  "name": "kokkoro-plugin-example",
+  "type": "module",
+  "exports": "./index.ts"
+}

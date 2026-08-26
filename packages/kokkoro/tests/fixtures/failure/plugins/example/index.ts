@@ -8,4 +8,4 @@ useDispose(() => {
 });
 throw new Error('加载失败');
 
-export default function Example() {}
+export default () => {};

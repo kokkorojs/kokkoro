@@ -9,11 +9,11 @@ useDispose(() => {
   throw new Error('释放失败');
 });
 
-export default function Example() {
+export default () => {
   events.push('render');
 
   return () => {
     events.push('cleanup');
     throw new Error('取消挂载失败');
   };
-}
+};
