@@ -1,10 +1,8 @@
 # 数据库
 
-::: warning TODO
-不定期更新
+::: warning
+Kokkoro v3 的数据库功能正在重构，以下内容为 v2 时期的功能。
 :::
-
-## API
 
 基于 [LevelDB](https://leveljs.org/) 开发的本地数据库，API 十分简洁易上手，与 [classic-level](https://www.npmjs.com/package/classic-level) 保持一致，并新增 `has` 方法。
 

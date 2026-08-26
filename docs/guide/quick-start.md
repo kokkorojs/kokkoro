@@ -1,141 +1,152 @@
 # 快速上手
 
 ::: tip 准备工作
-在开始前，请先确保你安装了 **18.0.0** 或以上版本的 [Node.js](https://nodejs.org/zh-cn/)，并在 [QQ 开放平台](https://bot.q.qq.com/wiki/develop/api-v2/) 创建好了机器人。
+在开始前，请先确保你安装了 [Bun](https://bun.com)，并在 [QQ 开放平台](https://q.qq.com) 创建好了机器人。
 :::
 
-## 项目构建
+## 初始化项目
 
-你可以打开终端，使用下列命令来初始化项目：
+Kokkoro 提供两种初始化方式。`bun create` 创建新目录，`kokkoro init` 初始化当前目录。
 
-::: code-group
+### 创建新项目
 
-```shell [npm]
-# 安装 Kokkoro 脚手架
-npm i @kokkoro/cli -g
+如果你还没有创建项目目录，可以直接使用 Bun 的项目创建命令：
 
-# 初始化项目
+```shell
+bun create kokkoro
+```
+
+命令启动后，会依次询问以下内容：
+
+1. `项目名称`：项目目录的名称，默认为 `kokkoro-app`。
+2. `服务端口`：Kokkoro 服务使用的端口，默认为 `3000`。
+3. `QQ 服务接入方式`：首次在本地运行时，建议选择 `WebSocket`。使用 `WebHook` 时需要公网环境。
+4. `是否添加机器人`：为了完成本页后续的消息交互，请选择 `是`。
+5. `机器人 AppID` 和 `机器人 ClientSecret`：填写 QQ 开放平台中的机器人凭证。
+6. `WebHook 路径`：选择 `WebHook` 并添加机器人时需要填写，默认为 `/callback`。
+
+配置完成后，脚手架会以项目名称创建目录，并生成项目所需的文件。
+
+创建完成后，进入项目目录：
+
+```shell
+cd kokkoro-app
+```
+
+请将 `kokkoro-app` 替换为你输入的项目名称。
+
+### 初始化当前目录
+
+如果你希望自行创建项目目录，可以全局安装 Kokkoro CLI，再通过 `init` 命令初始化当前目录：
+
+```shell
+# 安装 Kokkoro CLI
+bun add --global @kokkoro/cli
+
+# 创建并进入项目目录
+mkdir kokkoro-app
+cd kokkoro-app
+
+# 初始化当前目录
 kokkoro init
 ```
 
-```shell [yarn]
-# 安装 Kokkoro 脚手架
-yarn global add @kokkoro/cli
+`kokkoro init` 不会询问项目名称，而是直接使用当前目录。除此之外，两种方式的配置过程和生成内容完全相同。
 
-# 初始化项目
-kokkoro init
-```
-
-:::
-
-若下载较慢，可以尝试使用淘宝镜像源：
+如果目标目录不是空目录，脚手架会停止创建项目。添加 `--force` 选项后，脚手架会覆盖同名的模板文件，并保留目录中的其他内容。
 
 ::: code-group
 
-```shell [npm]
-npm config set registry https://registry.npmmirror.com
+```shell [创建新项目]
+bun create kokkoro --force
 ```
 
-```shell [yarn]
-yarn config set registry https://registry.npmmirror.com
+```shell [初始化当前目录]
+kokkoro init --force
 ```
 
 :::
-
-::: danger 不要使用 PNPM
-使用 pnpm 可能会导致很多预期之外的问题，我更推荐使用 npm 或者 yarn 来管理 Kokkoro 项目。
-:::
-
-![](https://camo.githubusercontent.com/8325363bff130976c862214c3af00c483f26de09ba7e4c31c54bdc14c08c3c55/68747470733a2f2f7062732e7477696d672e636f6d2f6d656469612f444549565f3158577341416c5932392e6a7067)
-
-因为 Kokkoro 十分轻便，所以也不用太担心内存占用的问题。至于不使用 pnpm 的原因，你可以 [在这里](/about/faq) 找到答案。
 
 ## 目录结构
 
-当你使用 `init` 命令做好相关配置后， Kokkoro 将会为你在指定目录自动生成下列目录结构。
+项目初始化完成后，Kokkoro 会生成以下目录结构：
 
-```tex
+```text
 .
-├─ data/              项目资源
-├─ logs/              日志列表
-├─ plugins/           插件目录（存放编写好的插件）
-├─ index.js           程序入口
-└─ kokkoro.json       配置文件
+├── plugins/       插件目录
+├── kokkoro.json   配置文件
+├── main.ts        程序入口
+└── package.json   包配置文件
 ```
 
-接下来，你便可以参考终端的相关提示，安装依赖项：
+## 安装依赖
 
-::: code-group
+安装项目依赖：
 
-```shell [npm]
-# 切换至项目根目录
-cd robot
-
-# 安装依赖
-npm i
+```shell
+bun install
 ```
 
-```shell [yarn]
-# 切换至项目根目录
-cd robot
+安装完成后，Bun 会生成 `node_modules` 目录和 `bun.lock` 文件。`package.json` 已由脚手架创建，其中记录了项目依赖和启动命令。
 
-# 安装依赖
-yarn
+如果需要修改接入方式、服务端口或机器人凭证，请参阅 [配置文件](/guide/config)。
+
+## 启动项目
+
+启动项目：
+
+```shell
+bun start
 ```
 
-:::
-
-等待安装命令执行完毕后，你会发现，在项目根目录下又生成了 `node_modules` 和 `package.json` 这两个文件，后面在 [插件开发](/develop/application) 中将会为你详细介绍。
-
-如果你不准备开发插件，就不用去关心这些**依赖文件**，感兴趣你也可以先使用搜索引擎查找相关知识。
-
-## 启动程序
-
-一切准备就绪，现在开始启动你的项目：
+如果你已经全局安装 Kokkoro CLI，也可以直接运行：
 
 ```shell
 kokkoro start
 ```
 
-如果你没有**全局安装** CLI，也可以使用下列命令：
+启动后，Kokkoro 会加载项目内的插件并启动 HTTP 服务，再为使用 WebSocket 的机器人建立连接。WebHook 机器人会通过各自的回调路由等待 QQ 推送事件。
 
-::: code-group
+终端输出 `服务已启动` 和 `启动完成`，表示 Kokkoro 已完成启动。WebSocket 机器人连接成功时还会输出 `已连接`。
 
-```shell [npm]
-npm run start
+如果 WebSocket 无法建立连接，或 WebHook 没有收到事件，请检查 [`kokkoro.json`](/guide/config) 和 [QQ 机器人管理后台](https://q.qq.com/qqbot/dashboard) 中的接收事件配置。
+
+## 添加插件
+
+你可以直接安装**社区插件**，为机器人添加更多功能：
+
+```shell
+bun add kokkoro-plugin-hitokoto
 ```
 
-```shell [yarn]
-yarn start
-```
-
-:::
-
-如上述步骤无误，在项目启动后，便会开始为机器人建立会话通信。要是出现 Socket 无法正常通信，或者是成功连接但没有接收到事件通知，就要在 `kokkoro.json` 中检查 `events` 参数是否正确配置。
-
-## 插件扩展
-
-你可以直接安装 npm 插件来为自己的机器人扩展相对应的功能，例如：
-
-::: code-group
-
-```shell [npm]
-npm i kokkoro-plugin-hitokoto
-```
-
-```shell [yarn]
-yarn add kokkoro-plugin-hitokoto
-```
-
-:::
-
-程序会在项目启动后（机器人建立会话通信前），**自动挂载**项目内的所有插件，不用执行额外操作。
+安装完成后，重新启动项目。Kokkoro 会自动加载该插件。
 
 <ChatPanel>
   <ChatMessage qq="2225151531" nickname="Yuki" at="可可萝">/来点骚话</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">『大部分人并不想长大，只是没办法继续当一个小孩子。』——「小林家的龙女仆」</ChatMessage>
 </ChatPanel>
 
-现在，开启一段属于你的物语吧 ♪ q(≧▽≦q)
+更多插件可以在 [插件社区](/plugin/community) 中查找。
 
-当然，如果你有 JavaScript 的相关知识，随时都可以编写自己的插件，详情可在 [插件开发](/develop/overview) 一栏查看，更多插件安装和使用说明可以在 [插件社区](/plugin/awesome) 中查找。
+如果社区插件没有你需要的功能，也可以开发自己的插件。使用 Kokkoro CLI 即可创建一个**本地插件**：
+
+```shell
+kokkoro plugin example
+```
+
+如果你没有全局安装 CLI，也可以通过 `bunx` 运行该命令：
+
+```shell
+bunx @kokkoro/cli plugin example
+```
+
+命令会在 `plugins/example` 中创建插件模板。重新启动项目后，向机器人发送 `/ping`，机器人会回复 `pong`。
+
+<ChatPanel>
+  <ChatMessage qq="2225151531" nickname="Yuki" at="可可萝">/ping</ChatMessage>
+  <ChatMessage qq="2854205915" nickname="可可萝">pong</ChatMessage>
+</ChatPanel>
+
+模板中的 `/ping` 指令只是一个最小示例。你可以使用 `useCommand()`、`useEvent()` 等 Hook API 开发插件，详情参阅 [插件概述](/develop/overview)。
+
+现在，开启一段属于你的物语吧 ♪ q(≧▽≦q)

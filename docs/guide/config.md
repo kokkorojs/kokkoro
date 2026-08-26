@@ -1,128 +1,123 @@
 # 配置文件
 
-::: warning TODO
-不定时更新
-:::
+Kokkoro 从当前工作目录读取 `kokkoro.json`，并根据其中的配置管理 HTTP 服务和多个 QQ 机器人。配置文件只在启动时读取，修改后需要重新启动项目。
 
-## server.port
+在文件中添加 `$schema`，编辑器便可以提示可用字段，并检查字段类型和取值。
 
-- **类型：**`number`
-- **默认：**`2333`
-
-::: warning TODO
-暂未支持
-:::
-
-Kokkoro 1 时期的历史遗留，启动项目后会监听该端口号，用于 web 服务的访问。重构 Kokkoro 2 后暂未支持，未来可期。
-
-## server.domain
-
-- **类型：**`string`
-- **默认：**`'http://localhost'`
-
-::: warning TODO
-暂未支持
-:::
-
-Kokkoro 1 时期的历史遗留，启动项目后会根据端口号返回完整的 http 网址，用于 web 服务的访问。重构 Kokkoro 2 后暂未支持，未来可期。
-
-## plugins_dir
-
-- **类型：**`string`
-- **默认：**`'plugins'`
-
-在项目启动时，Kokkoro 会自动检索并挂载 `node_modules` 和 `plugins_dir` 所配置的目录，这两个文件夹下的所有插件。
-
-其中 `node_modules` 无法更改，会将 `kokkoro-plugin` 前缀名的模块视为一个插件。而 `plugins_dir` 没有命名限制，会将目录下的所有文件视为插件。
-
-## log_level
-
-- **类型：**`LogLevel`
-
-```typescript
-type LogLevel = 'OFF' | 'FATAL' | 'ERROR' | 'WARN' | 'INFO' | 'DEBUG' | 'TRACE' | 'ALL';
-```
-
-- **默认：**`'INFO'`
-
-日志等级，可参考 [log4js](https://www.npmjs.com/package/log4js) 文档。若 bots 中也配置了 `log_level`，遵循就近原则。
-
-## events
-
-- **类型：**`IntentEvent[]`
-
-```typescript {7}
-enum Intent {
-  GUILDS = 1 << 0,
-  GUILD_MEMBERS = 1 << 1,
-  GUILD_MESSAGES = 1 << 9,
-  GUILD_MESSAGE_REACTIONS = 1 << 10,
-  DIRECT_MESSAGE = 1 << 12,
-  GROUP_MESSAGES = 1 << 25,
-  INTERACTION = 1 << 26,
-  MESSAGE_AUDIT = 1 << 27,
-  FORUMS_EVENT = 1 << 28,
-  AUDIO_ACTION = 1 << 29,
-  PUBLIC_GUILD_MESSAGES = 1 << 30,
-}
-
-type IntentEvent = keyof typeof Intent;
-```
-
-机器人事件监听，可参考 [QQ 机器人](https://bot.q.qq.com/wiki/develop/api-v2/dev-prepare/interface-framework/event-emit.html#%E4%BA%8B%E4%BB%B6%E8%AE%A2%E9%98%85Intents) 官方文档。若 bots 中也配置了 `events`，遵循就近原则。
-
-需要注意的是，Intent `1 << 25` 是 QQ 群消息事件，但文档中并未说明，我参考 `GUILD_MEMBERS` 事件，将其命名为了 `GROUP_MESSAGES`。这并不是官方命名，未来可能会发生变化。
-
-## sandbox
-
-- **类型：**`boolean`
-- **默认：**`false`
-
-是否处于沙箱场景（只会收到测试频道的事件，且调用 API 仅能操作测试频道），若 bots 中也配置了 `sandbox`，遵循就近原则。
-
-## bots
-
-- **类型：**`BotConfig[]`
-
-```typescript
-interface ClientConfig {
-  appid: string;
-  token: string;
-  secret: string;
-  events: IntentEvent[];
-  max_retry?: number;
-  log_level?: LogLevel;
-}
-
-interface BotConfig extends ClientConfig {
-  plugins?: string[];
-}
-```
-
-Kokkoro 是基于 [Amesu](https://github.com/xueelf/amesu) SDK 开发的，`BotConfig` 与其基本保持一致，在此基础上仅添加了 `plugins` 字段。
-
-`plugins` 传入字符串数组（插件的 `metadata.name`），用来屏蔽部分插件服务。如果不传入，则默认所有已挂载的插件会对该机器人生效。
-
-## kokkoro.json
-
-项目启动后尽量避免编辑器直接修改配置文件，你改了也不会热更新，需要重新启动服务。
+下面的配置会通过 WebSocket 和 WebHook 分别运行一个机器人。
 
 ```json
 {
+  "$schema": "https://kokkoro.js.org/schema.json",
+  "protocol": "websocket",
   "server": {
-    "port": 2333,
-    "domain": "http://localhost"
+    "port": 3000
   },
-  "plugins_dir": "plugins",
-  "log_level": "INFO",
-  "events": [],
+  "logger": {
+    "level": "info"
+  },
   "bots": [
     {
-      "appid": "1145141919",
-      "token": "38bc73e16208135fb111c0c573a44eaa",
-      "secret": "6208135fb111c0c5",
-      "plugins": []
+      "appId": "WEBSOCKET_APP_ID",
+      "clientSecret": "WEBSOCKET_CLIENT_SECRET"
+    },
+    {
+      "appId": "WEBHOOK_APP_ID",
+      "clientSecret": "WEBHOOK_CLIENT_SECRET",
+      "protocol": "webhook",
+      "webhook": {
+        "path": "/callback"
+      }
     }
   ]
 }
 ```
+
+## 顶层配置
+
+| 字段       | 类型                       | 必填 | 说明                                 |
+| ---------- | -------------------------- | ---- | ------------------------------------ |
+| `$schema`  | `string`                   | 否   | JSON Schema 地址，用于提供编辑器提示 |
+| `protocol` | `"websocket" \| "webhook"` | 是   | 所有机器人的默认接入方式             |
+| `server`   | `object`                   | 否   | HTTP 服务配置                        |
+| `logger`   | `object`                   | 否   | 日志输出配置                         |
+| `bots`     | `array`                    | 是   | 需要运行的机器人，可以为空数组       |
+
+## 接入方式
+
+`protocol` 设置所有机器人的默认接入方式。
+
+- `websocket` 主动连接 QQ 服务，适合本地开发和能够保持进程运行的部署环境。
+- `webhook` 通过 HTTP 路由接收 QQ 推送，需要可以从公网访问的服务地址。
+
+单个机器人可以通过自己的 `protocol` 覆盖顶层配置。因此，同一个项目可以同时运行 WebSocket 和 WebHook 机器人。
+
+## HTTP 服务
+
+`server` 用于设置 Kokkoro HTTP 服务。
+
+| 字段   | 类型      | 默认值 | 说明                                |
+| ------ | --------- | ------ | ----------------------------------- |
+| `port` | `integer` | `3000` | 监听端口，取值范围为 `0` 到 `65535` |
+
+无论是否配置机器人，Kokkoro 都会启动 HTTP 服务。访问服务根路径时会返回 `Ciallo～(∠·ω< )⌒★`。
+
+## 日志
+
+`logger` 用于设置终端日志的输出等级。
+
+| 字段    | 类型                                     | 默认值   | 说明                   |
+| ------- | ---------------------------------------- | -------- | ---------------------- |
+| `level` | `"debug" \| "info" \| "warn" \| "error"` | `"info"` | 输出该等级及以上的日志 |
+
+`debug` 日志包含插件挂载、身份验证、QQ 接口调用、连接状态和事件分发的详细信息。
+
+Kokkoro 会将插件中**未处理的错误**写入日志。如果插件需要回复用户或继续执行，请在插件中捕获并处理错误。
+
+## 机器人
+
+`bots` 中的每个对象表示一个 QQ 机器人。
+
+| 字段           | 类型                       | 必填            | 说明                     |
+| -------------- | -------------------------- | --------------- | ------------------------ |
+| `appId`        | `string`                   | 是              | QQ 机器人的 AppID        |
+| `clientSecret` | `string`                   | 是              | QQ 机器人的 ClientSecret |
+| `protocol`     | `"websocket" \| "webhook"` | 否              | 覆盖顶层的默认接入方式   |
+| `webhook`      | `object`                   | 使用 WebHook 时 | 该机器人的 WebHook 配置  |
+
+`appId` 和 `clientSecret` 可以在 [QQ 机器人管理后台](https://q.qq.com/qqbot/dashboard) 中获取。Kokkoro 不会解析环境变量占位符，配置文件中的值会直接用于连接 QQ 服务。
+
+如果暂时不需要运行机器人，可以使用空数组。HTTP 服务仍会正常启动。
+
+```json
+{
+  "protocol": "websocket",
+  "bots": []
+}
+```
+
+## WebHook
+
+使用 WebHook 的机器人必须设置 `webhook.path`。
+
+```json
+{
+  "protocol": "webhook",
+  "server": {
+    "port": 3000
+  },
+  "bots": [
+    {
+      "appId": "BOT_APP_ID",
+      "clientSecret": "BOT_CLIENT_SECRET",
+      "webhook": {
+        "path": "/callback"
+      }
+    }
+  ]
+}
+```
+
+`path` 必须以 `/` 开头。同一个项目中的所有 WebHook 机器人共用 HTTP 服务，因此每个机器人必须使用不同的路径。
+
+Kokkoro 只管理 HTTP 服务和回调路径，不需要在配置文件中填写域名。部署完成后，将公网地址与 `path` 组成完整的回调地址，再填写到 QQ 机器人管理后台。例如，公网地址为 `https://bot.example.com`，`path` 为 `/callback`，对应的回调地址就是 `https://bot.example.com/callback`。

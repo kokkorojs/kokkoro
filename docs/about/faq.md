@@ -1,36 +1,39 @@
 # 常见问题
 
-## Kokkoro 1 和 Kokkoro 2 的区别是什么？
+## Kokkoro、Core 和 Chobits 有什么区别？
 
-Kokkoro 1 是基于第三方协议库的实现，也就是野生机器人，并且**已经停止维护**。而 Kokkoro 2 是 QQ 官方机器人的实现，虽然功能比不上野生，但使用起来十分稳定。
+**Chobits** 是直接对接 QQ 官方服务的 JavaScript SDK，负责事件通信和 QQ 接口调用。
 
-## 为什么 Node.js 有版本要求？
+**`@kokkoro/core`** 在 Chobits 的基础上提供 `Bot`、Hook 插件系统和指令 API。它适合需要自行管理机器人和插件生命周期的开发者。
 
-Kokkoro 是基于 Amesu 开发的，而 Amesu 的 `request` 网络请求是使用 `fetch` 的封装，这在 18.0.0 中才得到支持。
+**Kokkoro** 是完整的机器人框架。它通过配置文件管理多个机器人，自动发现和挂载插件，并提供 CLI、日志和 HTTP 服务。大部分开发者可以直接从 Kokkoro 开始。
 
-## 为什么不推荐使用 PNPM？
+## Kokkoro 可以在 Node.js 中运行吗？
 
-我是 pnpm 的忠实信徒，使用 pnpm 作为包管理工具已有 2 年时间。在 Kokkoro 1 时期，我使用 multirepo 来管理项目，重构 Kokkoro 2 后，便采用了 monorepo 方案，这时仍在继续使用 pnpm。
+Kokkoro **只支持 Bun**。框架会直接运行 TypeScript 源码，并使用 Bun 管理插件、配置文件和 HTTP 服务。
 
-但是随着时间的推移，我遇到了许许多多的问题，pnpm 其实并不是包管理的最优解决方案。它最大的问题就是排他，很多设计并没有去参照 npm 的标准。
+`@kokkoro/core` 本身不依赖 Bun API。如果只需要 Core，可以在 Node.js 中安装 [tsx](https://github.com/privatenumber/tsx) 运行 TypeScript 源码。
 
-而 Kokkoro 作为一个开源项目，要优先保证**大部分使用者**，包括初学人员的正常使用以及开发体验。如果没有相关经验，使用 pnpm 甚至还可能会遇到项目无法正常运行的问题，所以我在这里更推荐使用 npm 和 yarn 来管理机器人项目。
+## WebSocket 和 WebHook 应该怎么选？
 
-## 为什么不提供 query 的类型处理？
+**WebSocket** 会主动连接 QQ 服务，适合本地开发和能够持续运行的服务器。首次使用 Kokkoro 时，建议选择 WebSocket。
 
-在插件开发一栏中我们有提到，command 的参数处理是通过**命令行语法**去定义的，也就是这种格式：
+**WebHook** 通过 HTTP 路由接收 QQ 推送，需要公网环境。部署 WebHook 时，还要在 QQ 机器人管理后台填写完整的回调地址。
 
-```shell
-command [param]
-```
+同一个项目可以同时使用两种接入方式，详情参阅 [配置文件](/guide/config#接入方式)。
 
-而对于命令语法，业界并没有一个统一的规范与标准。就像私有变量使用下划线前缀一样，这是大家约定成俗的行为。
+## 旧版插件可以继续使用吗？
 
-如果要实现参数类型的处理，虽然我可以生造这种语法，但并没有任何意义，也不应该去这样做：
+Kokkoro v3 保留了主要的 Hook 写法，但调整了插件结构和部分 API。旧版插件需要完成适配后再使用，安装社区插件前请确认它已经支持 Kokkoro v3。
 
-```shell
-command [param.number]
-command [param:number]
-```
+## 为什么插件没有自动加载？
 
-所以我选择保持数据的原始性，将处理方式全权交给开发者，就向 JavaScript 一样保持高度自由性（笑）。
+项目插件必须放在 `plugins` 的一级子目录中。社区插件必须安装在项目的 `dependencies`，包名还要以 `kokkoro-plugin-` 开头。
+
+Kokkoro 当前不支持插件热更新。添加或更新插件后，请重新启动项目。完整规则请参阅 [插件概述](/develop/overview#加载规则)。
+
+## 为什么指令参数都是字符串？
+
+QQ 聊天框发送的是文本，Kokkoro 会从消息文本中解析指令参数，因此普通参数的类型始终是 `string`，可变参数的类型始终是 `string[]`。
+
+Core 不会猜测参数代表数字、布尔值或其他类型。插件可以根据自己的业务规则完成转换和校验，详情参阅 [指令参数](/develop/command#参数类型)。
