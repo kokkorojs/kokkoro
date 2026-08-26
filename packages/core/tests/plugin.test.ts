@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import { type PluginLoader, type PluginSetup, loadPlugin, useDispose, useEvent } from '@kokkoro/core';
+import { type Bot, type PluginLoader, type PluginSetup, loadPlugin, useDispose, useEvent } from '@kokkoro/core';
 
 import { createBot, createEvent } from './helpers';
 
@@ -38,14 +38,14 @@ test('插件并发加载', async () => {
   const gate = Promise.withResolvers<void>();
   let loads = 0;
   const loading = loadPlugin(async () => {
-    loads += 1;
+    loads++;
     await gate.promise;
     return { default() {} };
   });
 
   await expect(
     loadPlugin(async () => {
-      loads += 1;
+      loads++;
       return { default() {} };
     }),
   ).rejects.toThrow('Plugins cannot be loaded concurrently');
@@ -126,7 +126,7 @@ test('插件挂载状态', async () => {
 
   function otherSetup() {
     useEvent(() => {
-      mounts += 1;
+      mounts++;
     }, []);
   }
 
@@ -214,16 +214,16 @@ test('挂载回滚错误', async () => {
 test('多 Bot 挂载', async () => {
   const first = createBot();
   const second = createBot();
-  const mounted: unknown[] = [];
-  const bots: unknown[] = [];
+  const mounted: Bot[] = [];
+  const dispatched: Bot[] = [];
+  const hasBot: boolean[] = [];
 
-  function setup() {
-    useEvent(context => {
-      mounted.push(context.bot);
-    }, []);
+  function setup(bot: Bot) {
+    mounted.push(bot);
     useEvent(
       context => {
-        bots.push(context.bot);
+        dispatched.push(bot);
+        hasBot.push(Object.hasOwn(context, 'bot'));
       },
       ['READY'],
     );
@@ -234,7 +234,8 @@ test('多 Bot 挂载', async () => {
   expect(mounted).toEqual([first, second]);
 
   await first.emit('READY', createEvent<'READY'>());
-  expect(bots).toEqual([first]);
+  expect(dispatched).toEqual([first]);
+  expect(hasBot).toEqual([false]);
 
   await first.unmount(setup);
   await second.unmount(setup);
@@ -249,10 +250,10 @@ test('事件依赖', async () => {
 
   function setup() {
     useEvent(() => {
-      every += 1;
+      every++;
     });
     useEvent(() => {
-      selected += 1;
+      selected++;
     }, ['RESUMED']);
   }
 
@@ -305,13 +306,13 @@ test('事件并发', async () => {
 
   function setup() {
     useEvent(async () => {
-      running += 1;
+      running++;
 
       if (running === 2) {
         started.resolve();
       }
       await gate.promise;
-      running -= 1;
+      running--;
     }, ['READY', 'RESUMED']);
   }
 

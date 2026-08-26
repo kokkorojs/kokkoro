@@ -28,17 +28,12 @@ export const EVENT_TYPES = [
 /** QQ Dispatch 事件类型。 */
 export type EventType = (typeof EVENT_TYPES)[number];
 
-/** 事件上下文，包含展开后的事件字段和当前 Bot。 */
-export type Context<Type extends EventType = EventType> = (Type extends EventType
+/** 事件上下文，包含展开后的事件字段。 */
+export type Context<Type extends EventType = EventType> = Type extends EventType
   ? ClientEvent<Type> extends object
     ? ClientEvent<Type>
     : Record<never, never>
-  : never) & {
-  /** 当前 Bot。 */
-  readonly bot: Bot;
-};
-
-type MountContext = Pick<Context, 'bot'>;
+  : never;
 
 /**
  * 避免 TypeScript 把返回其他值的函数视为合法的 void 回调。
@@ -54,7 +49,7 @@ type VoidOrUndefinedOnly = void | { [UNDEFINED_VOID_ONLY]: never };
 export type Cleanup = () => void | Promise<void>;
 
 /** 挂载到 Bot 时同步登记 Hook，并可返回清理函数。 */
-export type PluginSetup = () => VoidOrUndefinedOnly | Cleanup;
+export type PluginSetup = (bot: Bot) => VoidOrUndefinedOnly | Cleanup;
 
 /** 用于动态导入默认导出为 PluginSetup 的模块。 */
 export type PluginLoader = () => Promise<{ readonly default: PluginSetup }>;
@@ -68,10 +63,11 @@ export interface Plugin {
   dispose(): Promise<void>;
 }
 
-type EffectCallback = (context: Context | MountContext) => void | Promise<void>;
+type EventCallback = (context: Context) => void | Promise<void>;
+type MountCallback = () => void | Promise<void>;
 
 interface Effect {
-  readonly callback: EffectCallback;
+  readonly callback: EventCallback | MountCallback;
   readonly dependencies: readonly EventType[] | undefined;
 }
 
@@ -149,8 +145,11 @@ const validateSetupResult = async (result: unknown): Promise<Cleanup | undefined
   return <Cleanup>result;
 };
 
-const runEffect = async (effect: Effect, context: Context | MountContext): Promise<void> => {
-  if ((await effect.callback(context)) !== undefined) {
+const runEffect = async (effect: Effect, context?: Context): Promise<void> => {
+  const result =
+    context === undefined ? await (<MountCallback>effect.callback)() : await (<EventCallback>effect.callback)(context);
+
+  if (result !== undefined) {
     throw new TypeError('Event callback must return void or Promise<void>');
   }
 };
@@ -176,8 +175,8 @@ export const assertCurrentScope = (scope: EffectScope): void => {
   }
 };
 
-export const render = (scope: EffectScope, setup: PluginSetup): Promise<Cleanup | undefined> =>
-  validateSetupResult(invokeWithScope(scope, setup));
+export const render = (scope: EffectScope, setup: PluginSetup, bot: Bot): Promise<Cleanup | undefined> =>
+  validateSetupResult(invokeWithScope(scope, () => setup(bot)));
 
 /**
  * 加载默认导出为 PluginSetup 的插件模块。
@@ -225,27 +224,21 @@ export const useDispose = (cleanup: Cleanup): void => {
   currentDisposables.defer(cleanup);
 };
 
-export const mountEffects = async (scope: EffectScope, bot: Bot): Promise<void> => {
-  const context = Object.freeze({ bot });
-
+export const mountEffects = async (scope: EffectScope): Promise<void> => {
   for (const effect of scope.effects) {
     if (effect.dependencies?.length === 0) {
-      await runEffect(effect, context);
+      await runEffect(effect);
     }
   }
 };
 
 export const dispatchEffects = async <Type extends EventType>(
   scope: EffectScope,
-  bot: Bot,
   type: Type,
   event: ClientEvent<Type>,
 ): Promise<void> => {
-  // RESUMED 的 Payload 是空字符串，因此 Context 中只有 bot。
-  const context = <Context<Type>>Object.freeze({
-    ...(typeof event === 'object' && event !== null ? event : {}),
-    bot,
-  });
+  // RESUMED 的 Payload 是空字符串，因此 Context 是空对象。
+  const context = <Context<Type>>(typeof event === 'object' && event !== null ? event : Object.freeze({}));
   const effects = scope.effects.filter(
     effect => effect.dependencies === undefined || effect.dependencies.includes(type),
   );
@@ -286,7 +279,7 @@ export const disposeScope = async (scope: EffectScope): Promise<void> => {
 export function useEvent(callback: (context: Context<EventType>) => void | Promise<void>): void;
 
 /** 在插件挂载时执行一次回调。 */
-export function useEvent(callback: (context: MountContext) => void | Promise<void>, dependencies: readonly []): void;
+export function useEvent(callback: () => void | Promise<void>, dependencies: readonly []): void;
 
 /** 监听指定的 QQ Dispatch 事件。 */
 export function useEvent<const Dependencies extends readonly [EventType, ...EventType[]]>(
@@ -314,7 +307,7 @@ export function useEvent(callback: unknown, dependencies?: readonly EventType[])
   const scope = getCurrentScope();
 
   scope.effects.push({
-    callback: <EffectCallback>callback,
+    callback: <EventCallback | MountCallback>callback,
     dependencies: dependencies === undefined ? undefined : [...dependencies],
   });
 }

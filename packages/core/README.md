@@ -60,13 +60,13 @@ await bot.online();
 
 当然，这并不是强制要求，推荐这么做只是为了方便插件的分类与管理。
 
-插件模块默认导出一个同步函数，这个函数称为 `PluginSetup`。在函数中使用 `useEvent()` 监听 QQ 事件，使用 `useCommand()` 注册消息指令和快捷方式：
+插件模块默认导出一个同步函数，这个函数称为 `PluginSetup`。挂载插件时，Core 会将当前 `Bot` 作为参数传入。在函数中使用 `useEvent()` 监听 QQ 事件，使用 `useCommand()` 注册消息指令和快捷方式：
 
 ```typescript
 // plugins/example.ts
 import { useCommand, useEvent } from '@kokkoro/core';
 
-export default function Example() {
+export default () => {
   // 机器人连接成功后输出用户名
   useEvent(
     context => {
@@ -78,9 +78,11 @@ export default function Example() {
   // 收到「/ping」指令或「测试」消息时回复 pong
   useCommand('/ping', () => 'pong').shortcut('测试');
   // 收到「/echo」指令后原样回复指令参数
-  useCommand('/echo <messages>...', context => context.args.messages.join(' '));
-}
+  useCommand('/echo <parts>...', context => context.args.parts.join(' '));
+};
 ```
+
+插件不需要直接调用 Bot 方法时，可以像上例一样省略参数。
 
 这就是一个最简单的 Kokkoro 插件。将 `PluginSetup` 通过 `Bot.mount()` 挂载后，插件才会开始处理事件和指令：
 
@@ -115,11 +117,11 @@ await bot.unmount(Example);
 如果插件创建了例如定时器之类的副作用代码，可以从 `PluginSetup` 返回清理函数。在调用 `Bot.unmount()` 时会自动执行它：
 
 ```typescript
-export default function Example() {
+export default () => {
   const timer = setInterval(() => {}, 1000);
 
   return () => clearInterval(timer);
-}
+};
 ```
 
 ### 事件
@@ -131,7 +133,7 @@ useEvent(context => {
   // 每个 QQ Dispatch 事件都会执行
 });
 
-useEvent(context => {
+useEvent(() => {
   // 插件挂载时执行一次
 }, []);
 
@@ -145,16 +147,23 @@ useEvent(
 
 `Client` 的 `error` 和自定义事件仍通过 `bot.on()` 监听，不会交给 `useEvent()` 处理。
 
-`useEvent()` 回调函数的 `context` 包含对应 QQ 事件的全部 Payload 字段，并额外提供当前的 `context.bot` 属性：
+`useEvent()` 回调函数的 `context` 只包含对应 QQ 事件的 Payload 字段。需要调用 Bot 方法时，可以使用 `PluginSetup` 接收的参数：
 
 ```typescript
-useEvent(
-  async context => {
-    const { username } = await context.bot.getBotInfo();
-    console.log('%s已上线', username);
-  },
-  ['READY'],
-);
+import { type Bot, useEvent } from '@kokkoro/core';
+
+export default (bot: Bot) => {
+  useEvent(
+    async context => {
+      await bot.sendGroupMessage(context.group_openid, {
+        msg_type: 0,
+        content: '收到',
+        msg_id: context.id,
+      });
+    },
+    ['GROUP_MESSAGE_CREATE'],
+  );
+};
 ```
 
 ### 指令
@@ -170,9 +179,9 @@ useEvent(
 | `<name>...` | 一个或多个剩余参数 | `string[]`            |
 | `[name]...` | 零个或多个剩余参数 | `string[]`            |
 
-必填参数必须位于可选参数之前，剩余参数必须位于末尾。消息内容按空白分隔参数，不解析 Shell 引号。
+必填参数必须位于可选参数之前，剩余参数必须位于末尾。消息内容按空白分隔参数，不解析 Shell 引号。指令缺少必填参数时，Core 会回复正确的指令语法。没有对应声明的多余参数会被忽略。
 
-Command 的 `context` 会直接展开消息事件，因此可以直接使用 `context.id`、`context.content` 和 `context.reply()`。`context.bot` 是当前 Bot，`context.args` 则是解析后的参数。
+Command 的 `context` 会直接展开消息事件并添加解析后的 `context.args`，因此可以直接使用 `context.id`、`context.content` 和 `context.reply()`。需要调用 Bot 方法时，同样使用 `PluginSetup` 接收的参数。
 
 处理函数返回 `undefined` 时不会自动回复。返回 QQ 消息对象时会原样交给 `context.reply()`，返回其他对象或数组时使用 `JSON.stringify()` 转为文本，其他返回值使用 `String()` 转为文本。
 
@@ -181,13 +190,13 @@ Command 的 `context` 会直接展开消息事件，因此可以直接使用 `co
 ```typescript
 import { useCommand } from '@kokkoro/core';
 
-export default function Weather() {
+export default () => {
   // 收到「/天气 北京」或「查询北京天气」时回复「北京天气晴」
   useCommand('/天气 <city>', context => `${context.args.city}天气晴`).shortcut(/^查询(?<city>.+)天气$/);
-}
+};
 ```
 
-### 副作用
+### 副作用清理
 
 插件模块的顶层代码只在首次导入时执行一次。在这里建立的数据库连接等资源会由所有 Bot 共享，不属于任何一次 Bot 挂载，因此 `Bot.unmount()` 不会释放它们。
 
@@ -205,7 +214,7 @@ const database = client.db('users');
 
 useDispose(() => client.close());
 
-export default function CheckIn() {
+export default () => {
   useCommand('/签到', async context => {
     try {
       await database
@@ -216,7 +225,7 @@ export default function CheckIn() {
       return '签到失败';
     }
   });
-}
+};
 ```
 
 `loadPlugin()` 会等待模块执行完成，然后返回包含 `setup` 和 `dispose()` 的 `Plugin`：
@@ -281,7 +290,7 @@ await bot.mount(Example);
 await bot.unmount(Example);
 ```
 
-`PluginSetup` 必须同步执行。`bot.unmount()` 只会执行该次挂载返回的清理函数，`plugin.dispose()` 只会执行通过 `useDispose()` 登记的清理函数。其他副作用由开发者自行管理。
+`PluginSetup` 接收当前 Bot，并且必须同步执行。`bot.unmount()` 只会执行该次挂载返回的清理函数，`plugin.dispose()` 只会执行通过 `useDispose()` 登记的清理函数。其他副作用由开发者自行管理。
 
 `loadPlugin()`、`bot.mount()`、`bot.unmount()` 和 `plugin.dispose()` 不会静默捕获错误，任何失败都会通过 Promise rejection 交给调用方。错误记录与插件隔离由完整的 Kokkoro 框架处理。
 

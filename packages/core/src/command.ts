@@ -1,6 +1,5 @@
 import { type ClientEvent, type SendGroupMessagePayload, type SendUserMessagePayload } from 'chobits';
 
-import { type Bot } from './bot';
 import { type Context, type EffectScope, assertCurrentScope, collectCommand } from './plugin';
 
 /** Command 声明中的参数仅用 ASCII 空格分隔。 */
@@ -198,10 +197,10 @@ const parseArgs = (
       continue;
     }
     args[parameter.name] = value;
-    index += 1;
+    index++;
   }
 
-  return index === values.length ? args : null;
+  return args;
 };
 
 const matchShortcut = (
@@ -240,12 +239,11 @@ const reply = async (event: ClientEvent<CommandEventType>, message: CommandReply
 
 const runCommand = async (
   command: CommandRegistration,
-  bot: Bot,
   event: ClientEvent<CommandEventType>,
   args: Record<string, string | string[] | undefined>,
 ): Promise<void> => {
   // Chobits 的事件对象是只读的，展开后的上下文也保持只读。
-  const context = Object.freeze({ ...event, bot, args });
+  const context = Object.freeze({ ...event, args });
   const result = await command.handler(context);
 
   if (result !== undefined) {
@@ -267,7 +265,6 @@ const runCommand = async (
  */
 export const createCommandTasks = (
   commands: readonly MountedCommand[],
-  bot: Bot,
   event: ClientEvent<CommandEventType>,
 ): CommandTask[] => {
   const content = event.content.trimStart();
@@ -293,7 +290,9 @@ export const createCommandTasks = (
       {
         scope: mounted.scope,
         promise: Promise.resolve().then(() =>
-          args === null ? reply(event, mounted.command.syntax) : runCommand(mounted.command, bot, event, args),
+          args === null
+            ? reply(event, `缺少指令参数，有效语句为："${mounted.command.syntax}"`)
+            : runCommand(mounted.command, event, args),
         ),
       },
     ];
@@ -308,7 +307,7 @@ export const createCommandTasks = (
         : [
             {
               scope: mounted.scope,
-              promise: Promise.resolve().then(() => runCommand(mounted.command, bot, event, args)),
+              promise: Promise.resolve().then(() => runCommand(mounted.command, event, args)),
             },
           ];
     }),

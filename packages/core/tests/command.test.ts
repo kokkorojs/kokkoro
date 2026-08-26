@@ -40,21 +40,20 @@ test('Command 分词', async () => {
   expect(values).toEqual(['"hello', 'world"', '\\path']);
 });
 
-test('Command 错误提示', async () => {
+test('Command 输入处理', async () => {
   const bot = createBot();
   const replies: CommandReply[] = [];
 
   function setup() {
-    useCommand('/weather <city>', () => undefined);
-    useCommand('/setu [tag]', () => undefined);
+    useCommand('/echo <part>', context => context.args.part);
   }
 
   await bot.mount(setup);
   await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/missing', replies));
-  await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/weather', replies));
-  await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/setu one extra', replies));
+  await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/echo', replies));
+  await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/echo hello world', replies));
 
-  expect(replies).toEqual(['/weather <city>\n/setu [tag]', '/weather <city>', '/setu [tag]']);
+  expect(replies).toEqual(['/echo <part>', '缺少指令参数，有效语句为："/echo <part>"', 'hello']);
 });
 
 test('Shortcut 匹配', async () => {
@@ -90,13 +89,13 @@ test('Shortcut 并发', async () => {
   let running = 0;
 
   async function handler() {
-    running += 1;
+    running++;
 
     if (running === 3) {
       started.resolve();
     }
     await gate.promise;
-    running -= 1;
+    running--;
   }
 
   function setup() {
@@ -177,7 +176,7 @@ test('Command 生命周期', async () => {
       await mountGate.promise;
     }, []);
     useCommand('/wait', async () => {
-      calls += 1;
+      calls++;
       handlerStarted.resolve();
       await handlerGate.promise;
     });
