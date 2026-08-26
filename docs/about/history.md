@@ -102,19 +102,19 @@ test:
 
 #### 插件示例
 
-在项目启动后，会监听 `bot` 下的 `message` 事件，若有与 `command` 规则相匹配的消息就会将 `ctx`、`bot` 直接传入该插件内部，而插件需要默认导出一个函数
+在项目启动后，会监听 `bot` 下的 `message` 事件，若有与 `command` 规则相匹配的消息就会将 `context`、`bot` 直接传入该插件内部，而插件需要默认导出一个函数
 
 ```javascript
 // plugins/test/index.js
-module.exports = (ctx, bot) => {
+module.exports = (context, bot) => {
   // 例如收到了 "打印 测试语句" 消息，这里的 command 就是 "print"
-  const { command, raw_message } = ctx;
+  const { command, raw_message } = context;
 
   switch (command) {
     case 'print':
       const message = raw_message.replace(/打印|输出/, '').trim();
 
-      ctx.reply(message);
+      context.reply(message);
       break;
   }
 };
@@ -141,9 +141,9 @@ module.exports = (ctx, bot) => {
 那个时候的 yumemi 与 abot 在插件机制上极其相似，不同的是 yumemi 有着一套插件权限管理以及指令机制，还优化了登录流程和 bot 多账号管理。
 
 ```typescript
-function listener(this: Bot, ctx) {
-  command(ctx, () => {
-    ctx.reply('hello world');
+function listener(this: Bot, context) {
+  command(context, () => {
+    context.reply('hello world');
   });
 }
 
