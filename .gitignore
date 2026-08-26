@@ -1,4 +1,6 @@
 .DS_Store
 .eslintcache
 .env.local
+docs/.vitepress/cache/
+docs/.vitepress/dist/
 node_modules/
