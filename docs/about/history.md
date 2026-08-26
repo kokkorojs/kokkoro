@@ -155,7 +155,7 @@ function disable(bot) {
   bot.off('message.private', listener);
 }
 
-export { enable, disable };
+export { disable, enable };
 ```
 
 #### 设计初衷
