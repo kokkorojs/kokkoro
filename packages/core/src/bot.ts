@@ -91,9 +91,15 @@ export class Bot<
   }
 
   private async handleEvent<Type extends EventType>(type: Type, event: ClientEvent<Type>): Promise<void> {
+    // 先登记任务，再执行回调，确保卸载会等待当前事件。
     const tasks: Promise<void>[] = [...this.scopes.values()]
       .filter(scope => scope.status === 'mounted')
-      .map(scope => trackPending(scope, dispatchEffects(scope, type, event)));
+      .map(scope =>
+        trackPending(
+          scope,
+          Promise.resolve().then(() => dispatchEffects(scope, type, event)),
+        ),
+      );
 
     if (COMMAND_EVENT_TYPES.includes(<CommandEventType>type)) {
       for (const task of createCommandTasks(
