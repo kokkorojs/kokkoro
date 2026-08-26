@@ -1,6 +1,7 @@
 import { test } from 'bun:test';
 
 import {
+  type Bot,
   type Cleanup,
   type CommandContext,
   type CommandHandler,
@@ -10,7 +11,6 @@ import {
   type Plugin,
   type PluginLoader,
   type PluginSetup,
-  useEvent,
 } from '@kokkoro/core';
 
 type Equal<Left, Right> =
@@ -20,14 +20,9 @@ type Assignable<Source, Target> = [Source] extends [Target] ? true : false;
 const expectType = <Value extends true>(): Value => <Value>true;
 
 test('公开类型', () => {
-  type MountSetup = typeof useEvent extends {
-    (callback: infer Callback, dependencies: readonly []): void;
-  }
-    ? Callback
-    : never;
-  type MountContext = MountSetup extends (context: infer Context) => unknown ? Context : never;
-
   expectType<Assignable<() => void, PluginSetup>>();
+  expectType<Assignable<(bot: Bot) => void, PluginSetup>>();
+  expectType<Equal<Parameters<PluginSetup>, [bot: Bot]>>();
   expectType<Assignable<() => Cleanup, PluginSetup>>();
   expectType<Equal<Assignable<() => Promise<void>, PluginSetup>, false>>();
   expectType<Equal<Assignable<() => number, PluginSetup>, false>>();
@@ -53,6 +48,7 @@ test('公开类型', () => {
   expectType<Equal<Assignable<readonly EventType[], readonly [EventType, ...EventType[]]>, false>>();
   expectType<Equal<Assignable<'error', EventType>, false>>();
   expectType<Equal<Context<'C2C_MESSAGE_CREATE'>['id'], string>>();
-  expectType<Equal<keyof MountContext, 'bot'>>();
+  expectType<Equal<'bot' extends keyof Context<'READY'> ? true : false, false>>();
+  expectType<Equal<'bot' extends keyof CommandContext<Record<never, never>> ? true : false, false>>();
   expectType<Equal<Assignable<() => Cleanup, (context: Context<'READY'>) => void | Promise<void>>, false>>();
 });

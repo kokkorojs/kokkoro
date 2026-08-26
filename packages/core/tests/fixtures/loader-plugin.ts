@@ -14,7 +14,7 @@ export const reset = (): void => {
   calls.length = 0;
 };
 
-export default function LoaderPlugin() {
+export default () => {
   calls.push('setup');
 
   useEvent(() => {
@@ -24,4 +24,4 @@ export default function LoaderPlugin() {
   return () => {
     calls.push('cleanup');
   };
-}
+};

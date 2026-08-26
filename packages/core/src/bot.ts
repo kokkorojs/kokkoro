@@ -48,13 +48,13 @@ export class Bot<
     await using disposables = new AsyncDisposableStack();
 
     try {
-      const cleanup = await render(scope, setup);
+      const cleanup = await render(scope, setup, this);
 
       if (cleanup) {
         disposables.defer(cleanup);
       }
       this.mountCommands(scope);
-      await mountEffects(scope, this);
+      await mountEffects(scope);
       scope.disposables = disposables.move();
       scope.status = 'mounted';
     } catch (error) {
@@ -93,12 +93,11 @@ export class Bot<
   private async handleEvent<Type extends EventType>(type: Type, event: ClientEvent<Type>): Promise<void> {
     const tasks: Promise<void>[] = [...this.scopes.values()]
       .filter(scope => scope.status === 'mounted')
-      .map(scope => trackPending(scope, dispatchEffects(scope, this, type, event)));
+      .map(scope => trackPending(scope, dispatchEffects(scope, type, event)));
 
     if (COMMAND_EVENT_TYPES.includes(<CommandEventType>type)) {
       for (const task of createCommandTasks(
         [...this.commands.values()].filter(({ scope }) => scope.status === 'mounted'),
-        this,
         // TypeScript 无法通过这个运行时判断缩窄 `ClientEvent<Type>`。
         <ClientEvent<CommandEventType>>(<unknown>event),
       )) {
