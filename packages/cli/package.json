@@ -1,0 +1,37 @@
+{
+  "name": "@kokkoro/cli",
+  "version": "0.0.0",
+  "description": "The command-line interface of the Kokkoro QQ bot framework.",
+  "keywords": [
+    "bot",
+    "kokkoro",
+    "qq",
+    "qqbot"
+  ],
+  "homepage": "https://kokkoro.js.org",
+  "bugs": {
+    "url": "https://github.com/kokkorojs/kokkoro/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kokkorojs/kokkoro.git",
+    "directory": "packages/cli"
+  },
+  "license": "MIT",
+  "author": "Yuki <admin@yuki.sh>",
+  "type": "module",
+  "bin": {
+    "kokkoro": "./src/index.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "dependencies": {
+    "create-kokkoro": "^0.1.0",
+    "kokkoro": "^3.0.0",
+    "komut": "^0.3.1"
+  },
+  "peerDependencies": {
+    "typescript": "^6.0.3"
+  }
+}
