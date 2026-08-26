@@ -1,0 +1,5 @@
+{
+  "name": "kokkoro-plugin-failure",
+  "type": "module",
+  "exports": "./index.ts"
+}
