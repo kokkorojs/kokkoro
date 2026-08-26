@@ -270,8 +270,8 @@ export const createCommandTasks = (
   const content = event.content.trimStart();
 
   if (content.startsWith('/')) {
-    const tokens = content.trimEnd().split(/\s+/u);
-    const mounted = commands.find(({ command }) => command.prefix === tokens[0]);
+    const [prefix, ...values] = content.trimEnd().split(/\s+/u);
+    const mounted = commands.find(({ command }) => command.prefix === prefix);
 
     if (!mounted) {
       if (commands.length === 0) {
@@ -284,7 +284,7 @@ export const createCommandTasks = (
         },
       ];
     }
-    const args = parseArgs(mounted.command.parameters, tokens.slice(1));
+    const args = parseArgs(mounted.command.parameters, values);
 
     return [
       {
