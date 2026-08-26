@@ -7,8 +7,11 @@
     "packages/*"
   ],
   "scripts": {
-    "format": "prettier \"**/*.{json,md,ts,yaml,yml}\" --write --experimental-cli",
-    "format:check": "prettier \"**/*.{json,md,ts,yaml,yml}\" --check --experimental-cli",
+    "docs:build": "vitepress build docs",
+    "docs:dev": "vitepress dev docs",
+    "docs:preview": "vitepress preview docs",
+    "format": "prettier \"**/*.{css,json,md,ts,vue,yaml,yml}\" --write --experimental-cli",
+    "format:check": "prettier \"**/*.{css,json,md,ts,vue,yaml,yml}\" --check --experimental-cli",
     "lint": "eslint --cache",
     "lint:fix": "eslint --fix --cache",
     "prepare": "husky",
@@ -20,11 +23,12 @@
     "@commitlint/types": "^21.2.0",
     "@eslint/js": "^10.0.1",
     "@types/bun": "^1.4.0",
-    "eslint": "^10.8.1",
+    "eslint": "^10.9.1",
     "husky": "^9.1.7",
     "prettier": "^3.9.6",
     "prettier-plugin-sort": "^1.1.1",
-    "typescript-eslint": "^8.67.0"
+    "typescript-eslint": "^8.68.0",
+    "vitepress": "^2.0.0-alpha.19"
   },
   "peerDependencies": {
     "typescript": "^6.0.3"
