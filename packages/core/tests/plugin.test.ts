@@ -362,6 +362,41 @@ test('卸载等待任务', async () => {
   expect(calls).toEqual(['mounted', 'event:start', 'event:end', 'disposed']);
 });
 
+test('事件任务登记', async () => {
+  const bot = createBot();
+  const gate = Promise.withResolvers<void>();
+  const started = Promise.withResolvers<void>();
+  const calls: string[] = [];
+  let unmount: Promise<void> | undefined;
+
+  function setup() {
+    useEvent(async () => {
+      unmount = bot.unmount(setup);
+      started.resolve();
+      await gate.promise;
+      calls.push('event');
+    }, ['READY']);
+
+    return () => {
+      calls.push('cleanup');
+    };
+  }
+
+  await bot.mount(setup);
+  const dispatch = bot.emit('READY', createEvent<'READY'>());
+
+  await started.promise;
+  expect(calls).toEqual([]);
+
+  gate.resolve();
+
+  if (!unmount) {
+    throw new Error('未开始取消挂载');
+  }
+  await Promise.all([dispatch, unmount]);
+  expect(calls).toEqual(['event', 'cleanup']);
+});
+
 test('卸载清理错误', async () => {
   const bot = createBot();
   const calls: string[] = [];
