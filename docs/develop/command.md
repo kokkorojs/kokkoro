@@ -15,8 +15,8 @@ export default () => {
 ```
 
 <ChatPanel>
-  <ChatMessage qq="2225151531" nickname="Yuki" at="可可萝">/复读 Ciallo～(∠·ω< )⌒★</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">Ciallo～(∠·ω< )⌒★</ChatMessage>
+  <ChatMessage qq="2225151531" nickname="Yuki" at="可可萝">/复读 ciallo</ChatMessage>
+  <ChatMessage qq="2854205915" nickname="可可萝">ciallo</ChatMessage>
 </ChatPanel>
 
 指令参数会全部存储在 **`context.args`** 中。如果指令没有声明任何参数，那么 `args` 的值是 `{}` 空对象。
