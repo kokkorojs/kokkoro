@@ -12,7 +12,7 @@ bun create kokkoro
 
 命令会创建项目目录、`plugins` 目录、`package.json`、`kokkoro.json` 和 `main.ts`。
 
-如果项目目录不是空目录，创建将中止。使用 `--force` 选项可以覆盖脚手架创建的同名文件，目录中的其他内容不受影响。
+如果项目目录不是空目录，创建将中止。使用 `--force` 或 `-f` 选项可以覆盖脚手架创建的同名文件，目录中的其他内容不受影响。
 
 ```shell
 bun create kokkoro --force

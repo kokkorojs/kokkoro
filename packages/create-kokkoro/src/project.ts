@@ -1,59 +1,61 @@
 import { Glob, write } from 'bun';
+import { existsSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { basename, join, resolve } from 'node:path';
 
-import { input, select } from 'komut/prompts';
+import { type InputOptions, input, select } from 'komut/prompts';
 
 type Protocol = 'websocket' | 'webhook';
 
-async function hasEntries(directory: string): Promise<boolean> {
-  try {
-    const entries = new Glob('*').scan({
-      cwd: directory,
-      dot: true,
-      onlyFiles: false,
-    });
-    const iterator = entries[Symbol.asyncIterator]();
-    const { done } = await iterator.next();
+// prettier-ignore
+const MAIN = [
+  "import { run } from 'kokkoro';",
+  '',
+  'await run();',
+  '',
+].join('\n');
 
-    return !done;
-  } catch (error) {
-    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
-      return false;
-    }
-    throw error;
+async function hasEntries(directory: string): Promise<boolean> {
+  if (!existsSync(directory)) {
+    return false;
   }
+  const entries = new Glob('*').scan({
+    cwd: directory,
+    dot: true,
+    onlyFiles: false,
+  });
+  const iterator = entries[Symbol.asyncIterator]();
+  const { done } = await iterator.next();
+
+  return !done;
 }
 
-function prompt(message: string, defaultValue?: string): string {
-  const value = input(message, { default: defaultValue });
+function prompt(message: string, options?: InputOptions): string {
+  const value = input(message, options);
 
   if (value === null) {
-    throw new Error('已取消创建项目。');
+    throw new Error('已取消创建项目');
   }
   return value;
 }
 
 function promptRequired(message: string): string {
-  while (true) {
-    const value = prompt(message);
-
-    if (value) {
-      return value;
-    }
-    console.error(`${message}不能为空。`);
-  }
+  return prompt(message, {
+    validate: value => value.length > 0 || `${message}不能为空`,
+  });
 }
 
 function promptPort(): number {
-  while (true) {
-    const port = Number(prompt('服务端口', '3000'));
+  const value = prompt('服务端口', {
+    default: '3000',
+    validate: value => {
+      const port = Number(value);
 
-    if (Number.isInteger(port) && port >= 0 && port <= 65535) {
-      return port;
-    }
-    console.error('服务端口必须是 0 到 65535 之间的整数。');
-  }
+      return (Number.isInteger(port) && port >= 0 && port <= 65535) || '服务端口必须是 0 到 65535 之间的整数';
+    },
+  });
+
+  return Number(value);
 }
 
 function promptProtocol(): Protocol {
@@ -63,20 +65,16 @@ function promptProtocol(): Protocol {
   ]);
 
   if (choice === null) {
-    throw new Error('已取消创建项目。');
+    throw new Error('已取消创建项目');
   }
   return <Protocol>choice.value;
 }
 
 function promptWebHookPath(): string {
-  while (true) {
-    const path = prompt('WebHook 路径', '/callback');
-
-    if (path.startsWith('/')) {
-      return path;
-    }
-    console.error('WebHook 路径必须以 / 开头。');
-  }
+  return prompt('WebHook 路径', {
+    default: '/callback',
+    validate: value => value.startsWith('/') || 'WebHook 路径必须以 / 开头',
+  });
 }
 
 function promptBots(protocol: Protocol) {
@@ -86,7 +84,7 @@ function promptBots(protocol: Protocol) {
   ]);
 
   if (choice === null) {
-    throw new Error('已取消创建项目。');
+    throw new Error('已取消创建项目');
   }
 
   if (choice.value === 'no') {
@@ -103,7 +101,7 @@ function promptBots(protocol: Protocol) {
 /** 在指定目录创建 Kokkoro 项目。 */
 export async function createProject(directory: string, isForced = false): Promise<void> {
   if ((await hasEntries(directory)) && !isForced) {
-    throw new Error(`目标目录不是空目录。如需继续，请使用 --force 选项覆盖模板文件。\n${directory}`);
+    throw new Error(`目标目录不是空目录，如需继续，请使用 --force 选项覆盖模板文件\n${directory}`);
   }
   const port = promptPort();
   const protocol = promptProtocol();
@@ -113,6 +111,7 @@ export async function createProject(directory: string, isForced = false): Promis
     name,
     private: true,
     type: 'module',
+    workspaces: ['plugins/*'],
     scripts: {
       start: 'bun run main.ts',
     },
@@ -142,7 +141,7 @@ export async function createProject(directory: string, isForced = false): Promis
   await Promise.all([
     write(join(directory, 'package.json'), `${JSON.stringify(manifest, null, 2)}\n`),
     write(join(directory, 'kokkoro.json'), `${JSON.stringify(config, null, 2)}\n`),
-    write(join(directory, 'main.ts'), "import { run } from 'kokkoro';\n\nawait run();\n"),
+    write(join(directory, 'main.ts'), MAIN),
   ]);
 
   console.log('\n项目创建完成，请依次运行以下命令：\n');
