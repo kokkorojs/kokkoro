@@ -4,19 +4,15 @@ export default defineConfig({
   title: 'Kokkoro',
   description: 'とある咕咕の QQ 机器人框架',
   lang: 'zh-CN',
-  base: '/',
   cleanUrls: true,
   lastUpdated: true,
   head: [['link', { rel: 'icon', href: '/favicon.ico' }]],
-  markdown: {
-    lineNumbers: false,
-  },
   themeConfig: {
     nav: [
       {
         text: '文档',
         items: [
-          { text: '深度指南', link: '/guide/introduce' },
+          { text: '深度指南', link: '/guide/introduction' },
           { text: '快速上手', link: '/guide/quick-start' },
         ],
       },
@@ -27,7 +23,7 @@ export default defineConfig({
       },
       {
         text: '插件社区',
-        link: '/plugin/awesome',
+        link: '/plugin/community',
         activeMatch: '/plugin/',
       },
       {
@@ -35,8 +31,8 @@ export default defineConfig({
         activeMatch: '/about/',
         items: [
           { text: '常见问题', link: '/about/faq' },
-          { text: '计划', link: '/about/project' },
-          { text: '历史', link: '/about/history' },
+          // { text: '计划', link: '/about/project' },
+          // { text: '历史', link: '/about/history' },
         ],
       },
     ],
@@ -45,7 +41,7 @@ export default defineConfig({
         {
           text: '开始',
           items: [
-            { text: '简介', link: '/guide/introduce' },
+            { text: '简介', link: '/guide/introduction' },
             { text: '快速上手', link: '/guide/quick-start' },
           ],
         },
@@ -58,15 +54,17 @@ export default defineConfig({
         {
           text: '基础',
           items: [
-            { text: '概述', link: '/develop/overview' },
-            { text: '编写一个插件', link: '/develop/application' },
+            { text: '插件概述', link: '/develop/overview' },
+            { text: '编写第一个插件', link: '/develop/first-plugin' },
+            { text: '事件监听', link: '/develop/event' },
+            { text: '指令参数', link: '/develop/command' },
           ],
         },
         {
           text: '进阶',
           items: [
-            { text: '事件监听', link: '/develop/event' },
-            { text: '参数获取', link: '/develop/query' },
+            { text: '插件生命周期', link: '/develop/lifecycle' },
+            { text: '副作用清理', link: '/develop/side-effect' },
             { text: '数据库', link: '/develop/database' },
           ],
         },

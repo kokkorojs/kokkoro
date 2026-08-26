@@ -1,19 +1,19 @@
 # 插件社区
 
 ::: tip
-当前页面列出的插件都是**曾经有过**的，因项目历经重构，并不是所有插件都能立即使用，你可以将这个页面视为 TODO 清单。
+本页收录 Kokkoro 曾经提供的社区插件。Kokkoro v3 正在重构，目前并非所有插件都能正常使用，可以把这个页面视为 TODO 清单。
 
-还在适配中的插件会注明，该页面未适配完成的功能都会随着时间逐步完善，若有你比较中意的功能可以在群里催更或者提 issue，会优先开发。
+还在适配中的插件会单独注明。若有你比较中意的功能，可以在群里催更或者提交 Issue。
 :::
 
-## chatGPT
+## ChatGPT
 
 ::: warning
-因 kokkoro v2 重构，该插件适配中
+Kokkoro v3 正在重构，该插件尚未适配。
 :::
 
 ```shell
-npm i kokkoro-plugin-chatgpt
+bun add kokkoro-plugin-chatgpt
 ```
 
 ### 咨询
@@ -42,11 +42,11 @@ npm i kokkoro-plugin-chatgpt
 ## 切噜语
 
 ::: warning
-因 kokkoro v2 重构，该插件适配中
+Kokkoro v3 正在重构，该插件尚未适配。
 :::
 
 ```shell
-npm i kokkoro-plugin-cherugo
+bun add kokkoro-plugin-cherugo
 ```
 
 类似 `熊说`、`佛曰`，可使用切噜语实现文本加密
@@ -68,7 +68,7 @@ npm i kokkoro-plugin-cherugo
 ## 一言语句
 
 ```shell
-npm i kokkoro-plugin-hitokoto
+bun add kokkoro-plugin-hitokoto
 ```
 
 ### 来句骚话
@@ -85,7 +85,7 @@ npm i kokkoro-plugin-hitokoto
 ### ~~网抑云~~
 
 ::: warning
-因 kokkoro v2 重构，该功能适配中
+Kokkoro v3 正在重构，该功能尚未适配。
 :::
 
 在每天凌晨自动发送
@@ -99,11 +99,11 @@ npm i kokkoro-plugin-hitokoto
 ## 群管理
 
 ::: warning
-因 kokkoro v2 重构，该插件适配中
+Kokkoro v3 正在重构，该插件尚未适配。
 :::
 
 ```shell
-npm i kokkoro-plugin-group
+bun add kokkoro-plugin-group
 ```
 
 ### 申请头衔
@@ -125,11 +125,11 @@ npm i kokkoro-plugin-group
 ## 色图
 
 ::: warning
-因 kokkoro v2 重构，该插件适配中
+Kokkoro v3 正在重构，该插件尚未适配。
 :::
 
 ```shell
-npm i kokkoro-plugin-setu
+bun add kokkoro-plugin-setu
 ```
 
 ### 随机涩图
@@ -156,21 +156,21 @@ npm i kokkoro-plugin-setu
 ## RSS 订阅
 
 ::: warning
-因 kokkoro v2 重构，该插件适配中
+Kokkoro v3 正在重构，该插件尚未适配。
 :::
 
 ```shell
-npm i kokkoro-plugin-rss
+bun add kokkoro-plugin-rss
 ```
 
 ## SauceNAO 图片搜索
 
 ::: warning
-因 kokkoro v2 重构，该插件适配中
+Kokkoro v3 正在重构，该插件尚未适配。
 :::
 
 ```shell
-npm i kokkoro-plugin-saucenao
+bun add kokkoro-plugin-saucenao
 ```
 
 ### 搜图
@@ -193,11 +193,11 @@ npm i kokkoro-plugin-saucenao
 ## 公主连结
 
 ::: warning
-因 kokkoro v2 重构，该插件适配中
+Kokkoro v3 正在重构，该插件尚未适配。
 :::
 
 ```shell
-npm i kokkoro-plugin-pcr
+bun add kokkoro-plugin-pcr
 ```
 
 kokkoro 最初就是以公主连结玩家为核心开发相关功能的，现在计划将一系列插件整合
@@ -248,14 +248,14 @@ kokkoro 最初就是以公主连结玩家为核心开发相关功能的，现在
 
 ### 买药
 
-### rank
+### Rank
 
 ### 日程推送
 
 ## 沙盒
 
 ::: warning
-因 kokkoro v2 重构，该插件适配中
+Kokkoro v3 正在重构，该插件尚未适配。
 :::
 
 可执行任意 js 代码段，包括 bot api 和发送网络请求，有着极高的可玩性，你可以把这个插件当做浏览器的 f12 去实现各种有意思的东西
@@ -278,7 +278,7 @@ kokkoro 最初就是以公主连结玩家为核心开发相关功能的，现在
   <ChatMessage qq="2854205915" nickname="可可萝">true</ChatMessage>
 </ChatPanel>
 
-你可以通过创建变量实现类似及时问答的效果，不过更推荐通过 [qa](/plugin/awesome#你问我答) 插件去定义，毕竟单纯地变量不支持正则
+你可以通过创建变量实现类似及时问答的效果，不过更推荐通过 [qa](/plugin/community#你问我答) 插件去定义，毕竟单纯地变量不支持正则
 
 ### 执行脚本
 
@@ -287,7 +287,7 @@ kokkoro 最初就是以公主连结玩家为核心开发相关功能的，现在
   {{
     [
       '>for (let i = 0; i &lt 3; i++) {',
-      "  ctx.reply('重要的事情说三遍！');",
+      "  context.reply('重要的事情说三遍！');",
       '}',
     ].join('\n')
   }}
@@ -304,7 +304,7 @@ kokkoro 最初就是以公主连结玩家为核心开发相关功能的，现在
 ## 空调
 
 ```shell
-npm i kokkoro-plugin-aircon
+bun add kokkoro-plugin-aircon
 ```
 
 ### 开关
@@ -338,7 +338,7 @@ npm i kokkoro-plugin-aircon
 ## 五子棋
 
 ::: warning
-因 kokkoro v2 重构，该插件适配中
+Kokkoro v3 正在重构，该插件尚未适配。
 :::
 
 ### 开始游戏
@@ -378,7 +378,7 @@ npm i kokkoro-plugin-aircon
 ## 猜头像
 
 ::: warning
-因 kokkoro v2 重构，该插件适配中
+Kokkoro v3 正在重构，该插件尚未适配。
 :::
 
 本来是计划把猜头像也整合进 pcr 插件，考虑到后续可能会添加其它游戏类型的头像，所以仍然独立。
@@ -399,7 +399,7 @@ npm i kokkoro-plugin-aircon
 ## 人生重开
 
 ::: warning
-因 kokkoro v2 重构，该插件适配中
+Kokkoro v3 正在重构，该插件尚未适配。
 :::
 
 ### 重开
@@ -424,7 +424,7 @@ npm i kokkoro-plugin-aircon
 ## 你问我答
 
 ::: warning
-因 kokkoro v2 重构，该插件适配中
+Kokkoro v3 正在重构，该插件尚未适配。
 :::
 
 ### 问
