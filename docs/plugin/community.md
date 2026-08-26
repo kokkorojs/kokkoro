@@ -1,15 +1,15 @@
 # 插件社区
 
 ::: tip
-本页收录 Kokkoro 曾经提供的社区插件。Kokkoro v3 正在重构，目前并非所有插件都能正常使用，可以把这个页面视为 TODO 清单。
+本页收录 Kokkoro 历代提供过的插件与功能。它们既包括面向 v1、v2 发布的社区插件，也包括更早期且从未发布到 npm 的功能。目前所有内容均未适配 v3，可以把这个页面视为历史功能展示和后续适配清单。
 
-还在适配中的插件会单独注明。若有你比较中意的功能，可以在群里催更或者提交 Issue。
+若有你比较中意的功能，可以在群里催更或者提交 Issue。
 :::
 
 ## ChatGPT
 
 ::: warning
-Kokkoro v3 正在重构，该插件尚未适配。
+该插件的最后一个版本适用于 Kokkoro v1，尚未适配后续版本。
 :::
 
 ```shell
@@ -42,7 +42,7 @@ bun add kokkoro-plugin-chatgpt
 ## 切噜语
 
 ::: warning
-Kokkoro v3 正在重构，该插件尚未适配。
+该插件的最后一个版本适用于 Kokkoro v1，尚未适配后续版本。
 :::
 
 ```shell
@@ -66,6 +66,10 @@ bun add kokkoro-plugin-cherugo
 </ChatPanel>
 
 ## 一言语句
+
+::: warning
+该插件的最后一个版本适用于 Kokkoro v2，尚未适配 v3。
+:::
 
 ```shell
 bun add kokkoro-plugin-hitokoto
@@ -99,7 +103,7 @@ Kokkoro v3 正在重构，该功能尚未适配。
 ## 群管理
 
 ::: warning
-Kokkoro v3 正在重构，该插件尚未适配。
+该插件的最后一个版本适用于 Kokkoro v1，尚未适配后续版本。
 :::
 
 ```shell
@@ -107,6 +111,10 @@ bun add kokkoro-plugin-group
 ```
 
 ### 申请头衔
+
+::: warning
+该功能依赖第三方 QQ 协议。QQ 官方机器人目前不支持设置群头衔，因此无法在 Kokkoro v3 中实现。
+:::
 
 <ChatPanel>
   <ChatMessage qq="2225151531" nickname="Yuki">申请头衔 咕咕咕</ChatMessage>
@@ -125,7 +133,7 @@ bun add kokkoro-plugin-group
 ## 色图
 
 ::: warning
-Kokkoro v3 正在重构，该插件尚未适配。
+该插件的最后一个版本适用于 Kokkoro v1，尚未适配后续版本。
 :::
 
 ```shell
@@ -156,17 +164,13 @@ bun add kokkoro-plugin-setu
 ## RSS 订阅
 
 ::: warning
-Kokkoro v3 正在重构，该插件尚未适配。
+该插件来自 Kokkoro v1，目前无法从 npm 安装。
 :::
-
-```shell
-bun add kokkoro-plugin-rss
-```
 
 ## SauceNAO 图片搜索
 
 ::: warning
-Kokkoro v3 正在重构，该插件尚未适配。
+该插件的最后一个版本适用于 Kokkoro v1，尚未适配后续版本。
 :::
 
 ```shell
@@ -193,7 +197,7 @@ bun add kokkoro-plugin-saucenao
 ## 公主连结
 
 ::: warning
-Kokkoro v3 正在重构，该插件尚未适配。
+该插件的最后一个版本适用于 Kokkoro v2，尚未适配 v3。
 :::
 
 ```shell
@@ -255,7 +259,7 @@ kokkoro 最初就是以公主连结玩家为核心开发相关功能的，现在
 ## 沙盒
 
 ::: warning
-Kokkoro v3 正在重构，该插件尚未适配。
+该插件来自 Kokkoro 早期版本，尚未适配 v3。
 :::
 
 可执行任意 js 代码段，包括 bot api 和发送网络请求，有着极高的可玩性，你可以把这个插件当做浏览器的 f12 去实现各种有意思的东西
@@ -303,6 +307,10 @@ Kokkoro v3 正在重构，该插件尚未适配。
 
 ## 空调
 
+::: warning
+该插件的最后一个版本适用于 Kokkoro v2，尚未适配 v3。
+:::
+
 ```shell
 bun add kokkoro-plugin-aircon
 ```
@@ -337,8 +345,8 @@ bun add kokkoro-plugin-aircon
 
 ## 五子棋
 
-::: warning
-Kokkoro v3 正在重构，该插件尚未适配。
+::: warning 早期功能
+以下功能来自 Kokkoro v1 以前的版本，当时没有作为独立的 npm 包发布，目前也尚未适配 v3。
 :::
 
 ### 开始游戏
@@ -377,10 +385,6 @@ Kokkoro v3 正在重构，该插件尚未适配。
 
 ## 猜头像
 
-::: warning
-Kokkoro v3 正在重构，该插件尚未适配。
-:::
-
 本来是计划把猜头像也整合进 pcr 插件，考虑到后续可能会添加其它游戏类型的头像，所以仍然独立。
 
 <ChatPanel>
@@ -397,10 +401,6 @@ Kokkoro v3 正在重构，该插件尚未适配。
 </ChatPanel>
 
 ## 人生重开
-
-::: warning
-Kokkoro v3 正在重构，该插件尚未适配。
-:::
 
 ### 重开
 
@@ -422,10 +422,6 @@ Kokkoro v3 正在重构，该插件尚未适配。
 </ChatPanel>
 
 ## 你问我答
-
-::: warning
-Kokkoro v3 正在重构，该插件尚未适配。
-:::
 
 ### 问
 
@@ -455,7 +451,7 @@ Kokkoro v3 正在重构，该插件尚未适配。
 ## Galgame
 
 ::: danger
-写剧本太花时间，也没多少人玩，该插件已弃坑两年，未来看心情开发
+该功能始于 2020 年，从未发布到 npm，目前已经停止开发。
 :::
 
 ### 开始
