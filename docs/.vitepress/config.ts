@@ -65,7 +65,7 @@ export default defineConfig({
           items: [
             { text: '插件生命周期', link: '/develop/lifecycle' },
             { text: '副作用清理', link: '/develop/side-effect' },
-            { text: '数据库', link: '/develop/database' },
+            { text: '数据持久化', link: '/develop/persistence' },
           ],
         },
       ],
