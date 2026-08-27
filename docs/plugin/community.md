@@ -1,7 +1,7 @@
 # 插件社区
 
 ::: tip
-本页收录 Kokkoro 历代提供过的插件与功能。它们既包括面向 v1、v2 发布的社区插件，也包括更早期且从未发布到 npm 的功能。目前所有内容均未适配 v3，可以把这个页面视为历史功能展示和后续适配清单。
+本页收录 Kokkoro 历代提供过的插件与功能。已经适配 v3 的插件可以直接安装，其他条目会标注适用版本或当前状态。
 
 若有你比较中意的功能，可以在群里催更或者提交 Issue。
 :::
@@ -67,18 +67,22 @@ bun add kokkoro-plugin-cherugo
 
 ## 一言语句
 
-::: warning
-该插件的最后一个版本适用于 Kokkoro v2，尚未适配 v3。
-:::
-
 ```shell
 bun add kokkoro-plugin-hitokoto
 ```
 
+插件默认返回动画或漫画语句。如需修改语句类型，请在项目根目录创建 `.env` 文件，并通过 `HITOKOTO_TYPES` 设置一言接口的 `c` 参数。多个类型使用逗号分隔，默认值为 `a,b`。
+
+```ini
+HITOKOTO_TYPES=c,d
+```
+
+类型取值参阅[一言接口文档](https://developer.hitokoto.cn/sentence/#请求参数)。修改 `.env` 后需要重新启动项目。
+
 ### 来句骚话
 
 <ChatPanel>
-  <ChatMessage qq="2225151531" nickname="Yuki">/来点骚话</ChatMessage>
+  <ChatMessage qq="2225151531" nickname="Yuki">来点骚话</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">
     <span>『不对失误耿耿于怀，而是专心为今后做打算，这才是最有效率的』</span>
     <br />
@@ -98,6 +102,19 @@ Kokkoro v3 正在重构，该功能尚未适配。
   <ChatMessage qq="2854205915" nickname="可可萝">
     <span>失恋的时候，许多年轻人以为整个世界都抛弃了自己，别傻了，世界根本就没需要过你。</span>
   </ChatMessage>
+</ChatPanel>
+
+## 疯狂星期四
+
+```shell
+bun add kokkoro-plugin-kfc
+```
+
+发送 `/疯狂星期四`，或者在消息中提到星期四、肯德基、V我50 等关键词，插件会随机返回一条疯狂星期四文案。
+
+<ChatPanel>
+  <ChatMessage qq="2225151531" nickname="Yuki">/疯狂星期四</ChatMessage>
+  <ChatMessage qq="2854205915" nickname="可可萝">今天是疯狂星期四，V我50。</ChatMessage>
 </ChatPanel>
 
 ## 群管理
