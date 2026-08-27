@@ -1,5 +1,7 @@
 # 常见问题
 
+这里整理了 Kokkoro 的包职责、运行环境和插件兼容等常见问题。
+
 ## Kokkoro、Core 和 Chobits 有什么区别？
 
 **Chobits** 是直接对接 QQ 官方服务的 JavaScript SDK，负责事件通信和 QQ 接口调用。

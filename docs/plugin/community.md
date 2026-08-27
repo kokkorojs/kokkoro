@@ -79,10 +79,12 @@ HITOKOTO_TYPES=c,d
 
 类型取值参阅[一言接口文档](https://developer.hitokoto.cn/sentence/#请求参数)。修改 `.env` 后需要重新启动项目。
 
-### 来句骚话
+### 随机文本
+
+发送「/一言」，会从一言接口随机返回一条动画或漫画语句。也可以发送「来点骚话」触发，群聊需要开启「获取群内全部消息」权限。
 
 <ChatPanel>
-  <ChatMessage qq="2225151531" nickname="Yuki">来点骚话</ChatMessage>
+  <ChatMessage qq="2225151531" nickname="Yuki">/一言</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">
     <span>『不对失误耿耿于怀，而是专心为今后做打算，这才是最有效率的』</span>
     <br />
@@ -110,7 +112,7 @@ Kokkoro v3 正在重构，该功能尚未适配。
 bun add kokkoro-plugin-kfc
 ```
 
-发送 `/疯狂星期四`，或者在消息中提到星期四、肯德基、V我50 等关键词，插件会随机返回一条疯狂星期四文案。
+发送「/疯狂星期四」，或者在消息中提到星期四、肯德基、V我50 等关键词，插件会随机返回一条疯狂星期四文案。后者需要开启「获取群内全部消息」权限。
 
 <ChatPanel>
   <ChatMessage qq="2225151531" nickname="Yuki">/疯狂星期四</ChatMessage>
