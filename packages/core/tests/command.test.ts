@@ -225,6 +225,29 @@ test('Command 回复', async () => {
   expect(replies).toEqual(['hello', { msg_type: 0, content: 'payload' }, '{"key":"value"}', '[]', 'manual']);
 });
 
+test('Command 异常', async () => {
+  const bot = createBot();
+  const replies: CommandReply[] = [];
+  const handlerError = new Error('指令处理失败');
+
+  function setup() {
+    useCommand('/error', () => {
+      throw handlerError;
+    });
+    useCommand('/invalid', () => Promise.reject('invalid'));
+  }
+
+  await bot.mount(setup);
+  await expect(bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/error', replies))).rejects.toBe(handlerError);
+  await expect(bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/invalid', replies))).rejects.toMatchObject({
+    cause: 'invalid',
+    message: 'Command handler must throw an Error',
+    name: 'TypeError',
+  });
+
+  expect(replies).toEqual(['指令处理失败']);
+});
+
 test('Command 注册时机', async () => {
   const bot = createBot();
   let command: Command | undefined;

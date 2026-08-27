@@ -91,7 +91,7 @@ export type CommandContext<Args extends object> = Context<CommandEventType> & {
   readonly args: Args;
 };
 
-/** Command 处理函数。 */
+/** Command 处理函数。抛出 `Error` 时，其消息会回复给消息来源。 */
 export type CommandHandler<Args extends object> = (context: CommandContext<Args>) => unknown;
 
 /** `useCommand()` 返回的链式配置接口。 */
@@ -242,9 +242,20 @@ const runCommand = async (
   event: ClientEvent<CommandEventType>,
   args: Record<string, string | string[] | undefined>,
 ): Promise<void> => {
+  let result: unknown;
+
   // Chobits 的事件对象是只读的，展开后的上下文也保持只读。
   const context = Object.freeze({ ...event, args });
-  const result = await command.handler(context);
+
+  try {
+    result = await command.handler(context);
+  } catch (error) {
+    if (error instanceof Error) {
+      await reply(event, error.message);
+      throw error;
+    }
+    throw new TypeError('Command handler must throw an Error', { cause: error });
+  }
 
   if (result !== undefined) {
     const message =
