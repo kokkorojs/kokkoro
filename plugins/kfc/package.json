@@ -1,0 +1,28 @@
+{
+  "name": "kokkoro-plugin-kfc",
+  "version": "3.0.0",
+  "description": "vivo 50",
+  "keywords": [
+    "bot",
+    "kokkoro",
+    "kfc",
+    "qq"
+  ],
+  "bugs": "https://github.com/kokkorojs/kokkoro/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kokkorojs/kokkoro.git",
+    "directory": "plugins/kfc"
+  },
+  "license": "MIT",
+  "author": "Yuki <admin@yuki.sh>",
+  "type": "module",
+  "exports": "./src/index.ts",
+  "files": [
+    "src"
+  ],
+  "peerDependencies": {
+    "@kokkoro/core": "^3.1.3",
+    "typescript": "^6.0.3"
+  }
+}
