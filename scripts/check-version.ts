@@ -10,7 +10,7 @@ if (!tag) {
 if (!output) {
   throw new Error('GITHUB_OUTPUT is not defined');
 }
-const workspaces = await Array.fromAsync(new Glob('packages/*/package.json').scan(), async path => {
+const workspaces = await Array.fromAsync(new Glob('{packages,plugins}/*/package.json').scan(), async path => {
   const { default: manifest } = await import(`~/${path}`, { with: { type: 'json' } });
 
   return {

@@ -4,7 +4,8 @@
   "author": "Yuki <admin@yuki.sh>",
   "type": "module",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "plugins/*"
   ],
   "scripts": {
     "docs:build": "vitepress build docs",
