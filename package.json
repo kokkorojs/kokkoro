@@ -1,7 +1,5 @@
 {
   "private": true,
-  "license": "MIT",
-  "author": "Yuki <admin@yuki.sh>",
   "type": "module",
   "workspaces": [
     "packages/*",

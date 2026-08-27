@@ -9,9 +9,7 @@
     "qqbot"
   ],
   "homepage": "https://kokkoro.js.org",
-  "bugs": {
-    "url": "https://github.com/kokkorojs/kokkoro/issues"
-  },
+  "bugs": "https://github.com/kokkorojs/kokkoro/issues",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/kokkorojs/kokkoro.git",
