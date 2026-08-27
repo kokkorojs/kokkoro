@@ -185,6 +185,8 @@ Command 的 `context` 会直接展开消息事件并添加解析后的 `context.
 
 处理函数返回 `undefined` 时不会自动回复。返回 QQ 消息对象时会原样交给 `context.reply()`，返回其他对象或数组时使用 `JSON.stringify()` 转为文本，其他返回值使用 `String()` 转为文本。
 
+处理函数抛出 `Error` 时，Core 会将 `error.message` 回复给消息来源，并继续抛出该错误。应用层仍可记录或处理这个错误。处理函数不得抛出 `Error` 以外的值。
+
 `shortcut()` 可以使用字符串或正则表达式匹配自然语言。正则表达式中的命名捕获组会写入 `context.args` 的同名字段，例如：
 
 ```typescript

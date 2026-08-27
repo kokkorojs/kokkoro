@@ -139,6 +139,42 @@ export default () => {
   <ChatMessage qq="2854205915" nickname="可可萝">"哼哼哼啊啊啊啊啊啊啊"</ChatMessage>
 </ChatPanel>
 
+## 异常处理
+
+指令处理函数抛出 `Error` 时，Kokkoro 会将 `error.message` 回复给消息来源，并在日志中记录该错误。处理函数不得抛出字符串、对象或其他非 `Error` 值。
+
+```typescript {11-13}
+import { useCommand } from '@kokkoro/core';
+
+interface Sentence {
+  readonly hitokoto: string;
+}
+
+export default () => {
+  useCommand('/来点骚话', async () => {
+    const response = await fetch('https://v1.hitokoto.cn/?c=a&c=b');
+
+    if (!response.ok) {
+      throw new Error(`一言接口请求失败，状态码 ${response.status}`);
+    }
+    const { hitokoto } = <Sentence>await response.json();
+
+    return hitokoto;
+  });
+};
+```
+
+该功能已经集成在 `kokkoro-plugin-hitokoto` 中，安装插件后即可使用：
+
+```shell
+bun add kokkoro-plugin-hitokoto
+```
+
+<ChatPanel>
+  <ChatMessage qq="2225151531" nickname="Yuki" at="可可萝">/来点骚话</ChatMessage>
+  <ChatMessage qq="2854205915" nickname="可可萝">一言接口请求失败，状态码 500</ChatMessage>
+</ChatPanel>
+
 ## 类型推导
 
 只要为 `useCommand()` 传入字符串字面量，TypeScript 就会根据指令语法自动推导 `args` 的字段与类型，不需要手动标注泛型。
