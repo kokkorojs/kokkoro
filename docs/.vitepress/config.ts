@@ -47,7 +47,10 @@ export default defineConfig({
         },
         {
           text: '基础',
-          items: [{ text: '配置文件', link: '/guide/config' }],
+          items: [
+            { text: '配置文件', link: '/guide/config' },
+            { text: '环境变量', link: '/guide/environment' },
+          ],
         },
       ],
       '/develop/': [

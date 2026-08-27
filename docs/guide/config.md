@@ -85,7 +85,7 @@ Kokkoro 会将插件中**未处理的错误**写入日志。如果插件需要�
 | `protocol`     | `"websocket" \| "webhook"` | 否              | 覆盖顶层的默认接入方式   |
 | `webhook`      | `object`                   | 使用 WebHook 时 | 该机器人的 WebHook 配置  |
 
-`appId` 和 `clientSecret` 可以在 [QQ 机器人管理后台](https://q.qq.com/qqbot/dashboard) 中获取。Kokkoro 不会解析环境变量占位符，配置文件中的值会直接用于连接 QQ 服务。
+`appId` 和 `clientSecret` 可以在 [QQ 机器人管理后台](https://q.qq.com/qqbot/dashboard) 中获取。
 
 如果暂时不需要运行机器人，可以使用空数组。HTTP 服务仍会正常启动。
 
