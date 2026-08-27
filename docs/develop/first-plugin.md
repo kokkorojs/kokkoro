@@ -94,9 +94,9 @@ Kokkoro v3 的插件权限正在重构，以下内容为 v2 时期的功能。
 ```
 
 <ChatPanel>
-  <ChatMessage qq="2225151531" nickname="Yuki" at="可可萝">/来点骚话</ChatMessage>
+  <ChatMessage qq="2225151531" nickname="Yuki" at="可可萝">/一言</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">『只有分离后才能懂的事，却没有了感慨的时间。』——「宝石之国」</ChatMessage>
-  <ChatMessage qq="2225151531" nickname="Yuki" at="爱梅斯">/来点骚话</ChatMessage>
+  <ChatMessage qq="2225151531" nickname="Yuki" at="爱梅斯">/一言</ChatMessage>
   <ChatMessage qq="2854211958" nickname="爱梅斯">『只要努力活下去，总有一天会笑着回忆。』——「不可思议游戏」</ChatMessage>
   <ChatMessage qq="2225151531" nickname="Yuki" at="可可萝">/疯狂星期四</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">Steam上多买了一个艾尔登法环的key，送给有缘人了:KFCC-RAZY-THUR-SDAY-VME50</ChatMessage>

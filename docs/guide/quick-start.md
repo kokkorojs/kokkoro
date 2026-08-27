@@ -122,7 +122,7 @@ bun add kokkoro-plugin-hitokoto
 安装完成后，重新启动项目。Kokkoro 会自动加载该插件。
 
 <ChatPanel>
-  <ChatMessage qq="2225151531" nickname="Yuki" at="可可萝">/来点骚话</ChatMessage>
+  <ChatMessage qq="2225151531" nickname="Yuki" at="可可萝">/一言</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">『大部分人并不想长大，只是没办法继续当一个小孩子。』——「小林家的龙女仆」</ChatMessage>
 </ChatPanel>
 
