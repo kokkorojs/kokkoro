@@ -85,7 +85,7 @@ bun run main.ts
 
 Kokkoro 使用 [Annal](https://github.com/xueelf/annal) 将日志输出到终端。`debug` 日志包含插件挂载、鉴权、OpenAPI、WebSocket、WebHook 和 Dispatch 的详细信息。
 
-插件中未捕获的错误也会写入日志。如果插件需要回复用户或继续执行，请在插件中捕获并处理错误。
+插件加载、挂载和执行过程中抛出的错误都会写入日志。
 
 ## 添加插件
 
