@@ -143,36 +143,19 @@ export default () => {
 
 指令处理函数抛出 `Error` 时，Kokkoro 会将 `error.message` 回复给消息来源，并在日志中记录该错误。处理函数不得抛出字符串、对象或其他非 `Error` 值。
 
-```typescript {11-13}
+```typescript
 import { useCommand } from '@kokkoro/core';
 
-interface Sentence {
-  readonly hitokoto: string;
-}
-
 export default () => {
-  useCommand('/来点骚话', async () => {
-    const response = await fetch('https://v1.hitokoto.cn/?c=a&c=b');
-
-    if (!response.ok) {
-      throw new Error(`一言接口请求失败，状态码 ${response.status}`);
-    }
-    const { hitokoto } = <Sentence>await response.json();
-
-    return hitokoto;
+  useCommand('/ping', () => {
+    throw new Error('请求超时');
   });
 };
 ```
 
-该功能已经集成在 `kokkoro-plugin-hitokoto` 中，安装插件后即可使用：
-
-```shell
-bun add kokkoro-plugin-hitokoto
-```
-
 <ChatPanel>
-  <ChatMessage qq="2225151531" nickname="Yuki" at="可可萝">/来点骚话</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">一言接口请求失败，状态码 500</ChatMessage>
+  <ChatMessage qq="2225151531" nickname="Yuki" at="可可萝">/ping</ChatMessage>
+  <ChatMessage qq="2854205915" nickname="可可萝">请求超时</ChatMessage>
 </ChatPanel>
 
 ## 类型推导
@@ -201,4 +184,12 @@ export default () => {
 };
 ```
 
-正则表达式中的命名捕获组需要与指令参数同名。收到「查询北京天气」时，`context.args.city` 的值就是 `"北京"`。
+两侧的 `/` 表示这是一段**正则表达式**，内部规则可以拆成三部分：
+
+- `^查询` 要求消息以「查询」开头。
+- `(?<city>.+)` 将中间的一个或多个字符保存为名为 `city` 的参数。
+- `天气$` 要求消息以「天气」结尾。
+
+命名捕获组 `city` 必须与指令参数 `<city>` 同名。收到「查询北京天气」时，`context.args.city` 的值就是 `"北京"`。
+
+更多语法参阅 [MDN 正则表达式指南](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Guide/Regular_expressions) 和 [命名捕获组](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Guide/Regular_expressions/Groups_and_backreferences#%E4%BD%BF%E7%94%A8%E5%91%BD%E5%90%8D%E7%BB%84)。
