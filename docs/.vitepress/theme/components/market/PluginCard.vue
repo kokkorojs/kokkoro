@@ -76,6 +76,7 @@
         type="button"
         :aria-label="isCopied ? '安装命令已复制' : '复制安装命令'"
         :title="isCopied ? '已复制' : '复制安装命令'"
+        aria-live="polite"
         @click="copyInstallCommand"
       >
         <svg v-if="isCopied" aria-hidden="true" viewBox="0 0 24 24">
@@ -98,18 +99,13 @@
     min-height: 250px;
     padding: 22px;
     border: 1px solid var(--vp-c-divider);
-    border-radius: 16px;
+    border-radius: 12px;
     background: var(--vp-c-bg-elv);
     flex-direction: column;
-    transition:
-      border-color 0.2s,
-      box-shadow 0.2s,
-      transform 0.2s;
+    transition: border-color 0.25s;
 
     &:hover {
-      border-color: color-mix(in srgb, var(--vp-c-brand-1) 45%, var(--vp-c-divider));
-      box-shadow: var(--vp-shadow-3);
-      transform: translateY(-2px);
+      border-color: var(--vp-c-brand-1);
     }
 
     .header {
@@ -151,7 +147,7 @@
       &::after {
         position: absolute;
         inset: 0;
-        border-radius: 16px;
+        border-radius: 12px;
         content: '';
       }
 
@@ -167,7 +163,7 @@
 
     .compatibility {
       padding: 4px 8px;
-      border: 1px solid color-mix(in srgb, var(--vp-c-warning-1) 30%, transparent);
+      border: 1px solid var(--vp-c-warning-1);
       border-radius: 999px;
       background: var(--vp-c-warning-soft);
       color: var(--vp-c-warning-1);
@@ -177,7 +173,7 @@
       white-space: nowrap;
 
       &.compatible {
-        border-color: color-mix(in srgb, var(--vp-c-success-1) 30%, transparent);
+        border-color: var(--vp-c-success-1);
         background: var(--vp-c-success-soft);
         color: var(--vp-c-success-1);
       }
@@ -225,6 +221,7 @@
       display: flex;
       color: var(--vp-c-text-2);
       font-size: 11px;
+      font-variant-numeric: tabular-nums;
       line-height: 1.5;
       text-align: right;
       white-space: nowrap;
@@ -251,7 +248,7 @@
       margin-top: 14px;
       padding: 4px 4px 4px 13px;
       border: 1px solid var(--vp-c-divider);
-      border-radius: 10px;
+      border-radius: 8px;
       background: var(--vp-c-bg-alt);
       align-items: center;
       justify-content: space-between;
@@ -275,7 +272,7 @@
       height: 32px;
       padding: 0;
       border: 0;
-      border-radius: 7px;
+      border-radius: 4px;
       background: transparent;
       color: var(--vp-c-text-3);
       cursor: pointer;

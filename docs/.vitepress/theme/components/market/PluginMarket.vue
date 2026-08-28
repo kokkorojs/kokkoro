@@ -159,12 +159,19 @@
           <path d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z" />
         </svg>
         <span class="visually-hidden">搜索插件</span>
-        <input v-model="query" type="search" placeholder="搜索插件名称或功能" />
+        <input
+          v-model="query"
+          type="search"
+          name="plugin-search"
+          placeholder="搜索插件名称或功能…"
+          autocomplete="off"
+          spellcheck="false"
+        />
       </label>
-      <span v-if="!isLoading && !hasError" class="count">{{ filteredPlugins.length }} 个插件</span>
+      <output v-if="!isLoading && !hasError" class="count">{{ filteredPlugins.length }} 个插件</output>
     </div>
 
-    <p v-if="isLoading" class="status">正在加载插件……</p>
+    <p v-if="isLoading" class="status" aria-live="polite">正在加载插件……</p>
 
     <div v-else-if="hasError" class="status">
       <span>插件加载失败</span>
@@ -231,23 +238,23 @@
 
       input {
         width: 100%;
-        height: 48px;
+        height: 38px;
         padding: 0 16px 0 46px;
-        border: 1px solid var(--vp-c-divider);
-        border-radius: 12px;
+        border: 1px solid var(--vp-input-border-color);
+        border-radius: 8px;
         outline: none;
-        background: var(--vp-c-bg-soft);
+        background: var(--vp-c-bg-alt);
         color: var(--vp-c-text-1);
         font: inherit;
         transition:
-          border-color 0.2s,
-          box-shadow 0.2s,
-          background 0.2s;
+          border-color 0.25s,
+          background 0.25s;
 
-        &:focus {
+        &:focus-visible {
           border-color: var(--vp-c-brand-1);
           background: var(--vp-c-bg);
-          box-shadow: 0 0 0 3px var(--vp-c-brand-soft);
+          outline: 2px solid var(--vp-c-brand-1);
+          outline-offset: 2px;
         }
       }
     }
@@ -263,7 +270,7 @@
       min-height: 180px;
       margin: 20px 0 0;
       border: 1px dashed var(--vp-c-divider);
-      border-radius: 16px;
+      border-radius: 8px;
       align-items: center;
       justify-content: center;
       color: var(--vp-c-text-2);
@@ -276,6 +283,15 @@
         background: transparent;
         color: var(--vp-c-brand-1);
         cursor: pointer;
+
+        &:hover {
+          background: var(--vp-c-brand-soft);
+        }
+
+        &:focus-visible {
+          outline: 2px solid var(--vp-c-brand-1);
+          outline-offset: 2px;
+        }
       }
     }
 
