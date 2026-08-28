@@ -71,7 +71,7 @@ bun add kokkoro-plugin-cherugo
 bun add kokkoro-plugin-hitokoto
 ```
 
-插件默认返回动画或漫画语句。如需修改语句类型，请在项目根目录创建 `.env` 文件，并通过 `HITOKOTO_TYPES` 设置一言接口的 `c` 参数。多个类型使用逗号分隔，默认值为 `a,b`。
+插件默认返回动画或漫画语句。如需修改默认语句类型，请在项目根目录创建 `.env` 文件，并通过 `HITOKOTO_TYPES` 设置一言接口的 `c` 参数。多个类型使用逗号分隔，默认值为 `a,b`。
 
 ```ini
 HITOKOTO_TYPES=c,d
@@ -81,15 +81,31 @@ HITOKOTO_TYPES=c,d
 
 ### 随机文本
 
-发送「/一言」，会从一言接口随机返回一条动画或漫画语句。也可以发送「来点骚话」触发，群聊需要开启「获取群内全部消息」权限。
+```text
+/一言 [types]...
+```
+
+不填写类型时，插件会从一言接口随机返回一条动画或漫画语句。
 
 <ChatPanel>
   <ChatMessage qq="2225151531" nickname="Yuki">/一言</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">
-    <span>『不对失误耿耿于怀，而是专心为今后做打算，这才是最有效率的』</span>
-    <br />
-    <div style="text-align: right;">—— 间谍过家家</div>
-  </ChatMessage>
+  <ChatMessage qq="2854205915" nickname="可可萝">『不对失误耿耿于怀，而是专心为今后做打算，这才是最有效率的』——「间谍过家家」</ChatMessage>
+</ChatPanel>
+
+填写类型可以限定本次返回的语句，多个类型使用空格分隔。指令支持动画、漫画、游戏、文学、原创、来自网络、其他、影视、诗词、网易云、哲学和抖机灵。
+
+<ChatPanel>
+  <ChatMessage qq="2225151531" nickname="Yuki">/一言 诗词 文学</ChatMessage>
+  <ChatMessage qq="2854205915" nickname="可可萝">『人生天地间，忽如远行客。』——「古诗十九首」</ChatMessage>
+</ChatPanel>
+
+### 快捷方式
+
+发送「来点骚话」也会随机返回一条语句，群聊需要开启「获取群内全部消息」权限。
+
+<ChatPanel>
+  <ChatMessage qq="2225151531" nickname="Yuki">来点骚话</ChatMessage>
+  <ChatMessage qq="2854205915" nickname="可可萝">『能哭的地方，只有厕所和爸爸的怀里。』——「CLANNAD」</ChatMessage>
 </ChatPanel>
 
 ### ~~网抑云~~
@@ -112,12 +128,38 @@ Kokkoro v3 正在重构，该功能尚未适配。
 bun add kokkoro-plugin-kfc
 ```
 
-发送「/疯狂星期四」，或者在消息中提到星期四、肯德基、V我50 等关键词，插件会随机返回一条疯狂星期四文案。后者需要开启「获取群内全部消息」权限。
+```text
+/疯狂星期四
+```
+
+发送「/疯狂星期四」，插件会随机返回一条疯狂星期四文案。
 
 <ChatPanel>
   <ChatMessage qq="2225151531" nickname="Yuki">/疯狂星期四</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">今天是疯狂星期四，V我50。</ChatMessage>
 </ChatPanel>
+
+### 快捷方式
+
+消息中包含以下任意一类关键词时，也会随机返回一条疯狂星期四文案。
+
+- 付款梗，例如「V我50」、「微我五十」或「vivo50」
+- 肯德基，例如「肯德基」或「KFC」
+- 星期四，例如「周四」、「星期四」、「木曜日」或「Thursday」
+
+<ChatPanel>
+  <ChatMessage qq="2225151531" nickname="Yuki">今天星期四，V我50</ChatMessage>
+  <ChatMessage qq="2854205915" nickname="可可萝">今天是疯狂星期四，V我50。</ChatMessage>
+</ChatPanel>
+
+北京时间每周四，消息中出现「麦当劳」、「金拱门」、「华莱士」、「汉堡王」、「德克士」或「塔斯汀」时，也会随机返回一条疯狂星期四文案。
+
+<ChatPanel>
+  <ChatMessage qq="2225151531" nickname="Yuki">晚饭去麦当劳</ChatMessage>
+  <ChatMessage qq="2854205915" nickname="可可萝">今天是疯狂星期四，V我50。</ChatMessage>
+</ChatPanel>
+
+群聊使用快捷方式时，需要开启「获取群内全部消息」权限。
 
 ## 群管理
 
@@ -275,54 +317,37 @@ kokkoro 最初就是以公主连结玩家为核心开发相关功能的，现在
 
 ### 日程推送
 
-## 沙盒
+## 代码执行
 
-::: warning
-该插件来自 Kokkoro 早期版本，尚未适配 v3。
+```shell
+bun add kokkoro-plugin-eval
+```
+
+```text
+/执行 <parts>...
+```
+
+发送「/执行」并在后面填写 JavaScript 或 TypeScript 代码，插件会返回执行结果。
+
+<ChatPanel>
+  <ChatMessage qq="2225151531" nickname="Yuki">/执行 1 + 1</ChatMessage>
+  <ChatMessage qq="2854205915" nickname="可可萝">2</ChatMessage>
+</ChatPanel>
+
+### 快捷执行
+
+也可以在代码前输入「>」。群聊需要开启「获取群内全部消息」权限。
+
+<ChatPanel>
+  <ChatMessage qq="2225151531" nickname="Yuki">> ((value: number) => value * 2)(21)</ChatMessage>
+  <ChatMessage qq="2854205915" nickname="可可萝">42</ChatMessage>
+</ChatPanel>
+
+代码执行超过 1 分钟或输出超过 64 KB 时会被终止。
+
+::: danger 安全提示
+该插件允许聊天用户以与 Kokkoro 进程相同的系统权限执行任意 JavaScript 或 TypeScript 代码。仅在机器人只接受可信用户消息时安装该插件。
 :::
-
-可执行任意 js 代码段，包括 bot api 和发送网络请求，有着极高的可玩性，你可以把这个插件当做浏览器的 f12 去实现各种有意思的东西
-
-### 执行运算符
-
-<ChatPanel>
-  <ChatMessage qq="2225151531" nickname="Yuki">>1000 - 7</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">993</ChatMessage>
-</ChatPanel>
-
-### 创建变量
-
-<ChatPanel>
-  <ChatMessage qq="2225151531" nickname="Yuki">>const 贴贴 = "不要贴贴，贴贴危险，还会密接"</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">true</ChatMessage>
-  <ChatMessage qq="2225151531" nickname="Yuki">贴贴</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">不要贴贴，贴贴危险，还会密接</ChatMessage>
-  <ChatMessage qq="2225151531" nickname="Yuki">>delete 贴贴</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">true</ChatMessage>
-</ChatPanel>
-
-你可以通过创建变量实现类似及时问答的效果，不过更推荐通过 [qa](/plugin/community#你问我答) 插件去定义，毕竟单纯地变量不支持正则
-
-### 执行脚本
-
-<ChatPanel>
-  <ChatMessage qq="2225151531" nickname="Yuki">
-  {{
-    [
-      '>for (let i = 0; i &lt 3; i++) {',
-      "  context.reply('重要的事情说三遍！');",
-      '}',
-    ].join('\n')
-  }}
-  </ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">重要的事情说三遍！</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">重要的事情说三遍！</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">重要的事情说三遍！</ChatMessage>
-</ChatPanel>
-
-我并未对执行语句做过滤，给大家提供较高的自由度并不代表可以做一些危险的举动，包括但不限于 `process.exit()`、`const exec = require('child_process')`、`while(true) {}`...
-
-上述行为一经发现将永久拉入黑名单
 
 ## 空调
 
