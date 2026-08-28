@@ -127,7 +127,7 @@ bun add kokkoro-plugin-example
 
 ## 运行示例
 
-[`examples`](./examples) 包含一个入口文件和 Ping、Echo、Terminal 三个项目插件。填写 `examples/kokkoro.json` 中的机器人配置，然后运行：
+[`examples`](./examples) 包含一个入口文件和 Ping、Echo、Eval 三个项目插件。填写 `examples/kokkoro.json` 中的机器人配置，然后运行：
 
 ```shell
 bun run ./examples/main.ts

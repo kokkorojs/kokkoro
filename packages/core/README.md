@@ -300,7 +300,7 @@ await bot.unmount(Example);
 
 ## 示例
 
-仓库中的 [examples](./examples) 提供简单的代码示例，包含 Echo 和 Terminal 插件。运行前，请在 `packages/core/.env` 中填写机器人 AppID 与 AppSecret：
+仓库中的 [examples](./examples) 提供简单的代码示例，包含 Echo 和 Eval 插件。运行前，请在 `packages/core/.env` 中填写机器人 AppID 与 AppSecret：
 
 ```env
 APP_ID=机器人 AppID
@@ -312,4 +312,4 @@ cd packages/core
 bun run examples/main.ts
 ```
 
-Terminal 用于在聊天中执行 JavaScript 代码，Echo 可用于自定义消息输出，便于开发者调试自己的机器人。
+Eval 用于在聊天中执行 JavaScript 代码，Echo 可用于自定义消息输出，便于开发者调试自己的机器人。
