@@ -1,0 +1,15 @@
+{
+  "name": "@kokkoro/examples",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bun run main.ts"
+  },
+  "dependencies": {
+    "kokkoro": "workspace:*",
+    "kokkoro-plugin-eval": "workspace:*",
+    "kokkoro-plugin-hitokoto": "workspace:*",
+    "kokkoro-plugin-kfc": "workspace:*",
+    "kokkoro-plugin-saucenao": "workspace:*"
+  }
+}

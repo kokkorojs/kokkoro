@@ -62,11 +62,21 @@
       "name": "kokkoro",
       "version": "3.0.0",
       "dependencies": {
-        "@kokkoro/core": "^3.1.1",
+        "@kokkoro/core": "^3.1.3",
         "annal": "^0.2.1",
       },
       "peerDependencies": {
         "typescript": "^6.0.3",
+      },
+    },
+    "packages/kokkoro/examples": {
+      "name": "@kokkoro/examples",
+      "dependencies": {
+        "kokkoro": "workspace:*",
+        "kokkoro-plugin-eval": "workspace:*",
+        "kokkoro-plugin-hitokoto": "workspace:*",
+        "kokkoro-plugin-kfc": "workspace:*",
+        "kokkoro-plugin-saucenao": "workspace:*",
       },
     },
     "plugins/eval": {
@@ -192,6 +202,8 @@
     "@kokkoro/cli": ["@kokkoro/cli@workspace:packages/cli"],
 
     "@kokkoro/core": ["@kokkoro/core@workspace:packages/core"],
+
+    "@kokkoro/examples": ["@kokkoro/examples@workspace:packages/kokkoro/examples"],
 
     "@oxc-project/types": ["@oxc-project/types@0.146.0", "", {}, "sha512-XC0QsnnhVe7sLIWmYmdPw7x5P0h4W8vUU3Nv1ySgWXtvCz8NizoAEpGXA0sOYoJQV2Rl13LgURAHQ5cI5ILCSA=="],
 
