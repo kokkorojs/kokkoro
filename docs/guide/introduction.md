@@ -38,7 +38,11 @@ export default () => {
 
 可可萝（コッコロ）是 Cygames 开发和发行的游戏 [公主连结 Re:Dive](https://game.bilibili.com/pcr/) 中的登场角色，其日语的罗马音 **ko kko ro** 用作了本项目的名字。
 
-![3★コッコロ](/images/priconne/105931.webp)
+<ThemeImage
+  light="/images/priconne/105931.webp"
+  dark="/images/priconne/107661.webp"
+  alt="コッコロ"
+/>
 
 ## 问题反馈
 
