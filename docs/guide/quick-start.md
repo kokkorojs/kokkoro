@@ -126,7 +126,7 @@ bun add kokkoro-plugin-hitokoto
   <ChatMessage qq="2854205915" nickname="可可萝">『大部分人并不想长大，只是没办法继续当一个小孩子。』——「小林家的龙女仆」</ChatMessage>
 </ChatPanel>
 
-更多插件可以在 [插件社区](/plugin/community) 中查找。
+更多插件可以在 [插件市场](/plugin/market) 中查找。
 
 如果社区插件没有你需要的功能，也可以开发自己的插件。使用 Kokkoro CLI 即可创建一个**本地插件**：
 

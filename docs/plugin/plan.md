@@ -1,8 +1,8 @@
-# 插件社区
+# 插件计划
 
-::: tip
 本页收录 Kokkoro 历代提供过的插件与功能。已经适配 v3 的插件可以直接安装，其他条目会标注适用版本或当前状态。
 
+::: tip
 若有你比较中意的功能，可以在群里催更或者提交 Issue。
 :::
 
@@ -18,7 +18,7 @@ bun add kokkoro-plugin-hitokoto
 HITOKOTO_TYPES=c,d
 ```
 
-类型取值参阅[一言接口文档](https://developer.hitokoto.cn/sentence/#请求参数)。修改 `.env` 后需要重新启动项目。
+类型取值参阅 [一言接口文档](https://developer.hitokoto.cn/sentence/#请求参数)。修改 `.env` 后需要重新启动项目。
 
 ### 随机文本
 

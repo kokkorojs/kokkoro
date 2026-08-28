@@ -22,9 +22,12 @@ export default defineConfig({
         activeMatch: '/develop/',
       },
       {
-        text: '插件社区',
-        link: '/plugin/community',
+        text: '插件',
         activeMatch: '/plugin/',
+        items: [
+          { text: '插件市场', link: '/plugin/market' },
+          { text: '插件计划', link: '/plugin/plan' },
+        ],
       },
       {
         text: '关于',
