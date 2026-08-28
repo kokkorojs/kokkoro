@@ -79,7 +79,7 @@
     },
     "plugins/kfc": {
       "name": "kokkoro-plugin-kfc",
-      "version": "3.0.0",
+      "version": "3.0.1",
       "peerDependencies": {
         "@kokkoro/core": "^3.1.3",
         "typescript": "^6.0.3",
