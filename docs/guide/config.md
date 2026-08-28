@@ -33,6 +33,24 @@ Kokkoro 从当前工作目录读取 `kokkoro.json`，并根据其中的配置管
 }
 ```
 
+## 在 VS Code 中启用配置提示
+
+VS Code 1.109 为远程 JSON Schema 增加了信任列表。`kokkoro.js.org` 不在默认列表中，因此 `$schema` 可能显示「无法加载架构，位置不受信任」。这不是 Schema 内容或网站证书错误。
+
+将光标移到 `$schema` 所在行，按 `Cmd + .`（macOS）或 `Ctrl + .`（Windows 和 Linux），然后依次选择 **Configure Trusted Domains** 和 **Trust Domain: https://kokkoro.js.org**。
+
+也可以打开命令面板，运行 **Preferences: Open User Settings (JSON)**，再添加以下配置：
+
+```json
+{
+  "json.schemaDownload.trustedDomains": {
+    "https://kokkoro.js.org": true
+  }
+}
+```
+
+VS Code 在 [#287639](https://github.com/microsoft/vscode/pull/287639) 中引入了该设置。[#288709](https://github.com/microsoft/vscode/issues/288709) 记录了内置 Schema 被错误拦截的问题。
+
 ## 顶层配置
 
 | 字段       | 类型                       | 必填 | 说明                                 |
