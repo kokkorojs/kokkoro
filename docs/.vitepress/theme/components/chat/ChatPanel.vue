@@ -1,24 +1,29 @@
 <script setup lang="ts">
+  import { provide } from 'vue';
+
   interface Props {
-    controls?: boolean;
+    self: string;
     title?: string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    controls: true,
     title: '聊天记录',
   });
+
+  provide('chat-self', props.self);
 </script>
 
 <template>
   <div class="chat-panel">
-    <div v-if="props.controls" class="controls">
-      <div class="circle red" />
-      <div class="circle yellow" />
-      <div class="circle green" />
+    <div class="titlebar">
+      <div class="window-controls" aria-hidden="true">
+        <span class="window-control close" />
+        <span class="window-control minimize" />
+        <span class="window-control zoom" />
+      </div>
       <div class="title">{{ props.title }}</div>
     </div>
-    <div class="content">
+    <div class="messages">
       <slot />
     </div>
   </div>
@@ -26,50 +31,82 @@
 
 <style scoped lang="scss">
   .chat-panel {
-    position: relative;
-    margin: 1rem auto;
-    padding: 0.3rem 0;
-    overflow: hidden;
-    border-radius: 0.5rem;
-    background-color: var(--vp-c-bg-alt);
+    --text_primary: light-dark(#000, rgb(255 255 255 / 90%));
+    --text_secondary_01: light-dark(#999, #808080);
+    --text_link: #2d77e5;
+    --bg_grey_standard: light-dark(#f2f2f2, #1a1a1a);
+    --bubble_host: light-dark(#ccebff, #666);
+    --bubble_guest: light-dark(#fff, #262626);
+    --on_bubble_host_text: light-dark(#000, #fff);
+    --bubble_guest_text: light-dark(#000, #f2f2f2);
+    --mac_bg_nav: light-dark(rgb(255 255 255 / 10%), rgb(0 0 0 / 10%));
 
-    .controls {
-      display: initial;
-      width: 100%;
-      padding: 0.5rem;
+    margin: 24px auto;
+    overflow: hidden;
+    border-radius: 8px;
+    background: var(--bg_grey_standard);
+    color: var(--text_primary);
+    font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
+
+    .titlebar {
+      position: relative;
+      display: flex;
+      height: 48px;
+      align-items: center;
+      justify-content: center;
+      background: var(--mac_bg_nav);
+      backdrop-filter: saturate(180%) blur(20px);
+      box-shadow: inset 0 -1px var(--vp-code-tab-divider);
     }
 
-    .circle {
-      display: inline-block;
-      width: 0.8rem;
-      height: 0.8rem;
-      margin: 0.5rem 0 0.5rem 0.2rem;
+    .window-controls {
+      position: absolute;
+      top: 50%;
+      left: 9px;
+      display: flex;
+      gap: 9px;
+      transform: translateY(-50%);
+    }
+
+    .window-control {
+      width: 14px;
+      height: 14px;
+      border: 1px solid rgb(0 0 0 / 14%);
       border-radius: 50%;
+      box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 16%);
 
-      &.red {
-        background-color: #ff5f56;
+      &.close {
+        background: #ff5f57;
       }
 
-      &.yellow {
-        background-color: #ffbd2e;
+      &.minimize {
+        background: #febc2e;
       }
 
-      &.green {
-        background-color: #27c93f;
+      &.zoom {
+        background: #28c840;
       }
     }
 
     .title {
-      position: absolute;
-      top: 0.8rem;
-      width: 100%;
-      font-size: 0.8rem;
-      line-height: 1rem;
+      max-width: calc(100% - 160px);
+      overflow: hidden;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 48px;
       text-align: center;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
-    .content {
-      padding: 0 1rem;
+    .messages {
+      padding: 4px 20px 20px;
+    }
+
+    @media (width <= 640px) {
+      .messages {
+        padding-inline: 12px;
+      }
     }
   }
 </style>

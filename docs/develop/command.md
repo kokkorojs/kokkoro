@@ -14,7 +14,7 @@ export default () => {
 };
 ```
 
-<ChatPanel>
+<ChatPanel self="2225151531">
   <ChatMessage qq="2225151531" nickname="Yuki" at="可可萝">/复读 ciallo</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">ciallo</ChatMessage>
 </ChatPanel>
@@ -25,7 +25,7 @@ export default () => {
 
 如果指令缺少必填参数，Kokkoro 会回复正确的指令语法。
 
-<ChatPanel>
+<ChatPanel self="2225151531">
   <ChatMessage qq="2225151531" nickname="Yuki" at="可可萝">/复读</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">缺少指令参数，有效语句为："/复读 &lt;part>"</ChatMessage>
 </ChatPanel>
@@ -42,7 +42,7 @@ export default () => {
 };
 ```
 
-<ChatPanel>
+<ChatPanel self="2225151531">
   <ChatMessage qq="2225151531" nickname="Yuki" at="可可萝">/复读</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">undefined</ChatMessage>
 </ChatPanel>
@@ -51,7 +51,7 @@ export default () => {
 
 普通参数只接收一个值，后续没有对应声明的参数会被**忽略**。
 
-<ChatPanel>
+<ChatPanel self="2225151531">
   <ChatMessage qq="2225151531" nickname="Yuki" at="可可萝">/复读 hello world</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">hello</ChatMessage>
 </ChatPanel>
@@ -70,7 +70,7 @@ export default () => {
 };
 ```
 
-<ChatPanel>
+<ChatPanel self="2225151531">
   <ChatMessage qq="2225151531" nickname="Yuki" at="可可萝">/复读 hello world</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">hello world</ChatMessage>
 </ChatPanel>
@@ -85,7 +85,7 @@ export default () => {
 };
 ```
 
-<ChatPanel>
+<ChatPanel self="2225151531">
   <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /来点涩图 贫乳 萝莉 白丝</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">["贫乳", "萝莉", "白丝"]</ChatMessage>
 </ChatPanel>
@@ -110,7 +110,7 @@ export default () => {
 };
 ```
 
-<ChatPanel>
+<ChatPanel self="2225151531">
   <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /复读 114514</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">"114514"</ChatMessage>
 </ChatPanel>
@@ -132,7 +132,7 @@ export default () => {
 };
 ```
 
-<ChatPanel>
+<ChatPanel self="2225151531">
   <ChatMessage qq="2225151531" nickname="Yuki" at="可可萝">/复读 114514</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">114514</ChatMessage>
   <ChatMessage qq="2225151531" nickname="Yuki" at="可可萝">/复读 哼哼哼啊啊啊啊啊啊啊</ChatMessage>
@@ -153,7 +153,7 @@ export default () => {
 };
 ```
 
-<ChatPanel>
+<ChatPanel self="2225151531">
   <ChatMessage qq="2225151531" nickname="Yuki" at="可可萝">/ping</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">请求超时</ChatMessage>
 </ChatPanel>

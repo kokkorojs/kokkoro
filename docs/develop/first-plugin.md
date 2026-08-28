@@ -42,7 +42,7 @@ export default () => {
 
 通过日志，我们还可以查看到已加载的插件信息。
 
-<ChatPanel>
+<ChatPanel self="2225151531">
   <ChatMessage qq="2225151531" nickname="Yuki" at="可可萝">/ping</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">pong</ChatMessage>
 </ChatPanel>
@@ -93,7 +93,7 @@ Kokkoro v3 的插件权限正在重构，以下内容为 v2 时期的功能。
 }
 ```
 
-<ChatPanel>
+<ChatPanel self="2225151531">
   <ChatMessage qq="2225151531" nickname="Yuki" at="可可萝">/一言</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">『只有分离后才能懂的事，却没有了感慨的时间。』——「宝石之国」</ChatMessage>
   <ChatMessage qq="2225151531" nickname="Yuki" at="爱梅斯">/一言</ChatMessage>

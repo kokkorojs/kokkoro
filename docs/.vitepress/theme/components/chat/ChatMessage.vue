@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { onMounted, onUnmounted, shallowRef, useTemplateRef } from 'vue';
+  import { computed, inject, onMounted, onUnmounted, shallowRef, useTemplateRef } from 'vue';
 
   import ChatAvatar from './ChatAvatar.vue';
 
@@ -10,6 +10,13 @@
   }
 
   const props = defineProps<Props>();
+  const self = inject<string>('chat-self');
+
+  if (!self) {
+    throw new Error('ChatMessage 必须在 ChatPanel 中使用');
+  }
+
+  const isSelf = computed(() => props.qq === self);
   const message = useTemplateRef<HTMLDivElement>('message');
   const isVisible = shallowRef(false);
   let observer: IntersectionObserver | null = null;
@@ -34,11 +41,11 @@
 </script>
 
 <template>
-  <div ref="message" class="chat-message" :class="{ visible: isVisible }">
+  <div ref="message" class="chat-message" :class="{ self: isSelf, visible: isVisible }">
     <ChatAvatar :qq="props.qq" />
-    <div class="body">
+    <div class="message">
       <div class="nickname">{{ props.nickname }}</div>
-      <div class="content">
+      <div class="bubble">
         <span v-if="props.at" class="mention">@{{ props.at }}&nbsp;</span>
         <slot />
       </div>
@@ -48,51 +55,93 @@
 
 <style scoped lang="scss">
   .chat-message {
-    position: relative;
-    margin: 1rem 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: 16px;
     opacity: 0;
     transform: translateX(-10%);
     transition:
       transform 0.4s ease-out,
       opacity 0.4s ease-in;
 
+    &.self {
+      flex-direction: row-reverse;
+      transform: translateX(10%);
+
+      .message {
+        align-items: flex-end;
+      }
+
+      .nickname {
+        text-align: right;
+      }
+
+      .bubble {
+        background: var(--bubble_host);
+        color: var(--on_bubble_host_text);
+      }
+
+      .mention {
+        color: inherit;
+      }
+    }
+
     &.visible {
       opacity: 1;
       transform: translateX(0);
     }
 
-    .body {
-      display: inline-block;
-      max-width: calc(100% - 3rem);
-      margin-left: 0.5rem;
-      vertical-align: top;
+    .message {
+      display: flex;
+      min-width: 0;
+      max-width: min(72%, calc(100% - 48px));
+      flex-direction: column;
+      align-items: flex-start;
     }
 
     .nickname {
-      color: gray;
-      font-size: 0.8rem;
+      max-width: 100%;
+      margin-bottom: 4px;
+      overflow: hidden;
+      color: var(--text_secondary_01);
+      font-size: 12px;
+      line-height: 18px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
-    .content {
-      position: relative;
-      margin-top: 0.2rem;
-      padding: 0.6rem 0.7rem;
-      border-radius: 0.5rem;
-      background-color: var(--vp-c-bg);
-      box-shadow: rgb(0 0 0 / 5%) 0 1px 2px;
-      font-size: 0.9rem;
+    .bubble {
+      max-width: 100%;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: var(--bubble_guest);
+      color: var(--bubble_guest_text);
+      font-size: 14px;
+      line-height: 22px;
+      overflow-wrap: anywhere;
       white-space: pre-wrap;
-      word-break: break-all;
 
       :deep(img) {
-        border-radius: 0.5rem;
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
         vertical-align: middle;
       }
     }
 
     .mention {
-      color: #6495ed;
-      cursor: pointer;
+      color: var(--text_link);
+    }
+
+    @media (width <= 640px) {
+      .message {
+        max-width: min(82%, calc(100% - 48px));
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
     }
   }
 </style>
