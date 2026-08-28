@@ -6,65 +6,6 @@
 若有你比较中意的功能，可以在群里催更或者提交 Issue。
 :::
 
-## ChatGPT
-
-::: warning
-该插件的最后一个版本适用于 Kokkoro v1，尚未适配后续版本。
-:::
-
-```shell
-bun add kokkoro-plugin-chatgpt
-```
-
-### 咨询
-
-<ChatPanel>
-  <ChatMessage qq="2225151531" nickname="Yuki">咨询 怎么做光刻机？</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">
-  {{
-    [
-      '光刻机操作很简单，大致可以分为几个步骤： ',
-      '1. 准备好要刻的图像。',
-      '2. 把图像通过光刻机传输到腐蚀液中。',
-      '3. 将腐蚀液加热或用化学物质处理，使其变成图像。',
-      '4. 通过检查图像，确保它的质量。 ',
-      '5. 使用干燥剂将图像固定在一个特定的位置上。 ',
-      '6. 最后，将硬件放置在指定的位置上，就可以完成制作工作了。',
-    ].join('\n')
-  }}
-  </ChatMessage>
-</ChatPanel>
-
-这...很简单么？
-
-### 消息队列
-
-## 切噜语
-
-::: warning
-该插件的最后一个版本适用于 Kokkoro v1，尚未适配后续版本。
-:::
-
-```shell
-bun add kokkoro-plugin-cherugo
-```
-
-类似 `熊说`、`佛曰`，可使用切噜语实现文本加密
-
-### 加密
-
-<ChatPanel>
-  <ChatMessage qq="2225151531" nickname="Yuki">切噜一下 会长我挂树了</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">切噜～♪切噼噼卟蹦咧噼哔噜蹦巴叮拉嘭噼叮拉噜巴啰铃卟巴噼巴</ChatMessage>
-</ChatPanel>
-
-### 解密
-
-<ChatPanel>
-  <ChatMessage qq="2225151531" nickname="Yuki">切噜～♪切噼噼卟蹦咧噼哔噜蹦巴叮拉嘭噼叮拉噜巴啰铃卟巴噼巴</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">会长我挂树了</ChatMessage>
-</ChatPanel>
-
 ## 一言语句
 
 ```shell
@@ -136,7 +77,7 @@ bun add kokkoro-plugin-kfc
 
 <ChatPanel>
   <ChatMessage qq="2225151531" nickname="Yuki">/疯狂星期四</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">今天是疯狂星期四，V我50。</ChatMessage>
+  <ChatMessage qq="2854205915" nickname="可可萝">从前有一个国王叫肯，娶了一个歌姬为妾。国王的国家矿产资源发达，国王十分宠爱歌姬，将一部分矿产给了歌姬的家族开发。但歌姬十分贪婪，为了实现矿产垄断，歌姬把其他同行的矿井都给封了，包括国王分派给贴身武士的。于是国王把歌姬抓起来审判，歌姬问定什么罪？国王说：死罪。肯的姬封矿刑期死，为我武士。</ChatMessage>
 </ChatPanel>
 
 ### 快捷方式
@@ -149,17 +90,123 @@ bun add kokkoro-plugin-kfc
 
 <ChatPanel>
   <ChatMessage qq="2225151531" nickname="Yuki">今天星期四，V我50</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">今天是疯狂星期四，V我50。</ChatMessage>
+  <ChatMessage qq="2854205915" nickname="可可萝">
+    <span>优秀是“渐渐的事”</span>
+    <br />
+    <span>成长是“天天的事”</span>
+    <br />
+    <span>学习是“坚持的事”</span>
+    <br />
+    <span>别忘了今天是肯德基疯狂星期四</span>
+  </ChatMessage>
 </ChatPanel>
 
 北京时间每周四，消息中出现「麦当劳」、「金拱门」、「华莱士」、「汉堡王」、「德克士」或「塔斯汀」时，也会随机返回一条疯狂星期四文案。
 
 <ChatPanel>
   <ChatMessage qq="2225151531" nickname="Yuki">晚饭去麦当劳</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">今天是疯狂星期四，V我50。</ChatMessage>
+  <ChatMessage qq="2854205915" nickname="可可萝">我是盗号的 我把这个人的号盗了 但是我看了这个人聊天记录发现他过得非常艰苦 他生活过的一直很烂 我希望有人看见了能帮助他 让他能有钱去吃肯德基疯狂星期四 就这样吧 眼眶都湿润了 我下了</ChatMessage>
 </ChatPanel>
 
 群聊使用快捷方式时，需要开启「获取群内全部消息」权限。
+
+## 代码执行
+
+```shell
+bun add kokkoro-plugin-eval
+```
+
+```text
+/执行 <parts>...
+```
+
+发送「/执行」并在后面填写 JavaScript 或 TypeScript 代码，插件会返回执行结果。
+
+<ChatPanel>
+  <ChatMessage qq="2225151531" nickname="Yuki">/执行 1 + 1</ChatMessage>
+  <ChatMessage qq="2854205915" nickname="可可萝">2</ChatMessage>
+</ChatPanel>
+
+### 快捷执行
+
+也可以在代码前输入「>」。群聊需要开启「获取群内全部消息」权限。
+
+<ChatPanel>
+  <ChatMessage qq="2225151531" nickname="Yuki">> ((value: number) => value * 2)(21)</ChatMessage>
+  <ChatMessage qq="2854205915" nickname="可可萝">42</ChatMessage>
+</ChatPanel>
+
+### 环境变量
+
+`EVAL_TIMEOUT` 和 `EVAL_MAX_BUFFER` 用于自定义插件的执行超时时间和输出上限，单位分别为毫秒和字节。默认值如下：
+
+```ini
+EVAL_TIMEOUT=60000
+EVAL_MAX_BUFFER=65536
+```
+
+::: danger 安全提示
+建议只允许可信用户使用该插件。执行的代码拥有与 Kokkoro 进程相同的系统权限，可以读取文件和环境变量，也可以执行系统命令。
+:::
+
+## ChatGPT
+
+::: warning
+该插件的最后一个版本适用于 Kokkoro v1，尚未适配后续版本。
+:::
+
+```shell
+bun add kokkoro-plugin-chatgpt
+```
+
+### 咨询
+
+<ChatPanel>
+  <ChatMessage qq="2225151531" nickname="Yuki">咨询 怎么做光刻机？</ChatMessage>
+  <ChatMessage qq="2854205915" nickname="可可萝">
+  {{
+    [
+      '光刻机操作很简单，大致可以分为几个步骤： ',
+      '1. 准备好要刻的图像。',
+      '2. 把图像通过光刻机传输到腐蚀液中。',
+      '3. 将腐蚀液加热或用化学物质处理，使其变成图像。',
+      '4. 通过检查图像，确保它的质量。 ',
+      '5. 使用干燥剂将图像固定在一个特定的位置上。 ',
+      '6. 最后，将硬件放置在指定的位置上，就可以完成制作工作了。',
+    ].join('\n')
+  }}
+  </ChatMessage>
+</ChatPanel>
+
+这...很简单么？
+
+### 消息队列
+
+## 切噜语
+
+::: warning
+该插件的最后一个版本适用于 Kokkoro v1，尚未适配后续版本。
+:::
+
+```shell
+bun add kokkoro-plugin-cherugo
+```
+
+类似 `熊说`、`佛曰`，可使用切噜语实现文本加密
+
+### 加密
+
+<ChatPanel>
+  <ChatMessage qq="2225151531" nickname="Yuki">切噜一下 会长我挂树了</ChatMessage>
+  <ChatMessage qq="2854205915" nickname="可可萝">切噜～♪切噼噼卟蹦咧噼哔噜蹦巴叮拉嘭噼叮拉噜巴啰铃卟巴噼巴</ChatMessage>
+</ChatPanel>
+
+### 解密
+
+<ChatPanel>
+  <ChatMessage qq="2225151531" nickname="Yuki">切噜～♪切噼噼卟蹦咧噼哔噜蹦巴叮拉嘭噼叮拉噜巴啰铃卟巴噼巴</ChatMessage>
+  <ChatMessage qq="2854205915" nickname="可可萝">会长我挂树了</ChatMessage>
+</ChatPanel>
 
 ## 群管理
 
@@ -316,38 +363,6 @@ kokkoro 最初就是以公主连结玩家为核心开发相关功能的，现在
 ### Rank
 
 ### 日程推送
-
-## 代码执行
-
-```shell
-bun add kokkoro-plugin-eval
-```
-
-```text
-/执行 <parts>...
-```
-
-发送「/执行」并在后面填写 JavaScript 或 TypeScript 代码，插件会返回执行结果。
-
-<ChatPanel>
-  <ChatMessage qq="2225151531" nickname="Yuki">/执行 1 + 1</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">2</ChatMessage>
-</ChatPanel>
-
-### 快捷执行
-
-也可以在代码前输入「>」。群聊需要开启「获取群内全部消息」权限。
-
-<ChatPanel>
-  <ChatMessage qq="2225151531" nickname="Yuki">> ((value: number) => value * 2)(21)</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">42</ChatMessage>
-</ChatPanel>
-
-代码执行超过 1 分钟或输出超过 64 KB 时会被终止。
-
-::: danger 安全提示
-该插件允许聊天用户以与 Kokkoro 进程相同的系统权限执行任意 JavaScript 或 TypeScript 代码。仅在机器人只接受可信用户消息时安装该插件。
-:::
 
 ## 空调
 
