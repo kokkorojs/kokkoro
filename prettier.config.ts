@@ -10,6 +10,7 @@ export default {
   quoteProps: 'as-needed',
   arrowParens: 'avoid',
   endOfLine: 'lf',
+  vueIndentScriptAndStyle: true,
   plugins: ['prettier-plugin-sort'],
   esmImportTypeStyle: 'inline-first',
 } satisfies Config & SortOptions;

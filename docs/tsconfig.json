@@ -1,0 +1,12 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "lib": ["DOM", "ESNext"],
+
+    "types": ["vitepress/client"]
+  },
+  "vueCompilerOptions": {
+    "vitePressExtensions": [".md"]
+  },
+  "include": [".vitepress/**/*.ts", ".vitepress/**/*.vue", "**/*.md", "**/*.ts", "**/*.vue"]
+}
