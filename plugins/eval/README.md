@@ -30,8 +30,15 @@ bun add kokkoro-plugin-eval
 
 群聊需要开启「获取群内全部消息」权限。
 
-代码执行超过 1 分钟或输出超过 64 KB 时会被终止。
+## 环境变量
+
+`EVAL_TIMEOUT` 和 `EVAL_MAX_BUFFER` 用于自定义插件的执行超时时间和输出上限，单位分别为毫秒和字节。默认值如下：
+
+```ini
+EVAL_TIMEOUT=60000
+EVAL_MAX_BUFFER=65536
+```
 
 ## 安全
 
-该插件允许聊天用户以与 Kokkoro 进程相同的系统权限执行任意 JavaScript 或 TypeScript 代码。仅在机器人只接受可信用户消息时安装该插件。
+建议只允许可信用户使用该插件。执行的代码拥有与 Kokkoro 进程相同的系统权限，可以读取文件和环境变量，也可以执行系统命令。

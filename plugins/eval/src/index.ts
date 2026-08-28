@@ -2,17 +2,16 @@ import { spawn } from 'bun';
 
 import { useCommand } from '@kokkoro/core';
 
-const TIMEOUT = 1000 * 60;
-const MAX_BUFFER = 1024 * 64;
+const { EVAL_TIMEOUT: TIMEOUT = 1000 * 60, EVAL_MAX_BUFFER: MAX_BUFFER = 1024 * 64 } = import.meta.env;
 
 async function execute(parts: string[]) {
   const source = parts.join(' ');
-  const signal = AbortSignal.timeout(TIMEOUT);
+  const signal = AbortSignal.timeout(Number(TIMEOUT));
   const subprocess = spawn(['bun', '--print', source], {
     stderr: 'pipe',
     signal,
     killSignal: 'SIGKILL',
-    maxBuffer: MAX_BUFFER,
+    maxBuffer: Number(MAX_BUFFER),
   });
   const [stdout, stderr, exitCode] = await Promise.all([
     subprocess.stdout.text(),
