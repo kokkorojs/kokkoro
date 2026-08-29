@@ -30,13 +30,13 @@
     },
     "packages/cli": {
       "name": "@kokkoro/cli",
-      "version": "3.0.0",
+      "version": "3.0.1",
       "bin": {
         "kokkoro": "./src/index.ts",
       },
       "dependencies": {
-        "create-kokkoro": "^0.1.0",
-        "kokkoro": "^3.0.0",
+        "create-kokkoro": "^0.1.1",
+        "kokkoro": "^3.0.1",
         "komut": "^0.3.1",
       },
       "peerDependencies": {
@@ -55,7 +55,7 @@
     },
     "packages/create-kokkoro": {
       "name": "create-kokkoro",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "bin": {
         "create-kokkoro": "./src/index.ts",
       },
@@ -68,7 +68,7 @@
     },
     "packages/kokkoro": {
       "name": "kokkoro",
-      "version": "3.0.0",
+      "version": "3.0.1",
       "dependencies": {
         "@kokkoro/core": "^3.1.3",
         "annal": "^0.2.1",
