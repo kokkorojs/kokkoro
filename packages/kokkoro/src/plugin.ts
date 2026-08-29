@@ -10,30 +10,32 @@ interface PluginEntry {
   readonly loader: PluginLoader;
 }
 
-const getName = async (directory: string, path: string): Promise<string> => {
-  const directoryName = path.replace('plugins/', '');
-  const manifest = file(`${directory}/${path}/package.json`);
-  const hasManifest = await manifest.exists();
-
-  if (!hasManifest) {
-    return directoryName;
-  }
-  const { name } = await manifest.json();
-
-  if (typeof name !== 'string' || name.length === 0) {
-    throw new TypeError(`插件 ${directoryName} 的 package.json 缺少有效的 name`);
-  }
-  return name;
-};
-
 const scanDirectory = async (directory: string): Promise<PluginEntry[]> => {
   const paths = await Array.fromAsync(DIRECTORIES.scan({ cwd: directory, onlyFiles: false, followSymlinks: true }));
 
   return Promise.all(
-    paths.toSorted().map(async path => ({
-      name: await getName(directory, path),
-      loader: () => import(pathToFileURL(`${directory}/${path}`).href),
-    })),
+    paths.toSorted().map(async path => {
+      const folderName = path.replace('plugins/', '');
+      const pluginPath = `${directory}/${path}`;
+      const manifest = file(`${pluginPath}/package.json`);
+      const hasManifest = await manifest.exists();
+      const { name } = hasManifest ? await manifest.json() : {};
+
+      if (name === undefined) {
+        return {
+          name: folderName,
+          loader: () => import(pathToFileURL(pluginPath).href),
+        };
+      }
+
+      if (typeof name !== 'string' || name.length === 0) {
+        throw new TypeError(`插件 ${folderName} 的 package.json 缺少有效的 name`);
+      }
+      return {
+        name,
+        loader: () => import(resolveSync(name, pluginPath)),
+      };
+    }),
   );
 };
 

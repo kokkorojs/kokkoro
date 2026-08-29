@@ -4,7 +4,7 @@ import { loadPlugin } from '@kokkoro/core';
 
 import { findPlugins } from '../src/plugin';
 
-import { events } from './fixtures/failure/plugins/example/state';
+import { events } from './fixtures/failure/plugins/example/src/state';
 
 test('发现本地插件', async () => {
   const plugins = await findPlugins(`${import.meta.dir}/fixtures/runtime`);
@@ -16,6 +16,18 @@ test('读取本地插件包名', async () => {
   const plugins = await findPlugins(`${import.meta.dir}/fixtures/failure`);
 
   expect(plugins.map(plugin => plugin.name)).toEqual(['kokkoro-plugin-failure']);
+});
+
+test('package.json 缺少 name 字段', async () => {
+  const [entry] = await findPlugins(`${import.meta.dir}/fixtures/unnamed`);
+
+  if (!entry) {
+    throw new Error('未找到插件');
+  }
+  expect(entry.name).toBe('example');
+  const plugin = await loadPlugin(entry.loader);
+
+  await plugin.dispose();
 });
 
 test('发现依赖插件', async () => {
