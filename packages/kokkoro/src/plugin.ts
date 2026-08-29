@@ -28,8 +28,8 @@ const scanDirectory = async (directory: string): Promise<PluginEntry[]> => {
         };
       }
 
-      if (typeof name !== 'string' || name.length === 0) {
-        throw new TypeError(`插件 ${folderName} 的 package.json 缺少有效的 name`);
+      if (typeof name !== 'string' || name.trim().length === 0) {
+        throw new TypeError(`插件 ${folderName} 的 package.json 中的 name 不是有效值`);
       }
       return {
         name,

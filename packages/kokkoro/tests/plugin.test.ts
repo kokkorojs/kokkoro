@@ -18,7 +18,7 @@ test('读取本地插件包名', async () => {
   expect(plugins.map(plugin => plugin.name)).toEqual(['kokkoro-plugin-failure']);
 });
 
-test('package.json 缺少 name 字段', async () => {
+test('package.json 缺失 name', async () => {
   const [entry] = await findPlugins(`${import.meta.dir}/fixtures/unnamed`);
 
   if (!entry) {
@@ -28,6 +28,12 @@ test('package.json 缺少 name 字段', async () => {
   const plugin = await loadPlugin(entry.loader);
 
   await plugin.dispose();
+});
+
+test('package.json 空白 name', async () => {
+  await expect(findPlugins(`${import.meta.dir}/fixtures/invalid`)).rejects.toThrow(
+    '插件 example 的 package.json 中的 name 不是有效值',
+  );
 });
 
 test('发现依赖插件', async () => {
