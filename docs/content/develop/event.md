@@ -227,4 +227,4 @@ export default (bot: Bot<Events>) => {
 
 `Events` 中的属性名表示事件名称，元组表示监听器接收的完整参数列表。上面的 `notice` 事件只有一个 `string` 参数，因此 `bot.emit()` 和 `bot.on()` 都能得到对应的类型提示。
 
-通过 `bot.on()` 注册的监听器不属于 Hook，需要在插件取消挂载时移除。相关规则请参阅 [副作用清理](/develop/cleanup)。
+通过 `bot.on()` 注册的监听器不属于 Hook，需要在插件取消挂载时移除。相关规则请参阅 [副作用清理](/develop/side-effects)。

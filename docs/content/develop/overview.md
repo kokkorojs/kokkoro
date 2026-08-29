@@ -62,7 +62,7 @@ export default () => {
 
 Hook **只能**在 `PluginSetup` 或由它同步调用的函数中声明，`PluginSetup` 本身不能是异步函数。它还可以返回一个清理函数。插件从当前 Bot 取消挂载时，Kokkoro 会执行这个函数。
 
-模块顶层代码与 `PluginSetup` 的执行时机并不相同，详细规则请参阅 [生命周期](/develop/lifecycle) 和 [副作用清理](/develop/cleanup)。
+模块顶层代码与 `PluginSetup` 的执行时机并不相同，详细规则请参阅 [生命周期](/develop/lifecycle) 和 [副作用清理](/develop/side-effects)。
 
 ## 加载规则
 

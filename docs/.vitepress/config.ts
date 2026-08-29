@@ -16,13 +16,13 @@ export default defineConfig({
       {
         text: '文档',
         items: [
-          { text: '深度指南', link: '/guide/' },
+          { text: '深度指南', link: '/guide/introduction' },
           { text: '快速上手', link: '/guide/quick-start' },
         ],
       },
       {
         text: '开发',
-        link: '/develop/',
+        link: '/develop/overview',
         activeMatch: '/develop/',
       },
       {
@@ -48,7 +48,7 @@ export default defineConfig({
         {
           text: '开始',
           items: [
-            { text: '简介', link: '/guide/' },
+            { text: '简介', link: '/guide/introduction' },
             { text: '快速上手', link: '/guide/quick-start' },
           ],
         },
@@ -64,7 +64,7 @@ export default defineConfig({
         {
           text: '基础',
           items: [
-            { text: '插件概述', link: '/develop/' },
+            { text: '插件概述', link: '/develop/overview' },
             { text: '编写第一个插件', link: '/develop/first-plugin' },
             { text: '事件监听', link: '/develop/event' },
             { text: '指令参数', link: '/develop/command' },
@@ -74,7 +74,7 @@ export default defineConfig({
           text: '进阶',
           items: [
             { text: '插件生命周期', link: '/develop/lifecycle' },
-            { text: '副作用清理', link: '/develop/cleanup' },
+            { text: '副作用清理', link: '/develop/side-effects' },
             { text: '数据持久化', link: '/develop/persistence' },
           ],
         },
