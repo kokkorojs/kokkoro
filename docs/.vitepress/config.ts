@@ -36,11 +36,7 @@ export default defineConfig({
       {
         text: '关于',
         activeMatch: '/about/',
-        items: [
-          { text: '常见问题', link: '/about/faq' },
-          // { text: '计划', link: '/about/roadmap' },
-          // { text: '历史', link: '/about/history' },
-        ],
+        items: [{ text: '常见问题', link: '/about/faq' }],
       },
     ],
     sidebar: {
