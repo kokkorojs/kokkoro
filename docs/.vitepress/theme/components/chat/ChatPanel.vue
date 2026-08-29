@@ -34,17 +34,15 @@
     --text_primary: light-dark(#000, rgb(255 255 255 / 90%));
     --text_secondary_01: light-dark(#999, #808080);
     --text_link: #2d77e5;
-    --bg_grey_standard: light-dark(#f2f2f2, #1a1a1a);
     --bubble_host: light-dark(#ccebff, #666);
     --bubble_guest: light-dark(#fff, #262626);
     --on_bubble_host_text: light-dark(#000, #fff);
     --bubble_guest_text: light-dark(#000, #f2f2f2);
-    --mac_bg_nav: light-dark(rgb(255 255 255 / 10%), rgb(0 0 0 / 10%));
 
     margin: 24px auto;
     overflow: hidden;
     border-radius: 8px;
-    background: var(--bg_grey_standard);
+    background: var(--vp-code-block-bg);
     color: var(--text_primary);
     font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
 
@@ -54,7 +52,7 @@
       height: 48px;
       align-items: center;
       justify-content: center;
-      background: var(--mac_bg_nav);
+      background: var(--vp-code-tab-bg);
       backdrop-filter: saturate(180%) blur(20px);
       box-shadow: inset 0 -1px var(--vp-code-tab-divider);
     }
