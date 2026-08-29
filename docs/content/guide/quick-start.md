@@ -147,6 +147,6 @@ bunx @kokkoro/cli plugin example
   <ChatMessage qq="2854205915" nickname="可可萝">pong</ChatMessage>
 </ChatPanel>
 
-模板中的 `/ping` 指令只是一个最小示例。你可以使用 `useCommand()`、`useEvent()` 等 Hook API 开发插件，详情参阅 [插件概述](/develop/overview)。
+模板中的 `/ping` 指令只是一个最小示例。你可以使用 `useCommand()`、`useEvent()` 等 Hook API 开发插件，详情参阅 [插件概述](/develop/)。
 
 现在，开启一段属于你的物语吧 ♪ q(≧▽≦q)

@@ -4,6 +4,10 @@ export default defineConfig({
   title: 'Kokkoro',
   description: 'とある咕咕の QQ 机器人框架',
   lang: 'zh-CN',
+  srcDir: './content',
+  vite: {
+    publicDir: '../public',
+  },
   cleanUrls: true,
   lastUpdated: true,
   head: [['link', { rel: 'icon', href: '/favicon.ico' }]],
@@ -12,13 +16,13 @@ export default defineConfig({
       {
         text: '文档',
         items: [
-          { text: '深度指南', link: '/guide/introduction' },
+          { text: '深度指南', link: '/guide/' },
           { text: '快速上手', link: '/guide/quick-start' },
         ],
       },
       {
         text: '开发',
-        link: '/develop/overview',
+        link: '/develop/',
         activeMatch: '/develop/',
       },
       {
@@ -34,7 +38,7 @@ export default defineConfig({
         activeMatch: '/about/',
         items: [
           { text: '常见问题', link: '/about/faq' },
-          // { text: '计划', link: '/about/project' },
+          // { text: '计划', link: '/about/roadmap' },
           // { text: '历史', link: '/about/history' },
         ],
       },
@@ -44,7 +48,7 @@ export default defineConfig({
         {
           text: '开始',
           items: [
-            { text: '简介', link: '/guide/introduction' },
+            { text: '简介', link: '/guide/' },
             { text: '快速上手', link: '/guide/quick-start' },
           ],
         },
@@ -52,7 +56,7 @@ export default defineConfig({
           text: '基础',
           items: [
             { text: '配置文件', link: '/guide/config' },
-            { text: '环境变量', link: '/guide/environment' },
+            { text: '环境变量', link: '/guide/environment-variables' },
           ],
         },
       ],
@@ -60,7 +64,7 @@ export default defineConfig({
         {
           text: '基础',
           items: [
-            { text: '插件概述', link: '/develop/overview' },
+            { text: '插件概述', link: '/develop/' },
             { text: '编写第一个插件', link: '/develop/first-plugin' },
             { text: '事件监听', link: '/develop/event' },
             { text: '指令参数', link: '/develop/command' },
@@ -70,7 +74,7 @@ export default defineConfig({
           text: '进阶',
           items: [
             { text: '插件生命周期', link: '/develop/lifecycle' },
-            { text: '副作用清理', link: '/develop/side-effect' },
+            { text: '副作用清理', link: '/develop/cleanup' },
             { text: '数据持久化', link: '/develop/persistence' },
           ],
         },
@@ -118,7 +122,7 @@ export default defineConfig({
       copyright: 'Copyright © 2020-2026 <a href="https://github.com/xueelf">Yuki</a>',
     },
     editLink: {
-      pattern: 'https://github.com/kokkorojs/kokkoro/edit/master/docs/:path',
+      pattern: 'https://github.com/kokkorojs/kokkoro/edit/master/docs/content/:path',
       text: '帮助改善当前页面',
     },
     lastUpdated: {

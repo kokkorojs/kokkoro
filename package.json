@@ -2,20 +2,18 @@
   "private": true,
   "type": "module",
   "workspaces": [
+    "docs",
     "packages/*",
     "packages/kokkoro/examples",
     "plugins/*"
   ],
   "scripts": {
-    "docs:build": "vitepress build docs",
-    "docs:dev": "vitepress dev docs",
-    "docs:preview": "vitepress preview docs",
     "format": "prettier \"**/*.{css,scss,json,md,ts,vue,yaml,yml}\" --write --experimental-cli",
     "format:check": "prettier \"**/*.{css,scss,json,md,ts,vue,yaml,yml}\" --check --experimental-cli",
     "lint": "eslint --cache",
     "lint:fix": "eslint --fix --cache",
     "prepare": "husky",
-    "typecheck": "tsc --noEmit && vue-tsc --noEmit -p docs/tsconfig.json"
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.2",
@@ -27,11 +25,7 @@
     "husky": "^9.1.7",
     "prettier": "^3.9.6",
     "prettier-plugin-sort": "^1.1.1",
-    "sass-embedded": "^1.103.1",
-    "typescript-eslint": "^8.68.0",
-    "vitepress": "^2.0.0-alpha.19",
-    "vue": "^3.5.42",
-    "vue-tsc": "^3.3.11"
+    "typescript-eslint": "^8.68.0"
   },
   "peerDependencies": {
     "typescript": "^6.0.3"

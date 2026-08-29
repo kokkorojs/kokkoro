@@ -8,5 +8,5 @@
   "vueCompilerOptions": {
     "vitePressExtensions": [".md"]
   },
-  "include": [".vitepress/**/*.ts", ".vitepress/**/*.vue", "**/*.md", "**/*.ts", "**/*.vue"]
+  "include": [".vitepress/**/*.ts", ".vitepress/**/*.vue", "content/**/*.md"]
 }

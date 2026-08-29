@@ -34,7 +34,8 @@ jobs:
         run: bun ci --ignore-scripts
 
       - name: Build documentation
-        run: bun run docs:build
+        working-directory: docs
+        run: bun run build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5
