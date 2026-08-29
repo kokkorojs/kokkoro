@@ -105,9 +105,9 @@ Kokkoro 会加载项目插件和社区插件。
 └── package.json
 ```
 
-项目插件可以不提供 `package.json` 文件。没有该文件时，Bun 会按照 [模块解析规则](https://bun.com/docs/runtime/module-resolution) 查找 `index.ts` 等入口文件。插件需要声明依赖或发布到 npm 时，再添加标准的 `package.json`。
+项目插件可以不提供 `package.json`。没有 `package.json`，或 `package.json` 中未声明 `name` 字段时，Bun 会按照 [模块解析规则](https://bun.com/docs/runtime/module-resolution) 查找 `index.ts` 等入口文件。声明 `name` 后，Kokkoro 会按照 `package.json` 中的入口加载插件。插件需要声明依赖或发布到 npm 时，再添加标准的 `package.json`。
 
-插件使用 `package.json` 中的 `name` 作为标识。项目插件没有 `package.json` 时，则使用一级子目录名称。
+插件使用 `package.json` 中的 `name` 作为标识。项目插件没有 `package.json`，或 `package.json` 中未声明 `name` 字段时，则使用一级子目录名称。
 
 ### 安装社区插件
 

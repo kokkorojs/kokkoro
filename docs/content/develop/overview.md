@@ -20,7 +20,7 @@
 
 Kokkoro 使用 `package.json` 中的 `name` 作为插件的**唯一标识**，因此两个插件不能使用相同的名称。
 
-如果本地插件不存在 `package.json`，则会使用插件文件夹名称作为唯一标识。
+如果本地插件不存在 `package.json`，或 `package.json` 中未声明 `name` 字段，则会使用插件文件夹名称作为唯一标识。
 
 使用 CLI 创建插件时，`package.json` 中的 `name` 会自动添加 `kokkoro-plugin-` 前缀。例如，`kokkoro plugin example` 创建的包名是 `kokkoro-plugin-example`。发布社区插件时请保留该前缀，否则 Kokkoro 不会从项目的 `dependencies` 中发现该插件。
 
@@ -66,7 +66,7 @@ Hook **只能**在 `PluginSetup` 或由它同步调用的函数中声明，`Plug
 
 ## 加载规则
 
-Kokkoro 只会查找 `plugins` 中的一级子文件夹。项目插件可以不提供 `package.json`，此时 Bun 会按照模块解析规则查找目录中的 `index.ts` 等入口文件。
+Kokkoro 只会查找 `plugins` 中的一级子文件夹。项目插件没有 `package.json`，或 `package.json` 中未声明 `name` 字段时，Bun 会按照模块解析规则查找目录中的 `index.ts` 等入口文件。声明 `name` 后，Kokkoro 会按照 `package.json` 中的入口加载插件。
 
 社区插件来自项目 `package.json` 的 `dependencies`，包名需要以 `kokkoro-plugin-` 开头。Kokkoro 不会遍历 `node_modules` 或加载 `devDependencies` 中的插件。
 
