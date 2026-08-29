@@ -84,21 +84,49 @@ export default defineConfig({
       label: '本页目录',
     },
     search: {
-      provider: 'local',
+      provider: 'algolia',
       options: {
+        appId: 'E2DV4WL8V8',
+        apiKey: '9170e064e3ff2972705c09945f35fce7',
+        indexName: 'kokkoro',
         translations: {
           button: {
             buttonText: '搜索',
             buttonAriaLabel: '搜索',
           },
           modal: {
-            noResultsText: '无法找到相关结果',
-            displayDetails: '显示列表详细',
-            resetButtonTitle: '清除查询条件',
+            searchBox: {
+              clearButtonTitle: '清除',
+              clearButtonAriaLabel: '清除查询',
+              closeButtonText: '关闭',
+              closeButtonAriaLabel: '关闭',
+              placeholderText: '搜索文档',
+              searchInputLabel: '搜索',
+            },
             footer: {
-              closeText: '关闭',
               selectText: '选择',
+              selectKeyAriaLabel: '回车键',
               navigateText: '切换',
+              navigateUpKeyAriaLabel: '上方向键',
+              navigateDownKeyAriaLabel: '下方向键',
+              closeText: '关闭',
+              closeKeyAriaLabel: 'Esc 键',
+              poweredByText: '技术支持',
+            },
+            errorScreen: {
+              titleText: '无法获取结果',
+              helpText: '你可能需要检查网络连接。',
+            },
+            startScreen: {
+              recentSearchesTitle: '最近',
+              saveRecentSearchButtonTitle: '收藏此搜索',
+              removeRecentSearchButtonTitle: '从历史记录中移除此搜索',
+              favoriteSearchesTitle: '收藏',
+              removeFavoriteSearchButtonTitle: '从收藏中移除此搜索',
+            },
+            noResultsScreen: {
+              noResultsText: '未找到相关结果',
+              suggestedQueryText: '尝试搜索',
             },
           },
         },
