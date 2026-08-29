@@ -221,41 +221,38 @@
 
     .search {
       position: relative;
-      display: block;
+      display: flex;
       width: min(520px, 100%);
+      padding: 0 12px;
+      border: 1px solid var(--vp-c-divider);
+      border-radius: 4px;
+      align-items: center;
+      cursor: text;
+
+      &:focus-within {
+        border-color: var(--vp-c-brand-1);
+      }
 
       svg {
-        position: absolute;
-        top: 50%;
-        left: 16px;
-        width: 19px;
+        display: block;
+        width: 18px;
+        margin: 8px;
         fill: none;
         stroke: var(--vp-c-text-3);
         stroke-linecap: round;
         stroke-width: 1.8;
-        transform: translateY(-50%);
+        flex: 0 0 auto;
       }
 
       input {
         width: 100%;
-        height: 38px;
-        padding: 0 16px 0 46px;
-        border: 1px solid var(--vp-input-border-color);
-        border-radius: 8px;
+        min-width: 0;
+        padding: 6px 12px;
+        border: 0;
         outline: none;
-        background: var(--vp-c-bg-alt);
+        background: transparent;
         color: var(--vp-c-text-1);
         font: inherit;
-        transition:
-          border-color 0.25s,
-          background 0.25s;
-
-        &:focus-visible {
-          border-color: var(--vp-c-brand-1);
-          background: var(--vp-c-bg);
-          outline: 2px solid var(--vp-c-brand-1);
-          outline-offset: 2px;
-        }
       }
     }
 
@@ -300,18 +297,6 @@
       margin-top: 20px;
       grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
       gap: 18px;
-    }
-
-    .visually-hidden {
-      position: absolute;
-      overflow: hidden;
-      width: 1px;
-      height: 1px;
-      margin: -1px;
-      padding: 0;
-      border: 0;
-      clip: rect(0 0 0 0);
-      white-space: nowrap;
     }
 
     @media (max-width: 640px) {

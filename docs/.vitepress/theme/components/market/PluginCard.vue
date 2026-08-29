@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import { computed, onUnmounted, shallowRef } from 'vue';
 
-  import type { Plugin } from './PluginMarket.vue';
+  import { type Plugin } from './PluginMarket.vue';
 
   const props = defineProps<Plugin>();
 
@@ -98,11 +98,13 @@
     min-width: 0;
     min-height: 250px;
     padding: 22px;
-    border: 1px solid var(--vp-c-divider);
+    border: 1px solid var(--vp-c-bg-soft);
     border-radius: 12px;
-    background: var(--vp-c-bg-elv);
+    background: var(--vp-c-bg-soft);
     flex-direction: column;
-    transition: border-color 0.25s;
+    transition:
+      border-color 0.25s,
+      background-color 0.25s;
 
     &:hover {
       border-color: var(--vp-c-brand-1);
@@ -125,18 +127,22 @@
     }
 
     .name {
+      display: -webkit-box;
+      overflow: hidden;
       min-width: 0;
       margin: 0;
       overflow-wrap: anywhere;
       border: 0;
-      font-size: 18px;
+      font-size: 16px;
       letter-spacing: -0.015em;
-      line-height: 1.4;
+      line-height: 24px;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
     }
 
     .version {
       color: var(--vp-c-text-2);
-      font-size: 11px;
+      font-size: 12px;
       white-space: nowrap;
     }
 
@@ -162,18 +168,17 @@
     }
 
     .compatibility {
-      padding: 4px 8px;
-      border: 1px solid var(--vp-c-warning-1);
-      border-radius: 999px;
-      background: var(--vp-c-warning-soft);
-      color: var(--vp-c-warning-1);
-      font-size: 11px;
-      font-weight: 600;
-      line-height: 1.5;
+      padding: 0 10px;
+      border: 1px solid var(--vp-badge-warning-border);
+      border-radius: 12px;
+      background: var(--vp-badge-warning-bg);
+      color: var(--vp-badge-warning-text);
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 22px;
       white-space: nowrap;
 
       &.compatible {
-        border-color: var(--vp-c-success-1);
         background: var(--vp-c-success-soft);
         color: var(--vp-c-success-1);
       }
@@ -182,11 +187,11 @@
     .description {
       display: -webkit-box;
       overflow: hidden;
-      min-height: 46px;
+      min-height: 48px;
       margin: 12px 0 0;
       color: var(--vp-c-text-2);
       font-size: 14px;
-      line-height: 1.65;
+      line-height: 24px;
       -webkit-box-orient: vertical;
       -webkit-line-clamp: 2;
     }
@@ -220,7 +225,7 @@
     .metrics {
       display: flex;
       color: var(--vp-c-text-2);
-      font-size: 11px;
+      font-size: 12px;
       font-variant-numeric: tabular-nums;
       line-height: 1.5;
       text-align: right;
@@ -244,12 +249,10 @@
       position: relative;
       z-index: 1;
       display: flex;
-      height: 42px;
       margin-top: 14px;
       padding: 4px 4px 4px 13px;
-      border: 1px solid var(--vp-c-divider);
       border-radius: 8px;
-      background: var(--vp-c-bg-alt);
+      background: var(--vp-c-bg);
       align-items: center;
       justify-content: space-between;
       gap: 12px;
@@ -260,7 +263,7 @@
         padding: 0;
         background: transparent;
         color: var(--vp-c-text-2);
-        font-size: 12px;
+        font-size: var(--vp-code-font-size);
         text-overflow: ellipsis;
         white-space: nowrap;
       }
@@ -268,8 +271,8 @@
 
     .copy {
       display: grid;
-      width: 32px;
-      height: 32px;
+      width: 40px;
+      height: 40px;
       padding: 0;
       border: 0;
       border-radius: 4px;
@@ -293,8 +296,8 @@
       }
 
       svg {
-        width: 17px;
-        height: 17px;
+        width: 20px;
+        height: 20px;
         fill: none;
         stroke: currentColor;
         stroke-linecap: round;

@@ -1,4 +1,4 @@
-import type { Theme } from 'vitepress';
+import { type Theme } from 'vitepress';
 import DefaultTheme from 'vitepress/theme';
 
 import ChatAvatar from './components/chat/ChatAvatar.vue';
