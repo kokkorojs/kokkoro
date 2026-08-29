@@ -10,7 +10,10 @@ export default defineConfig({
   },
   cleanUrls: true,
   lastUpdated: true,
-  head: [['link', { rel: 'icon', href: '/favicon.ico' }]],
+  head: [
+    ['link', { rel: 'icon', href: '/favicon.ico' }],
+    ['meta', { name: 'algolia-site-verification', content: 'B804A558390921EC' }],
+  ],
   themeConfig: {
     nav: [
       {
