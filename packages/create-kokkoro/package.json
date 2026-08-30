@@ -1,6 +1,6 @@
 {
   "name": "create-kokkoro",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "The project creation tool for the Kokkoro QQ bot framework.",
   "keywords": [
     "bot",
