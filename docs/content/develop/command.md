@@ -246,3 +246,17 @@ export default () => {
 命名捕获组 `city` 必须与指令参数 `<city>` 同名。收到「查询北京天气」时，`context.args.city` 的值就是 `"北京"`。
 
 更多语法参阅 [MDN 正则表达式指南](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Guide/Regular_expressions) 和 [命名捕获组](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Guide/Regular_expressions/Groups_and_backreferences#%E4%BD%BF%E7%94%A8%E5%91%BD%E5%90%8D%E7%BB%84)。
+
+### 链式调用 {#chaining}
+
+同一条指令可以链式调用多次 `shortcut()`，以匹配不同的自然语言表达：
+
+```typescript
+import { useCommand } from '@kokkoro/core';
+
+export default () => {
+  useCommand('/天气 <city>', context => `${context.args.city}天气：晴`)
+    .shortcut(/^查询(?<city>.+)天气$/)
+    .shortcut(/^(?<city>.+)天气怎么样$/);
+};
+```

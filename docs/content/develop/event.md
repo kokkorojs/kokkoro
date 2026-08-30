@@ -61,7 +61,7 @@ export default (bot: Bot) => {
 };
 ```
 
-## 监听 QQ 事件 {#qq-events}
+## QQ 事件 {#qq-events}
 
 上面示例中的 `useEvent()` 便是监听机器人事件的方法。刚刚编写的 `example` 插件只监听了 `READY` 事件，所以只会在机器人连接成功时执行对应逻辑。
 
