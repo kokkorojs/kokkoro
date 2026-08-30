@@ -102,7 +102,10 @@
       padding: 4px 20px 20px;
     }
 
-    @media (width <= 640px) {
+    @media (width < 640px) {
+      margin-inline: -24px;
+      border-radius: 0;
+
       .chat-msg-area {
         padding-inline: 12px;
       }
