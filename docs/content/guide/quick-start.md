@@ -18,12 +18,12 @@ bun create kokkoro
 
 命令启动后，会依次询问以下内容：
 
-1. `项目名称`：项目目录的名称，默认为 `kokkoro-app`。
-2. `服务端口`：Kokkoro 服务使用的端口，默认为 `3000`。
-3. `QQ 服务接入方式`：首次在本地运行时，建议选择 `WebSocket`。使用 `WebHook` 时需要公网环境。
-4. `是否添加机器人`：为了完成本页后续的消息交互，请选择 `是`。
-5. `机器人 AppID` 和 `机器人 ClientSecret`：填写 QQ 开放平台中的机器人凭证。
-6. `WebHook 路径`：选择 `WebHook` 并添加机器人时需要填写，默认为 `/callback`。
+1. **项目名称**：项目目录的名称，默认为 `kokkoro-app`。
+2. **服务端口**：Kokkoro 服务使用的端口，默认为 `3000`。
+3. **QQ 服务接入方式**：首次在本地运行时，建议选择 **WebSocket**。使用 **WebHook** 需要一个可以从公网访问的 HTTPS 回调地址。
+4. **是否添加机器人**：为了完成本页后续的消息交互，请选择 **是**。
+5. **机器人 AppID** 和 **机器人 ClientSecret**：填写 QQ 开放平台中的机器人凭证。
+6. **WebHook 路径**：选择 **WebHook** 并添加机器人时需要填写，默认为 `/callback`。
 
 配置完成后，脚手架会以项目名称创建目录，并生成项目所需的文件。
 
@@ -107,7 +107,7 @@ kokkoro start
 
 启动后，Kokkoro 会加载项目内的插件并启动 HTTP 服务，再为使用 WebSocket 的机器人建立连接。WebHook 机器人会通过各自的回调路由等待 QQ 推送事件。
 
-终端输出 `服务已启动` 和 `启动完成`，表示 Kokkoro 已完成启动。WebSocket 机器人连接成功时还会输出 `已连接`。
+终端输出「服务已启动」和「启动完成」，表示 Kokkoro 已完成启动。WebSocket 机器人连接成功时还会输出「已连接」。
 
 如果 WebSocket 无法建立连接，或 WebHook 没有收到事件，请检查 [`kokkoro.json`](/guide/config) 和 [QQ 机器人管理后台](https://q.qq.com/qqbot/dashboard) 中的接收事件配置。
 
@@ -140,7 +140,7 @@ kokkoro plugin example
 bunx @kokkoro/cli plugin example
 ```
 
-命令会在 `plugins/example` 中创建插件模板。重新启动项目后，向机器人发送 `/ping`，机器人会回复 `pong`。
+命令会在 `plugins/example` 中创建插件模板。重新启动项目后，向机器人发送 `/ping`，机器人会回复「pong」。
 
 <ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /ping</ChatMessage>

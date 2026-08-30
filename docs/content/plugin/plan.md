@@ -52,10 +52,10 @@ HITOKOTO_TYPES=c,d
 ### ~~网抑云~~ {#hitokoto-netease}
 
 ::: warning
-Kokkoro v3 正在重构，该功能尚未适配。
+该功能尚未适配，QQ 官方 API 暂不支持获取机器人群列表。
 :::
 
-在每天凌晨自动发送
+每天凌晨自动发送一条网抑云文案。
 
 <ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2854205915" nickname="可可萝">
@@ -252,7 +252,7 @@ bun add kokkoro-plugin-chatgpt
 bun add kokkoro-plugin-cherugo
 ```
 
-类似 `熊说`、`佛曰`，可使用切噜语实现文本加密
+类似「熊说」、「佛曰」，可使用切噜语实现文本加密
 
 ### 加密 {#cherugo-encrypt}
 
@@ -291,7 +291,7 @@ bun add kokkoro-plugin-group
 
 ### 欢新提示 {#group-welcome}
 
-在群成员发生变更时发送
+群成员加入或退出时，自动发送对应的提示。
 
 <ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2854205915" nickname="可可萝">欢迎新人的加入</ChatMessage>
@@ -345,17 +345,17 @@ bun add kokkoro-plugin-setu
 bun add kokkoro-plugin-pcr
 ```
 
-kokkoro 最初就是以公主连结玩家为核心开发相关功能的，现在计划将一系列插件整合
+Kokkoro 最初就是以公主连结玩家为核心开发相关功能的，现在计划将以下插件整合：
 
-- kokkoro-plugin-rank
-- kokkoro-plugin-battle
-- kokkoro-plugin-guild
-- kokkoro-plugin-jjc
-- kokkoro-plugin-gacha
-- kokkoro-plugin-dynamic
-- kokkoro-plugin-web
+- **kokkoro-plugin-rank**
+- **kokkoro-plugin-battle**
+- **kokkoro-plugin-guild**
+- **kokkoro-plugin-jjc**
+- **kokkoro-plugin-gacha**
+- **kokkoro-plugin-dynamic**
+- **kokkoro-plugin-web**
 
-上列插件月底将全部废弃，并正式更名为 kokkoro-plugin-pcr
+上列插件月底将全部废弃，并正式更名为 `kokkoro-plugin-pcr`
 
 ### 会战 {#pcr-clan-battle}
 
@@ -477,7 +477,7 @@ bun add kokkoro-plugin-aircon
 
 ## 猜头像 {#avatar-quiz}
 
-本来是计划把猜头像也整合进 pcr 插件，考虑到后续可能会添加其它游戏类型的头像，所以仍然独立。
+本来是计划把猜头像也整合进 `pcr` 插件，考虑到后续可能会添加其它游戏类型的头像，所以仍然独立。
 
 <ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">猜头像</ChatMessage>

@@ -42,12 +42,12 @@ bun add kokkoro
   "protocol": "websocket",
   "bots": [
     {
-      "appId": "WEBSOCKET_APP_ID",
-      "clientSecret": "WEBSOCKET_CLIENT_SECRET"
+      "appId": "APP_ID",
+      "clientSecret": "CLIENT_SECRET"
     },
     {
-      "appId": "WEBHOOK_APP_ID",
-      "clientSecret": "WEBHOOK_CLIENT_SECRET",
+      "appId": "APP_ID",
+      "clientSecret": "CLIENT_SECRET",
       "protocol": "webhook",
       "webhook": {
         "path": "/webhook"
@@ -57,7 +57,7 @@ bun add kokkoro
 }
 ```
 
-`server.port` 设置 HTTP 服务的端口，默认值为 `3000`。访问 `http://localhost:3000/` 会返回 `Ciallo～(∠·ω< )⌒★`。
+`server.port` 设置 HTTP 服务的端口，默认值为 `3000`。访问 `http://localhost:3000/` 会返回「Ciallo～(∠·ω< )⌒★」。
 
 所有 WebHook 机器人共用该服务，每个 `webhook.path` 必须唯一。`bots` 可以是空数组，Kokkoro 仍会启动 HTTP 服务并保持运行。
 
@@ -89,9 +89,9 @@ Kokkoro 使用 [Annal](https://github.com/xueelf/annal) 将日志输出到终端
 
 ## 添加插件
 
-Kokkoro 会加载项目插件和社区插件。
+Kokkoro 会加载本地插件和社区插件。
 
-### 添加项目插件
+### 添加本地插件
 
 将每个插件放在 `plugins` 的一级子目录中：
 
@@ -105,9 +105,9 @@ Kokkoro 会加载项目插件和社区插件。
 └── package.json
 ```
 
-项目插件可以不提供 `package.json`。没有 `package.json`，或 `package.json` 中未声明 `name` 字段时，Bun 会按照 [模块解析规则](https://bun.com/docs/runtime/module-resolution) 查找 `index.ts` 等入口文件。声明 `name` 后，Kokkoro 会按照 `package.json` 中的入口加载插件。插件需要声明依赖或发布到 npm 时，再添加标准的 `package.json`。
+加载本地插件时，Kokkoro 会根据插件目录中的 `package.json` 确定程序入口。如果目录中没有这个文件，则会根据 [模块解析规则](https://bun.com/docs/runtime/module-resolution) 查找 `index.ts` 等入口文件。`package.json` 中的 `name` 字段只用于确定插件标识，与程序入口无关。
 
-插件使用 `package.json` 中的 `name` 作为标识。项目插件没有 `package.json`，或 `package.json` 中未声明 `name` 字段时，则使用一级子目录名称。
+插件使用 `package.json` 中的 `name` 作为标识。本地插件没有 `package.json`，或 `package.json` 中未声明 `name` 字段时，则使用一级子目录名称。
 
 ### 安装社区插件
 
@@ -117,9 +117,9 @@ Kokkoro 会加载项目插件和社区插件。
 bun add kokkoro-plugin-example
 ```
 
-插件自动加载的范围仅限 `package.json#dependencies` 中包名以 **kokkoro-plugin-** 开头的包，不会遍历 `node_modules` 查找其他插件。
+插件自动加载的范围仅限 `package.json#dependencies` 中包名以 `kokkoro-plugin-` 开头的包，不会遍历 `node_modules` 查找其他插件。
 
-插件按照项目插件、社区插件的顺序加载。项目插件按照文件夹路径排序，社区插件按照包名排序。每个插件模块只导入一次，默认导出的插件函数会接收当前 Bot，并挂载到配置中的每个机器人。
+插件按照本地插件、社区插件的顺序加载。本地插件按照文件夹路径排序，社区插件按照包名排序。每个插件模块只导入一次，默认导出的插件函数会接收当前 `Bot`，并挂载到配置中的每个机器人。
 
 完成插件加载和挂载后，Kokkoro 才会启动 HTTP 服务并建立 WebSocket 连接。某个插件加载或挂载失败时，Kokkoro 会记录错误，继续处理其他插件并启动机器人。
 
@@ -127,7 +127,7 @@ bun add kokkoro-plugin-example
 
 ## 运行示例
 
-[`examples`](./examples) 包含一个入口文件和 Ping、Echo、Eval 三个项目插件。填写 `examples/kokkoro.json` 中的机器人配置，然后运行：
+[`examples`](./examples) 包含一个入口文件和 Ping、Echo、Eval 三个本地插件。填写 `examples/kokkoro.json` 中的机器人配置，然后运行：
 
 ```shell
 bun run ./examples/main.ts

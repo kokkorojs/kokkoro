@@ -29,7 +29,7 @@ API_KEY=1145141919
 
 ## 读取变量 {#read}
 
-插件可以通过变量名读取对应的值，读取结果始终是**字符串**：
+插件读取环境变量时，得到的值始终是**字符串**：
 
 ```typescript
 export default () => {
@@ -40,6 +40,36 @@ export default () => {
   }
 };
 ```
+
+有些插件还需要使用数字。例如，我们可以写一个骰子插件，通过 `DICE_SIDES` 动态控制骰子的面数：
+
+```ini
+DICE_SIDES=6
+```
+
+虽然 `.env` 文件中写的是 `6`，代码读取到的仍然是字符串 `"6"`。使用 `Number()` 可以将它转换成数字：
+
+```typescript
+import { useCommand } from '@kokkoro/core';
+
+const { DICE_SIDES = '6' } = import.meta.env;
+const diceSides = Number(DICE_SIDES);
+
+if (!Number.isInteger(diceSides) || diceSides < 1) {
+  throw new Error('DICE_SIDES 必须是正整数');
+}
+
+export default () => {
+  useCommand('/骰子', () => Math.floor(Math.random() * diceSides) + 1);
+};
+```
+
+`DICE_SIDES = '6'` 表示没有配置该变量时，默认使用字符串 `"6"`。转换后的 `diceSides` 是数字，指令会返回 `1` 至 `diceSides` 之间的随机整数。将 `DICE_SIDES` 改为 `20` 后，`/骰子` 的结果范围也会变成 `1` 至 `20`。
+
+<ChatPanel self="2225151531" :bots="['2854205915']">
+  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /骰子</ChatMessage>
+  <ChatMessage qq="2854205915" nickname="可可萝">4</ChatMessage>
+</ChatPanel>
 
 从 `bun` 导入的 `env`、`Bun.env` 和 `process.env` 也能读取相同的变量：
 
@@ -58,10 +88,10 @@ import.meta.env.API_KEY;
 
 Kokkoro 项目通常使用以下两个文件：
 
-| 文件       | 用途                       |
-| ---------- | -------------------------- |
-| .env       | 项目的通用配置             |
-| .env.local | 只在当前设备生效的本地配置 |
+| 文件           | 用途                       |
+| -------------- | -------------------------- |
+| **.env**       | 项目的通用配置             |
+| **.env.local** | 只在当前设备生效的本地配置 |
 
 两个文件中出现同名变量时，`.env.local` 中的值生效。
 

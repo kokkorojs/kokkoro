@@ -18,12 +18,12 @@ Kokkoro 从当前工作目录读取 `kokkoro.json`，并根据其中的配置管
   },
   "bots": [
     {
-      "appId": "WEBSOCKET_APP_ID",
-      "clientSecret": "WEBSOCKET_CLIENT_SECRET"
+      "appId": "APP_ID",
+      "clientSecret": "CLIENT_SECRET"
     },
     {
-      "appId": "WEBHOOK_APP_ID",
-      "clientSecret": "WEBHOOK_CLIENT_SECRET",
+      "appId": "APP_ID",
+      "clientSecret": "CLIENT_SECRET",
       "protocol": "webhook",
       "webhook": {
         "path": "/callback"
@@ -35,7 +35,7 @@ Kokkoro 从当前工作目录读取 `kokkoro.json`，并根据其中的配置管
 
 ## 在 VS Code 中启用配置提示 {#vscode}
 
-VS Code 1.109 为远程 JSON Schema 增加了信任列表。`kokkoro.js.org` 不在默认列表中，因此 `$schema` 可能显示「无法加载架构，位置不受信任」。这不是 Schema 内容或网站证书错误。
+VS Code 1.109 为远程 JSON Schema 增加了信任列表。kokkoro.js.org 不在默认列表中，因此 `$schema` 可能显示「无法加载架构，位置不受信任」。这不是 Schema 内容或网站证书错误。
 
 将光标移到 `$schema` 所在行，按 `Cmd + .`（macOS）或 `Ctrl + .`（Windows 和 Linux），然后依次选择 **Configure Trusted Domains** 和 **Trust Domain: https://kokkoro.js.org**。
 
@@ -53,20 +53,20 @@ VS Code 在 [#287639](https://github.com/microsoft/vscode/pull/287639) 中引入
 
 ## 顶层配置 {#top-level}
 
-| 字段       | 类型                       | 必填 | 说明                                 |
-| ---------- | -------------------------- | ---- | ------------------------------------ |
-| `$schema`  | `string`                   | 否   | JSON Schema 地址，用于提供编辑器提示 |
-| `protocol` | `"websocket" \| "webhook"` | 是   | 所有机器人的默认接入方式             |
-| `server`   | `object`                   | 否   | HTTP 服务配置                        |
-| `logger`   | `object`                   | 否   | 日志输出配置                         |
-| `bots`     | `array`                    | 是   | 需要运行的机器人，可以为空数组       |
+| 字段         | 类型                     | 必填 | 说明                                 |
+| ------------ | ------------------------ | ---- | ------------------------------------ |
+| **$schema**  | string                   | 否   | JSON Schema 地址，用于提供编辑器提示 |
+| **protocol** | "websocket" \| "webhook" | 是   | 所有机器人的默认接入方式             |
+| **server**   | object                   | 否   | HTTP 服务配置                        |
+| **logger**   | object                   | 否   | 日志输出配置                         |
+| **bots**     | array                    | 是   | 需要运行的机器人，可以为空数组       |
 
 ## 接入方式 {#protocols}
 
 `protocol` 设置所有机器人的默认接入方式。
 
-- `websocket` 主动连接 QQ 服务，适合本地开发和能够保持进程运行的部署环境。
-- `webhook` 通过 HTTP 路由接收 QQ 推送，需要可以从公网访问的服务地址。
+- **websocket** 主动连接 QQ 服务，适合本地开发和能够保持进程运行的部署环境。
+- **webhook** 通过 HTTP 路由接收 QQ 推送，需要可以从公网访问的服务地址。
 
 单个机器人可以通过自己的 `protocol` 覆盖顶层配置。因此，同一个项目可以同时运行 WebSocket 和 WebHook 机器人。
 
@@ -74,19 +74,19 @@ VS Code 在 [#287639](https://github.com/microsoft/vscode/pull/287639) 中引入
 
 `server` 用于设置 Kokkoro HTTP 服务。
 
-| 字段   | 类型      | 默认值 | 说明                                |
-| ------ | --------- | ------ | ----------------------------------- |
-| `port` | `integer` | `3000` | 监听端口，取值范围为 `0` 到 `65535` |
+| 字段     | 类型    | 默认值 | 说明                            |
+| -------- | ------- | ------ | ------------------------------- |
+| **port** | integer | 3000   | 监听端口，取值范围为 0 到 65535 |
 
-无论是否配置机器人，Kokkoro 都会启动 HTTP 服务。访问服务根路径时会返回 `Ciallo～(∠·ω< )⌒★`。
+无论是否配置机器人，Kokkoro 都会启动 HTTP 服务。访问服务根路径时会返回「Ciallo～(∠·ω< )⌒★」。
 
 ## 日志 {#logger}
 
 `logger` 用于设置终端日志的输出等级。
 
-| 字段    | 类型                                     | 默认值   | 说明                   |
-| ------- | ---------------------------------------- | -------- | ---------------------- |
-| `level` | `"debug" \| "info" \| "warn" \| "error"` | `"info"` | 输出该等级及以上的日志 |
+| 字段      | 类型                                   | 默认值 | 说明                   |
+| --------- | -------------------------------------- | ------ | ---------------------- |
+| **level** | "debug" \| "info" \| "warn" \| "error" | "info" | 输出该等级及以上的日志 |
 
 `debug` 日志包含插件挂载、身份验证、QQ 接口调用、连接状态和事件分发的详细信息。插件加载、挂载和运行过程中抛出的 `Error` 也会写入日志。
 
@@ -100,12 +100,12 @@ export default () => {
 
 `bots` 中的每个对象表示一个 QQ 机器人。
 
-| 字段           | 类型                       | 必填            | 说明                     |
-| -------------- | -------------------------- | --------------- | ------------------------ |
-| `appId`        | `string`                   | 是              | QQ 机器人的 AppID        |
-| `clientSecret` | `string`                   | 是              | QQ 机器人的 ClientSecret |
-| `protocol`     | `"websocket" \| "webhook"` | 否              | 覆盖顶层的默认接入方式   |
-| `webhook`      | `object`                   | 使用 WebHook 时 | 该机器人的 WebHook 配置  |
+| 字段             | 类型                     | 必填            | 说明                     |
+| ---------------- | ------------------------ | --------------- | ------------------------ |
+| **appId**        | string                   | 是              | QQ 机器人的 AppID        |
+| **clientSecret** | string                   | 是              | QQ 机器人的 ClientSecret |
+| **protocol**     | "websocket" \| "webhook" | 否              | 覆盖顶层的默认接入方式   |
+| **webhook**      | object                   | 使用 WebHook 时 | 该机器人的 WebHook 配置  |
 
 `appId` 和 `clientSecret` 可以在 [QQ 机器人管理后台](https://q.qq.com/qqbot/dashboard) 中获取。
 
@@ -130,8 +130,8 @@ export default () => {
   },
   "bots": [
     {
-      "appId": "BOT_APP_ID",
-      "clientSecret": "BOT_CLIENT_SECRET",
+      "appId": "APP_ID",
+      "clientSecret": "CLIENT_SECRET",
       "webhook": {
         "path": "/callback"
       }
@@ -142,4 +142,10 @@ export default () => {
 
 `path` 必须以 `/` 开头。同一个项目中的所有 WebHook 机器人共用 HTTP 服务，因此每个机器人必须使用不同的路径。
 
-Kokkoro 只管理 HTTP 服务和回调路径，不需要在配置文件中填写域名。部署完成后，将公网地址与 `path` 组成完整的回调地址，再填写到 QQ 机器人管理后台。例如，公网地址为 `https://bot.example.com`，`path` 为 `/callback`，对应的回调地址就是 `https://bot.example.com/callback`。
+`webhook.path` 只需填写回调路径，不用填写完整网址。将项目部署到公网后，使用项目的公网地址加上 `path` 即可得到 QQ 机器人的回调地址。
+
+例如，项目的公网地址是 `https://bot.example.com`，`path` 是 `/callback`。在 QQ 机器人管理后台填写的回调地址应为：
+
+```text
+https://bot.example.com/callback
+```

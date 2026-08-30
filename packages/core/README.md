@@ -75,16 +75,16 @@ export default () => {
     ['READY'],
   );
 
-  // 收到「/ping」指令或「测试」消息时回复 pong
-  useCommand('/ping', () => 'pong').shortcut('测试');
+  // 收到「/ping」指令或「在吗」消息时回复 pong
+  useCommand('/ping', () => 'pong').shortcut('在吗');
   // 收到「/echo」指令后原样回复指令参数
   useCommand('/echo <parts>...', context => context.args.parts.join(' '));
 };
 ```
 
-插件不需要直接调用 Bot 方法时，可以像上例一样省略参数。
+插件不需要直接调用 `Bot` 方法时，可以像上例一样省略参数。
 
-这就是一个最简单的 Kokkoro 插件。将 `PluginSetup` 通过 `Bot.mount()` 挂载后，插件才会开始处理事件和指令：
+这就是一个最简单的 Kokkoro 插件。将 `PluginSetup` 通过 `bot.mount()` 挂载后，插件才会开始处理事件和指令：
 
 ```typescript
 // main.ts
@@ -108,13 +108,13 @@ await bot.online();
 
 `PluginSetup` 只在挂载时执行，真正处理事件和指令的是其内部的 Hook 函数。
 
-Core 使用 `PluginSetup` 的函数引用识别挂载，因此 Bot.unmount() 必须接收同一个函数：
+Core 使用 `PluginSetup` 的函数引用识别挂载，因此 `bot.unmount()` 必须接收同一个函数：
 
 ```typescript
 await bot.unmount(Example);
 ```
 
-如果插件创建了例如定时器之类的副作用代码，可以从 `PluginSetup` 返回清理函数。在调用 `Bot.unmount()` 时会自动执行它：
+如果插件创建了例如定时器之类的副作用代码，可以从 `PluginSetup` 返回清理函数。在调用 `bot.unmount()` 时会自动执行它：
 
 ```typescript
 export default () => {
@@ -147,7 +147,7 @@ useEvent(
 
 `Client` 的 `error` 和自定义事件仍通过 `bot.on()` 监听，不会交给 `useEvent()` 处理。
 
-`useEvent()` 回调函数的 `context` 只包含对应 QQ 事件的 Payload 字段。需要调用 Bot 方法时，可以使用 `PluginSetup` 接收的参数：
+`useEvent()` 回调函数的 `context` 只包含对应 QQ 事件的 Payload 字段。需要调用 `Bot` 方法时，可以使用 `PluginSetup` 接收的参数：
 
 ```typescript
 import { type Bot, useEvent } from '@kokkoro/core';
@@ -172,16 +172,16 @@ export default (bot: Bot) => {
 
 使用 `useCommand()` 定义指令。指令参数使用 `<name>`、`[name]`、`<name>...` 和 `[name]...` 声明，`context.args` 会根据字符串字面量自动推导类型。
 
-| 声明        | 含义               | 类型                  |
-| ----------- | ------------------ | --------------------- |
-| `<name>`    | 必填参数           | `string`              |
-| `[name]`    | 可选参数           | `string \| undefined` |
-| `<name>...` | 一个或多个剩余参数 | `string[]`            |
-| `[name]...` | 零个或多个剩余参数 | `string[]`            |
+| 声明                | 含义               | 类型                |
+| ------------------- | ------------------ | ------------------- |
+| **&lt;name&gt;**    | 必填参数           | string              |
+| **[name]**          | 可选参数           | string \| undefined |
+| **&lt;name&gt;...** | 一个或多个剩余参数 | string[]            |
+| **[name]...**       | 零个或多个剩余参数 | string[]            |
 
 必填参数必须位于可选参数之前，剩余参数必须位于末尾。消息内容按空白分隔参数，不解析 Shell 引号。指令缺少必填参数时，Core 会回复正确的指令语法。没有对应声明的多余参数会被忽略。
 
-Command 的 `context` 会直接展开消息事件并添加解析后的 `context.args`，因此可以直接使用 `context.id`、`context.content` 和 `context.reply()`。需要调用 Bot 方法时，同样使用 `PluginSetup` 接收的参数。
+Command 的 `context` 会直接展开消息事件并添加解析后的 `context.args`，因此可以直接使用 `context.id`、`context.content` 和 `context.reply()`。需要调用 `Bot` 方法时，同样使用 `PluginSetup` 接收的参数。
 
 处理函数返回 `undefined` 时不会自动回复。返回 QQ 消息对象时会原样交给 `context.reply()`，返回其他对象或数组时使用 `JSON.stringify()` 转为文本，其他返回值使用 `String()` 转为文本。
 
@@ -200,7 +200,7 @@ export default () => {
 
 ### 副作用清理
 
-插件模块的顶层代码只在首次导入时执行一次。在这里建立的数据库连接等资源会由所有 Bot 共享，不属于任何一次 Bot 挂载，因此 `Bot.unmount()` 不会释放它们。
+插件模块的顶层代码只在首次导入时执行一次。在这里建立的数据库连接等资源会由所有 `Bot` 共享，不属于任何一次 `Bot` 挂载，因此 `bot.unmount()` 不会释放它们。
 
 使用 `useDispose()` 可以为这类共享资源登记清理函数。调用 `useDispose()` 的插件必须通过 `loadPlugin()` 动态导入，未使用 `useDispose()` 的插件仍然可以像前文一样静态导入。
 
@@ -239,7 +239,7 @@ interface Plugin {
 }
 ```
 
-通过 `loadPlugin()` 导入签到插件，再将 `plugin.setup` 挂载到 Bot：
+通过 `loadPlugin()` 导入签到插件，再将 `plugin.setup` 挂载到 `Bot`：
 
 ```typescript
 import { loadPlugin } from '@kokkoro/core';
@@ -253,7 +253,7 @@ await bot.unmount(plugin.setup);
 await plugin.dispose();
 ```
 
-`plugin.setup` 是模块默认导出的 `PluginSetup`，同一个函数可以分别挂载到多个 Bot。释放插件前，要先从所有 Bot 取消挂载，再调用 `plugin.dispose()` 执行由 `useDispose()` 登记的清理函数。
+`plugin.setup` 是模块默认导出的 `PluginSetup`，同一个函数可以分别挂载到多个 `Bot`。释放插件前，要先从所有 `Bot` 取消挂载，再调用 `plugin.dispose()` 执行由 `useDispose()` 登记的清理函数。
 
 `loadPlugin()` 接收 `() => import()`，不直接接收路径字符串。文件路径仍由原生 `import()` 解析，同时保留编辑器补全与 TypeScript 类型检查。
 
@@ -285,14 +285,14 @@ await bot.mount(plugin.setup);
 
 ## 注意事项
 
-每个 Bot 实例都单独管理 `PluginSetup` 的挂载状态：
+每个 `Bot` 实例都单独管理 `PluginSetup` 的挂载状态：
 
 ```typescript
 await bot.mount(Example);
 await bot.unmount(Example);
 ```
 
-`PluginSetup` 接收当前 Bot，并且必须同步执行。`bot.unmount()` 只会执行该次挂载返回的清理函数，`plugin.dispose()` 只会执行通过 `useDispose()` 登记的清理函数。其他副作用由开发者自行管理。
+`PluginSetup` 接收当前 `Bot`，并且必须同步执行。`bot.unmount()` 只会执行该次挂载返回的清理函数，`plugin.dispose()` 只会执行通过 `useDispose()` 登记的清理函数。其他副作用由开发者自行管理。
 
 `loadPlugin()`、`bot.mount()`、`bot.unmount()` 和 `plugin.dispose()` 不会静默捕获错误，任何失败都会通过 Promise rejection 交给调用方。错误记录与插件隔离由完整的 Kokkoro 框架处理。
 

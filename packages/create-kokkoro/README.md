@@ -22,12 +22,12 @@ bun create kokkoro --force
 
 命令会依次询问以下内容：
 
-1. 输入项目名称，默认值为 `kokkoro-app`。
-2. 输入服务端口，默认值为 `3000`。
-3. 选择 QQ 服务接入方式，可选 `WebSocket` 或 `WebHook`。
-4. 选择是否添加机器人。不添加机器人时，`kokkoro.json` 中的 `bots` 为空数组。
-5. 添加机器人时，输入机器人的 `AppID` 和 `ClientSecret`。
-6. 使用 `WebHook` 并添加机器人时，输入 WebHook 路径，默认值为 `/callback`。
+1. 输入 **项目名称**，默认值为 `kokkoro-app`。
+2. 输入 **服务端口**，默认值为 `3000`。
+3. 选择 **QQ 服务接入方式**，可选 **WebSocket** 或 **WebHook**。
+4. 选择 **是否添加机器人**。不添加机器人时，`kokkoro.json` 中的 `bots` 为空数组。
+5. 添加机器人时，输入机器人的 **AppID** 和 **ClientSecret**。
+6. 使用 **WebHook** 并添加机器人时，输入 **WebHook 路径**，默认值为 `/callback`。
 
 ### 启动项目
 

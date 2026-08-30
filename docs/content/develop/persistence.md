@@ -6,8 +6,8 @@ Kokkoro v3 已基于 Bun 重构，Bun 原生提供 [SQLite](https://bun.com/docs
 
 机器人插件经常需要保存群配置、用户数据和运行状态。Kokkoro 以前提供过两种本地数据持久化方案：
 
-- `@kokkoro/jsondb` 将数据写入 JSON 文件，适合数据量较小且需要直接查看或修改的场景。
-- `@kokkoro/database` 基于 LevelDB，适合按键读写大量数据的场景。
+- **@kokkoro/jsondb** 将数据写入 JSON 文件，适合数据量较小且需要直接查看或修改的场景。
+- **@kokkoro/database** 基于 LevelDB，适合按键读写大量数据的场景。
 
 ## JSON 文件 {#json}
 

@@ -39,11 +39,11 @@ export default () => {
 };
 ```
 
-释放插件时，Kokkoro 会执行通过 `useDispose()` 登记的清理函数。
+调用 `plugin.dispose()` 释放插件模块时，`@kokkoro/core` 会执行通过 `useDispose()` 登记的清理函数。
 
 ## `PluginSetup` 中的副作用 {#plugin-setup}
 
-`PluginSetup` 中产生的副作用只属于当前挂载。你可以从 `PluginSetup` 返回一个清理函数，Kokkoro 会在插件从当前 Bot 取消挂载时执行它。
+`PluginSetup` 中产生的副作用只属于当前挂载。你可以从 `PluginSetup` 返回一个清理函数。调用 `bot.unmount()` 将插件从当前 `Bot` 取消挂载时，`@kokkoro/core` 会执行这个函数。
 
 在 [自定义事件](/develop/event#custom-events) 的示例中，`PluginSetup` 通过 `bot.on()` 注册监听器，再通过返回函数调用 `bot.off()`。定时器、网络连接等副作用也可以使用相同的方式清理。清理函数可以同步执行，也可以返回 `Promise`。
 

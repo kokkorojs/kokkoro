@@ -7,7 +7,7 @@
 
 ## 事件上下文 {#context}
 
-在上一章节，我们介绍了如何编写自己的第一个插件，我们使用了 `useCommand()`，让 example 插件响应了 `/ping` 指令。
+在上一章节，我们介绍了如何编写自己的第一个插件，我们使用了 `useCommand()`，让 `example` 插件响应了 `/ping` 指令。
 
 除了指令以外，Kokkoro 还可以通过 `useEvent()` 监听 QQ 事件。现在，我们先来监听机器人连接成功时收到的 `READY` 事件。
 
@@ -26,7 +26,7 @@ export default () => {
 
 在机器人建立会话通信后，可以在控制台看到如下输出。初次你可能看不懂这里面的大部分字段，但是下面的这些属性，就算我不写注释你应该也知道代表着什么。
 
-```shell
+```javascript
 {
   version: 1,
   session_id: 'session-id',
@@ -42,7 +42,7 @@ export default () => {
 
 没错，你已经猜到了，回调函数的 `context` 参数正是机器人收到事件时的**事件上下文**。例如刚刚触发的 `READY` 事件，上下文中就包含机器人的 ID 和账号昵称等字段。
 
-事件上下文只包含当前 QQ 事件的数据。如果需要调用 Bot 方法，可以从插件默认导出函数的参数获取当前 Bot：
+事件上下文包含当前 QQ 事件的数据。部分事件还允许机器人直接回复，例如收到消息、用户添加机器人好友或机器人加入群聊。处理这些事件时，可以调用 `context.reply()` 向对应的用户或群聊发送回复。如果需要调用其他 `Bot` 方法，可以从插件默认导出函数的参数获取当前 `Bot`：
 
 ```typescript
 import { type Bot, useEvent } from '@kokkoro/core';
@@ -63,17 +63,38 @@ export default (bot: Bot) => {
 
 ## 监听 QQ 事件 {#qq-events}
 
-上面示例中的 `useEvent()` 便是监听机器人事件的方法。刚刚编写的 example 插件只监听了 `READY` 事件，所以只会在机器人连接成功时执行对应逻辑。
+上面示例中的 `useEvent()` 便是监听机器人事件的方法。刚刚编写的 `example` 插件只监听了 `READY` 事件，所以只会在机器人连接成功时执行对应逻辑。
 
-Kokkoro 将 QQ 推送的原生事件称为 **QQ Dispatch 事件**。
+Kokkoro 将 QQ 推送的原生事件称为 **QQ Dispatch 事件**，其中不包含 QQ 频道事件。原因参阅 [为什么不兼容 QQ 频道？](/about/faq#qq-channel-support)。
 
-而事件有很多很多种，会话事件只是其中之一，其它比较常见的例如**私聊事件**和**群聊事件**都有相关事件名。Kokkoro 基于 Chobits SDK 开发，事件名与官方保持一致。更多事件可在腾讯 [官方文档](https://bot.q.qq.com/wiki/develop/api-v2/dev-prepare/event-emit/payload.html) 查看。
+`useEvent()` 支持以下 QQ Dispatch 事件：
+
+| 事件名                       | 触发场景                                           |
+| ---------------------------- | -------------------------------------------------- |
+| **C2C_MESSAGE_CREATE**       | 用户向机器人发送私聊消息                           |
+| **FRIEND_ADD**               | 用户添加机器人                                     |
+| **FRIEND_DEL**               | 用户删除机器人                                     |
+| **C2C_MSG_RECEIVE**          | 用户开启私聊主动消息                               |
+| **C2C_MSG_REJECT**           | 用户关闭私聊主动消息                               |
+| **GROUP_AT_MESSAGE_CREATE**  | 用户在群内 @ 机器人                                |
+| **GROUP_MESSAGE_CREATE**     | 群聊开启「获取群内全部消息」后，用户在群内发送消息 |
+| **GROUP_ADD_ROBOT**          | 机器人被添加到群                                   |
+| **GROUP_DEL_ROBOT**          | 机器人被移出群                                     |
+| **GROUP_MSG_RECEIVE**        | 群消息接收设置被开启                               |
+| **GROUP_MSG_REJECT**         | 群消息接收设置被关闭                               |
+| **GROUP_MEMBER_ADD**         | 群成员加入群                                       |
+| **GROUP_MEMBER_REMOVE**      | 群成员离开群                                       |
+| **SUBSCRIBE_MESSAGE_STATUS** | 订阅消息授权状态发生变更                           |
+| **GROUP_JOIN_REQUEST**       | 用户申请加入群                                     |
+| **INTERACTION_CREATE**       | 用户点击消息按钮、变更授权或进入群机器人管理       |
+| **READY**                    | WebSocket 会话准备完成                             |
+| **RESUMED**                  | WebSocket 会话恢复完成                             |
 
 在这里，你可以通过事件制作出各种各样有趣的插件，让机器人变得更加强大。o((>ω< ))o
 
-## 设置执行时机 {#timing}
+## 事件依赖 {#event-dependencies}
 
-`useEvent()` 的第二个参数决定回调函数在什么时候执行。
+`useEvent()` 的第二个参数是事件依赖数组，用于指定需要监听的 QQ Dispatch 事件。
 
 ```typescript
 import { useEvent } from '@kokkoro/core';
@@ -112,7 +133,7 @@ export default () => {
   <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /测试</ChatMessage>
 </ChatPanel>
 
-```shell {7}
+```javascript {7}
 {
   author: {
     id: 'member-openid',
@@ -155,7 +176,7 @@ export default () => {
 <ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="437402067" nickname="友人A">@可可萝 /ping</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">pong</ChatMessage>
-  <ChatMessage qq="437402067" nickname="友人A">蒋蒋~怎么样，是不是这样就可以解决问题了？</ChatMessage>
+  <ChatMessage qq="437402067" nickname="友人A">将将～怎么样，是不是这样就可以解决问题了？</ChatMessage>
   <ChatMessage qq="2225151531" nickname="Yuki">哈？！</ChatMessage>
   <ChatMessage qq="2225151531" nickname="Yuki">
     <img width="200" src="/images/meme/西内.jpg" />
@@ -175,7 +196,7 @@ export default () => {
 
 所以，Kokkoro 提供了 `useCommand()` 来进行指令处理，这其实与 `useEvent()` 去手动监听**消息事件**实现的效果是等价的，但是能让代码更为简洁。
 
-机器人指令必须以 `/` 开头，并提前在 [QQ 开放平台](https://q.qq.com) 配置。配置完成后，在 QQ 聊天框中输入 `/`，客户端就会显示对应的指令面板。
+Kokkoro 的机器人指令必须以 `/` 开头，用户直接发送 `/ping` 就能触发匹配。如果希望 QQ 客户端在输入 `/` 时显示指令面板，还需要提前在 [QQ 开放平台](https://q.qq.com) 配置对应指令。
 
 ```typescript {4}
 import { useCommand } from '@kokkoro/core';
@@ -187,7 +208,44 @@ export default () => {
 
 `useCommand()` 会自动处理 `C2C_MESSAGE_CREATE`、`GROUP_AT_MESSAGE_CREATE` 和 `GROUP_MESSAGE_CREATE` 三个消息事件，并在此基础上完成指令匹配、参数校验与消息回复。
 
-回调函数返回 `undefined` 时不会回复消息。返回 QQ 消息对象时，Kokkoro 会直接调用 `context.reply()`。返回其他对象或数组时，会通过 `JSON.stringify()` 转为文本。其余返回值则通过 `String()` 转为文本。
+回调函数返回 `undefined` 时不会回复消息。返回含有 `msg_type` 字段，并符合 QQ 官方的 [单聊消息](https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_users_user_openid_messages.post.html) 或 [群聊消息](https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_groups_group_openid_messages.post.html) 结构的对象时，Kokkoro 会直接调用 `context.reply()`。返回其他对象或数组时，会通过 `JSON.stringify()` 转为文本。其余返回值则通过 `String()` 转为文本。
+
+下面的三个指令分别返回数组、普通对象和 QQ 消息对象：
+
+```typescript
+import { useCommand } from '@kokkoro/core';
+
+export default () => {
+  useCommand('/小小甜心', () => {
+    return ['镜华', '美美', '未奏希'];
+  });
+
+  useCommand('/状态', () => {
+    return {
+      name: '可可萝',
+      protocol: 'websocket',
+    };
+  });
+
+  useCommand('/ping', () => {
+    return {
+      msg_type: 0,
+      content: 'pong',
+    };
+  });
+};
+```
+
+数组和普通对象会转换成 JSON 文本。QQ 消息对象则会按照 `msg_type` 指定的消息类型发送：
+
+<ChatPanel self="2225151531" :bots="['2854205915']">
+  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /小小甜心</ChatMessage>
+  <ChatMessage qq="2854205915" nickname="可可萝">["镜华","美美","未奏希"]</ChatMessage>
+  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /状态</ChatMessage>
+  <ChatMessage qq="2854205915" nickname="可可萝">{"name":"可可萝","protocol":"websocket"}</ChatMessage>
+  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /ping</ChatMessage>
+  <ChatMessage qq="2854205915" nickname="可可萝">pong</ChatMessage>
+</ChatPanel>
 
 ## `useEvent()` 还是 `useCommand()`？ {#choose-hook}
 

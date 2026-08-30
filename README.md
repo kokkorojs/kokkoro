@@ -37,21 +37,21 @@ bun start
 
 ## Packages
 
-| Package                                       | 说明                                                        |
-| --------------------------------------------- | ----------------------------------------------------------- |
-| [`kokkoro`](./packages/kokkoro)               | 加载配置、机器人和插件，并启动 Kokkoro 服务                 |
-| [`@kokkoro/core`](./packages/core)            | 基于 QQ 官方事件与 OpenAPI 提供 Hook 插件系统和 Command API |
-| [`@kokkoro/cli`](./packages/cli)              | 初始化项目、创建插件和启动 Kokkoro                          |
-| [`create-kokkoro`](./packages/create-kokkoro) | 为 `bun create kokkoro` 提供项目脚手架                      |
+| Package                                         | 说明                                                        |
+| ----------------------------------------------- | ----------------------------------------------------------- |
+| **[kokkoro](./packages/kokkoro)**               | 加载配置、机器人和插件，并启动 Kokkoro 服务                 |
+| **[@kokkoro/core](./packages/core)**            | 基于 QQ 官方事件与 OpenAPI 提供 Hook 插件系统和 Command API |
+| **[@kokkoro/cli](./packages/cli)**              | 初始化项目、创建插件和启动 Kokkoro                          |
+| **[create-kokkoro](./packages/create-kokkoro)** | 为 `bun create kokkoro` 提供项目脚手架                      |
 
 ## Plugins
 
-| Plugin                                          | 功能                                       |
-| ----------------------------------------------- | ------------------------------------------ |
-| [`kokkoro-plugin-hitokoto`](./plugins/hitokoto) | 获取一言                                   |
-| [`kokkoro-plugin-kfc`](./plugins/kfc)           | 获取疯狂星期四文案                         |
-| [`kokkoro-plugin-eval`](./plugins/eval)         | 在聊天中执行 JavaScript 或 TypeScript 代码 |
-| [`kokkoro-plugin-saucenao`](./plugins/saucenao) | 使用 SauceNAO 搜索图片来源                 |
+| Plugin                                            | 功能                                       |
+| ------------------------------------------------- | ------------------------------------------ |
+| **[kokkoro-plugin-hitokoto](./plugins/hitokoto)** | 获取一言                                   |
+| **[kokkoro-plugin-kfc](./plugins/kfc)**           | 获取疯狂星期四文案                         |
+| **[kokkoro-plugin-eval](./plugins/eval)**         | 在聊天中执行 JavaScript 或 TypeScript 代码 |
+| **[kokkoro-plugin-saucenao](./plugins/saucenao)** | 使用 SauceNAO 搜索图片来源                 |
 
 更多插件可以在 [插件市场](https://kokkoro.js.org/plugin/market) 中查找。
 

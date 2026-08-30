@@ -56,20 +56,20 @@ export default () => {
 
 `useCommand()`、`useEvent()` 等用于声明插件功能的函数称为 **Hook**。
 
-插件每挂载到一个 Bot，`PluginSetup` 就会执行一次，并在函数中登记当前 Bot 使用的 Hook。
+插件每挂载到一个 `Bot`，`PluginSetup` 就会执行一次，并在函数中登记当前 `Bot` 使用的 Hook。
 
-`Bot` 继承 Chobits 的 `Client`，可以直接调用 QQ 官方接口。插件需要使用这些方法时，可以通过函数参数获取当前 Bot。不需要时，则可以像上面的示例一样省略参数。
+`Bot` 继承 Chobits 的 `Client`，可以直接调用 QQ 官方接口。插件需要使用这些方法时，可以通过函数参数获取当前 `Bot`。不需要时，则可以像上面的示例一样省略参数。
 
-Hook **只能**在 `PluginSetup` 或由它同步调用的函数中声明，`PluginSetup` 本身不能是异步函数。它还可以返回一个清理函数。插件从当前 Bot 取消挂载时，Kokkoro 会执行这个函数。
+Hook **只能**在 `PluginSetup` 或由它同步调用的函数中声明，`PluginSetup` 本身不能是异步函数。它还可以返回一个清理函数。调用 `bot.unmount()` 将插件从当前 `Bot` 取消挂载时，`@kokkoro/core` 会执行这个函数。
 
 模块顶层代码与 `PluginSetup` 的执行时机并不相同，详细规则请参阅 [生命周期](/develop/lifecycle) 和 [副作用清理](/develop/side-effects)。
 
 ## 加载规则 {#loading}
 
-Kokkoro 只会查找 `plugins` 中的一级子文件夹。项目插件没有 `package.json`，或 `package.json` 中未声明 `name` 字段时，Bun 会按照模块解析规则查找目录中的 `index.ts` 等入口文件。声明 `name` 后，Kokkoro 会按照 `package.json` 中的入口加载插件。
+Kokkoro 只会查找 `plugins` 中的一级子文件夹。加载本地插件时，Kokkoro 会根据插件目录中的 `package.json` 确定程序入口。如果目录中没有这个文件，则会根据 [模块解析规则](https://bun.com/docs/runtime/module-resolution) 查找 `index.ts` 等入口文件。`package.json` 中的 `name` 字段只用于确定插件的唯一标识，与程序入口无关。
 
 社区插件来自项目 `package.json` 的 `dependencies`，包名需要以 `kokkoro-plugin-` 开头。Kokkoro 不会遍历 `node_modules` 或加载 `devDependencies` 中的插件。
 
-项目插件会先于社区插件加载。项目插件按照文件夹路径排序，社区插件按照包名排序。
+本地插件会先于社区插件加载。本地插件按照文件夹路径排序，社区插件按照包名排序。
 
-每个插件模块只会导入一次，同一个 `PluginSetup` 则会挂载到配置中的每个 Bot。某个插件加载或挂载失败时，Kokkoro 会记录错误，并继续处理其他插件。
+每个插件模块只会导入一次，同一个 `PluginSetup` 则会挂载到配置中的每个 `Bot`。某个插件加载或挂载失败时，Kokkoro 会记录错误，并继续处理其他插件。
