@@ -87,7 +87,7 @@
     .title {
       max-width: calc(100% - 160px);
       overflow: hidden;
-      color: var(--vp-code-tab-text-color);
+      color: var(--vp-code-tab-active-text-color);
       cursor: default;
       font-family: var(--vp-font-family-base);
       font-size: 14px;
