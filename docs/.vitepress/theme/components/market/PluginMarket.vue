@@ -264,7 +264,7 @@
 
     .status {
       display: flex;
-      min-height: 180px;
+      min-height: 250px;
       margin: 20px 0 0;
       border: 1px dashed var(--vp-c-divider);
       border-radius: 8px;
