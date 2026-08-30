@@ -1,4 +1,4 @@
-# 配置文件
+# 配置文件 {#configuration}
 
 Kokkoro 从当前工作目录读取 `kokkoro.json`，并根据其中的配置管理 HTTP 服务和多个 QQ 机器人。配置文件只在启动时读取，修改后需要重新启动项目。
 
@@ -33,7 +33,7 @@ Kokkoro 从当前工作目录读取 `kokkoro.json`，并根据其中的配置管
 }
 ```
 
-## 在 VS Code 中启用配置提示
+## 在 VS Code 中启用配置提示 {#vscode}
 
 VS Code 1.109 为远程 JSON Schema 增加了信任列表。`kokkoro.js.org` 不在默认列表中，因此 `$schema` 可能显示「无法加载架构，位置不受信任」。这不是 Schema 内容或网站证书错误。
 
@@ -51,7 +51,7 @@ VS Code 1.109 为远程 JSON Schema 增加了信任列表。`kokkoro.js.org` 不
 
 VS Code 在 [#287639](https://github.com/microsoft/vscode/pull/287639) 中引入了该设置。[#288709](https://github.com/microsoft/vscode/issues/288709) 记录了内置 Schema 被错误拦截的问题。
 
-## 顶层配置
+## 顶层配置 {#top-level}
 
 | 字段       | 类型                       | 必填 | 说明                                 |
 | ---------- | -------------------------- | ---- | ------------------------------------ |
@@ -61,7 +61,7 @@ VS Code 在 [#287639](https://github.com/microsoft/vscode/pull/287639) 中引入
 | `logger`   | `object`                   | 否   | 日志输出配置                         |
 | `bots`     | `array`                    | 是   | 需要运行的机器人，可以为空数组       |
 
-## 接入方式
+## 接入方式 {#protocols}
 
 `protocol` 设置所有机器人的默认接入方式。
 
@@ -70,7 +70,7 @@ VS Code 在 [#287639](https://github.com/microsoft/vscode/pull/287639) 中引入
 
 单个机器人可以通过自己的 `protocol` 覆盖顶层配置。因此，同一个项目可以同时运行 WebSocket 和 WebHook 机器人。
 
-## HTTP 服务
+## HTTP 服务 {#http-server}
 
 `server` 用于设置 Kokkoro HTTP 服务。
 
@@ -80,7 +80,7 @@ VS Code 在 [#287639](https://github.com/microsoft/vscode/pull/287639) 中引入
 
 无论是否配置机器人，Kokkoro 都会启动 HTTP 服务。访问服务根路径时会返回 `Ciallo～(∠·ω< )⌒★`。
 
-## 日志
+## 日志 {#logger}
 
 `logger` 用于设置终端日志的输出等级。
 
@@ -96,7 +96,7 @@ export default () => {
 };
 ```
 
-## 机器人
+## 机器人 {#bots}
 
 `bots` 中的每个对象表示一个 QQ 机器人。
 
@@ -118,7 +118,7 @@ export default () => {
 }
 ```
 
-## WebHook
+## WebHook {#webhook}
 
 使用 WebHook 的机器人必须设置 `webhook.path`。
 

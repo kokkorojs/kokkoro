@@ -1,4 +1,4 @@
-# 插件生命周期
+# 插件生命周期 {#plugin-lifecycle}
 
 Kokkoro 的插件生命周期分为**模块生命周期**和**挂载生命周期**。一个插件模块只会加载一次，但可以同时挂载到多个 Bot。
 
@@ -11,7 +11,7 @@ Kokkoro 的插件生命周期分为**模块生命周期**和**挂载生命周期
 
 这两层生命周期彼此独立。模块顶层适合存放所有 Bot 共享的资源，默认导出的 `PluginSetup` 则负责声明每个 Bot 独立运行的功能。
 
-## 模块生命周期
+## 模块生命周期 {#module-lifecycle}
 
 Kokkoro 启动时只会导入每个插件一次，并等待模块初始化完成。模块顶层代码只执行一次，`PluginSetup` 则会在插件挂载到 Bot 时执行。
 
@@ -35,7 +35,7 @@ export default () => {
 
 例如，插件需要连接数据库时，可以在模块顶层建立连接，让所有 Bot 共享该连接。如何在插件释放时关闭连接，请参阅 [副作用清理](/develop/side-effects)。
 
-## 挂载生命周期
+## 挂载生命周期 {#mount-lifecycle}
 
 插件加载完成后，Kokkoro 会将 `PluginSetup` 分别挂载到每个 Bot。每次挂载都会重新执行该函数，将当前 Bot 作为参数传入，并单独注册 Hook。
 
@@ -55,7 +55,7 @@ export default () => {
 
 每次执行都会创建独立的 `messageCount` 和 Hook，因此每个 Bot 会分别统计自己收到的消息。插件从当前 Bot 取消挂载时，Kokkoro 会等待正在执行的事件和指令，然后执行 `PluginSetup` 返回的清理函数。其他 Bot 的挂载状态不会受到影响。
 
-## 执行顺序
+## 执行顺序 {#order}
 
 插件完整的生命周期如下：
 
@@ -73,7 +73,7 @@ export default () => {
 
 Kokkoro 会自动完成插件的加载与挂载。释放插件时，需要先从每个 Bot 取消挂载，再释放插件模块。
 
-## 手动管理生命周期
+## 手动管理生命周期 {#manual-lifecycle}
 
 Kokkoro 框架会自动管理上面的流程。如果只使用 `@kokkoro/core`，可以通过 `loadPlugin()`、`Bot.mount()` 和 `Bot.unmount()` 手动管理插件：
 

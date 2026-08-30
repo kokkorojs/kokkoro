@@ -1,6 +1,6 @@
-# 指令参数
+# 指令参数 {#command-arguments}
 
-## 参数语法
+## 参数语法 {#syntax}
 
 你可以通过命令行语法（command line syntax）为指令添加参数，例如 `<arg>`、`[arg]`、`<arg>...` 和 `[arg]...`。
 
@@ -21,7 +21,7 @@ export default () => {
 
 指令参数会全部存储在 **`context.args`** 中。如果指令没有声明任何参数，那么 `args` 的值是 `{}` 空对象。
 
-## 必填参数
+## 必填参数 {#required-arguments}
 
 如果指令缺少必填参数，Kokkoro 会回复正确的指令语法。
 
@@ -30,7 +30,7 @@ export default () => {
   <ChatMessage qq="2854205915" nickname="可可萝">缺少指令参数，有效语句为："/复读 &lt;part>"</ChatMessage>
 </ChatPanel>
 
-## 可选参数
+## 可选参数 {#optional-arguments}
 
 如果你为指令添加了可选参数（`[arg]`），那么当指令未传入参数时，该字段的值是 `undefined`，这点需要注意。
 
@@ -47,7 +47,7 @@ export default () => {
   <ChatMessage qq="2854205915" nickname="可可萝">undefined</ChatMessage>
 </ChatPanel>
 
-## 多余参数
+## 多余参数 {#extra-arguments}
 
 普通参数只接收一个值，后续没有对应声明的参数会被**忽略**。
 
@@ -58,7 +58,7 @@ export default () => {
 
 如果需要接收后续的全部参数，可以使用可变参数。
 
-## 可变参数
+## 可变参数 {#variadic-arguments}
 
 可变参数（`<args>...`、`[args]...`）会将后续的**所有内容**全部追加至数组中，这与 JavaScript 中的 [Rest 语法](https://zh.javascript.info/rest-parameters-spread) 十分相似。
 
@@ -96,7 +96,7 @@ export default () => {
 
 值得注意的是，必选可变参数的非空校验依然存在，而可选可变参数在不传入任何内容的时候，其变量的值是 `[]` 空数组，而不是 `undefined`。
 
-## 参数类型
+## 参数类型 {#argument-types}
 
 在 QQ 中，所有消息都是通过聊天窗口下半部分的输入框发送的，我们可以将其视作为一个 `textarea` 元素。
 
@@ -117,7 +117,7 @@ export default () => {
 
 在这里，`part` 参数的值是 `"114514"` 字符串，而不是数字。经过 `stringify` 处理后，它会变成 `'"114514"'`，最终回复为 `"114514"`。
 
-Kokkoro 将数据处理交给开发者，设计原因可以参阅 [为什么指令参数都是字符串？](/about/faq#为什么指令参数都是字符串)。如果需要转换参数类型，可以直接使用 JavaScript 提供的方法。
+Kokkoro 将数据处理交给开发者，设计原因可以参阅 [为什么指令参数都是字符串？](/about/faq#command-arguments-as-strings)。如果需要转换参数类型，可以直接使用 JavaScript 提供的方法。
 
 ```typescript {6-8}
 import { useCommand } from '@kokkoro/core';
@@ -139,7 +139,7 @@ export default () => {
   <ChatMessage qq="2854205915" nickname="可可萝">"哼哼哼啊啊啊啊啊啊啊"</ChatMessage>
 </ChatPanel>
 
-## 异常处理
+## 异常处理 {#errors}
 
 指令处理函数抛出 `Error` 时，Kokkoro 会将 `error.message` 回复给消息来源，并在日志中记录该错误。处理函数不得抛出字符串、对象或其他非 `Error` 值。
 
@@ -158,7 +158,7 @@ export default () => {
   <ChatMessage qq="2854205915" nickname="可可萝">请求超时</ChatMessage>
 </ChatPanel>
 
-## 类型推导
+## 类型推导 {#type-inference}
 
 只要为 `useCommand()` 传入字符串字面量，TypeScript 就会根据指令语法自动推导 `args` 的字段与类型，不需要手动标注泛型。
 
@@ -170,7 +170,7 @@ export default () => {
 };
 ```
 
-## 快捷方式
+## 快捷方式 {#shortcuts}
 
 除了以 `/` 开头的指令，还可以通过 `shortcut()` 匹配自然语言。字符串会匹配完整的消息内容，正则表达式则可以使用命名捕获组获取参数。
 

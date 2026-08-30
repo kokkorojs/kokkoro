@@ -1,14 +1,14 @@
-# 快速上手
+# 快速上手 {#quick-start}
 
 ::: tip 准备工作
 在开始前，请先确保你安装了 [Bun](https://bun.com)，并在 [QQ 开放平台](https://q.qq.com) 创建好了机器人。
 :::
 
-## 初始化项目
+## 初始化项目 {#initialize}
 
 Kokkoro 提供两种初始化方式。`bun create` 创建新目录，`kokkoro init` 初始化当前目录。
 
-### 创建新项目
+### 创建新项目 {#create-project}
 
 如果你还没有创建项目目录，可以直接使用 Bun 的项目创建命令：
 
@@ -35,7 +35,7 @@ cd kokkoro-app
 
 请将 `kokkoro-app` 替换为你输入的项目名称。
 
-### 初始化当前目录
+### 初始化当前目录 {#current-directory}
 
 如果你希望自行创建项目目录，可以全局安装 Kokkoro CLI，再通过 `init` 命令初始化当前目录：
 
@@ -67,7 +67,7 @@ kokkoro init --force
 
 :::
 
-## 目录结构
+## 目录结构 {#structure}
 
 项目初始化完成后，Kokkoro 会生成以下目录结构：
 
@@ -79,7 +79,7 @@ kokkoro init --force
 └── package.json   包配置文件
 ```
 
-## 安装依赖
+## 安装依赖 {#install}
 
 安装项目依赖：
 
@@ -91,7 +91,7 @@ bun install
 
 如果需要修改接入方式、服务端口或机器人凭证，请参阅 [配置文件](/guide/config)。
 
-## 启动项目
+## 启动项目 {#start}
 
 启动项目：
 
@@ -111,7 +111,7 @@ kokkoro start
 
 如果 WebSocket 无法建立连接，或 WebHook 没有收到事件，请检查 [`kokkoro.json`](/guide/config) 和 [QQ 机器人管理后台](https://q.qq.com/qqbot/dashboard) 中的接收事件配置。
 
-## 添加插件
+## 添加插件 {#plugins}
 
 你可以直接安装**社区插件**，为机器人添加更多功能：
 

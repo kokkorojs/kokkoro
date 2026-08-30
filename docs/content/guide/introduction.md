@@ -1,10 +1,10 @@
-# 简介
+# 简介 {#introduction}
 
 ::: tip 这里是正在施工的 Kokkoro 开发文档
 由于个人时间有限，文档可能无法及时更新，部分内容暂时与框架的实际表现不一致。
 :::
 
-## 什么是 Kokkoro？
+## 什么是 Kokkoro？ {#what-is-kokkoro}
 
 Kokkoro 是一个基于 [Chobits](https://github.com/xueelf/chobits) SDK，使用 **TypeScript** 语言开发的 QQ 机器人框架。她能让 QQ 机器人的开发变得简单易上手，仅基于 Bun 运行时，API 也十分简洁。
 
@@ -34,7 +34,7 @@ export default () => {
 
 准备好后，可以前往 [快速上手](/guide/quick-start) 创建第一个 Kokkoro 项目。
 
-## 名字的由来
+## 名字的由来 {#name-origin}
 
 可可萝（コッコロ）是 Cygames 开发和发行的游戏 [公主连结 Re:Dive](https://game.bilibili.com/pcr/) 中的登场角色，其日语的罗马音 **ko kko ro** 用作了本项目的名字。
 
@@ -44,6 +44,6 @@ export default () => {
   alt="コッコロ"
 />
 
-## 问题反馈
+## 问题反馈 {#feedback}
 
 在使用过程中，如果你有任何意见或建议，都可以提交 [Issue](https://github.com/kokkorojs/kokkoro/issues) 或在 [QQ 群](https://jq.qq.com/?_wv=1027&k=3hcWCnhq) 反馈。

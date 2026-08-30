@@ -1,20 +1,20 @@
-# 插件概述
+# 插件概述 {#plugin-overview}
 
 ::: tip 插件介绍
 在编写插件之前，我们首先要了解插件的类型。在项目初始化时就已经为大家做了初步介绍，插件共分为**本地插件**和**社区插件**两大类。
 :::
 
-## 本地插件
+## 本地插件 {#local-plugins}
 
 - 本地插件默认存放在项目根目录的 `plugins` 文件夹下。
 - 所有由你自己编写，并**仅供个人使用**的插件就可以称为本地插件。
 
-## 社区插件
+## 社区插件 {#community-plugins}
 
 - 社区插件通过 Bun 安装，并存放在 `node_modules` 目录下。
 - 由我或者其他开发者编写并发布到 [npm](https://www.npmjs.com/)，为**所有使用 Kokkoro 的人**提供服务。
 
-## 插件标识
+## 插件标识 {#identifiers}
 
 世界上不存在两片一模一样的叶子，插件也是如此。
 
@@ -24,7 +24,7 @@ Kokkoro 使用 `package.json` 中的 `name` 作为插件的**唯一标识**，�
 
 使用 CLI 创建插件时，`package.json` 中的 `name` 会自动添加 `kokkoro-plugin-` 前缀。例如，`kokkoro plugin example` 创建的包名是 `kokkoro-plugin-example`。发布社区插件时请保留该前缀，否则 Kokkoro 不会从项目的 `dependencies` 中发现该插件。
 
-## 目录结构
+## 目录结构 {#structure}
 
 你可以在项目根目录下，使用 `kokkoro plugin <name>` 指令来快速创建插件模板。
 
@@ -42,7 +42,7 @@ plugins/
     └── package.json     包配置文件
 ```
 
-## 插件入口
+## 插件入口 {#entry}
 
 每个插件都是一个独立的模块，默认导出的同步函数就是**插件入口**。Kokkoro 将这个函数称为 `PluginSetup`。
 
@@ -64,7 +64,7 @@ Hook **只能**在 `PluginSetup` 或由它同步调用的函数中声明，`Plug
 
 模块顶层代码与 `PluginSetup` 的执行时机并不相同，详细规则请参阅 [生命周期](/develop/lifecycle) 和 [副作用清理](/develop/side-effects)。
 
-## 加载规则
+## 加载规则 {#loading}
 
 Kokkoro 只会查找 `plugins` 中的一级子文件夹。项目插件没有 `package.json`，或 `package.json` 中未声明 `name` 字段时，Bun 会按照模块解析规则查找目录中的 `index.ts` 等入口文件。声明 `name` 后，Kokkoro 会按照 `package.json` 中的入口加载插件。
 

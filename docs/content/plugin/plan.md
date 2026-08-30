@@ -1,4 +1,4 @@
-# 插件计划
+# 插件计划 {#plugin-plan}
 
 本页收录 Kokkoro 历代提供过的插件与功能。已经适配 v3 的插件可以直接安装，其他条目会标注适用版本或当前状态。
 
@@ -6,7 +6,7 @@
 若有你比较中意的功能，可以在群里催更或者提交 Issue。
 :::
 
-## 一言语句
+## 一言语句 {#hitokoto}
 
 ```shell
 bun add kokkoro-plugin-hitokoto
@@ -20,7 +20,7 @@ HITOKOTO_TYPES=c,d
 
 类型取值参阅 [一言接口文档](https://developer.hitokoto.cn/sentence/#请求参数)。修改 `.env` 后需要重新启动项目。
 
-### 随机文本
+### 随机文本 {#hitokoto-random}
 
 ```text
 /一言 [types]...
@@ -40,7 +40,7 @@ HITOKOTO_TYPES=c,d
   <ChatMessage qq="2854205915" nickname="可可萝">『人生天地间，忽如远行客。』——「古诗十九首」</ChatMessage>
 </ChatPanel>
 
-### 快捷方式
+### 快捷方式 {#hitokoto-shortcuts}
 
 发送「来点骚话」也会随机返回一条语句，群聊需要开启「获取群内全部消息」权限。
 
@@ -49,7 +49,7 @@ HITOKOTO_TYPES=c,d
   <ChatMessage qq="2854205915" nickname="可可萝">『能哭的地方，只有厕所和爸爸的怀里。』——「CLANNAD」</ChatMessage>
 </ChatPanel>
 
-### ~~网抑云~~
+### ~~网抑云~~ {#hitokoto-netease}
 
 ::: warning
 Kokkoro v3 正在重构，该功能尚未适配。
@@ -63,7 +63,7 @@ Kokkoro v3 正在重构，该功能尚未适配。
   </ChatMessage>
 </ChatPanel>
 
-## 疯狂星期四
+## 疯狂星期四 {#kfc}
 
 ```shell
 bun add kokkoro-plugin-kfc
@@ -80,7 +80,7 @@ bun add kokkoro-plugin-kfc
   <ChatMessage qq="2854205915" nickname="可可萝">从前有一个国王叫肯，娶了一个歌姬为妾。国王的国家矿产资源发达，国王十分宠爱歌姬，将一部分矿产给了歌姬的家族开发。但歌姬十分贪婪，为了实现矿产垄断，歌姬把其他同行的矿井都给封了，包括国王分派给贴身武士的。于是国王把歌姬抓起来审判，歌姬问定什么罪？国王说：死罪。肯的姬封矿刑期死，为我武士。</ChatMessage>
 </ChatPanel>
 
-### 快捷方式
+### 快捷方式 {#kfc-shortcuts}
 
 消息中包含以下任意一类关键词时，也会随机返回一条疯狂星期四文案。
 
@@ -110,7 +110,7 @@ bun add kokkoro-plugin-kfc
 
 群聊使用快捷方式时，需要开启「获取群内全部消息」权限。
 
-## 代码执行
+## 代码执行 {#eval}
 
 ```shell
 bun add kokkoro-plugin-eval
@@ -127,7 +127,7 @@ bun add kokkoro-plugin-eval
   <ChatMessage qq="2854205915" nickname="可可萝">2</ChatMessage>
 </ChatPanel>
 
-### 快捷执行
+### 快捷执行 {#eval-shortcut}
 
 也可以在代码前输入「>」。群聊需要开启「获取群内全部消息」权限。
 
@@ -136,7 +136,7 @@ bun add kokkoro-plugin-eval
   <ChatMessage qq="2854205915" nickname="可可萝">42</ChatMessage>
 </ChatPanel>
 
-### 环境变量
+### 环境变量 {#eval-environment}
 
 `EVAL_TIMEOUT` 和 `EVAL_MAX_BUFFER` 用于自定义插件的执行超时时间和输出上限，单位分别为毫秒和字节。默认值如下：
 
@@ -149,7 +149,7 @@ EVAL_MAX_BUFFER=65536
 建议只允许可信用户使用该插件。执行的代码拥有与 Kokkoro 进程相同的系统权限，可以读取文件和环境变量，也可以执行系统命令。
 :::
 
-## SauceNAO 图片搜索
+## SauceNAO 图片搜索 {#saucenao}
 
 ```shell
 bun add kokkoro-plugin-saucenao
@@ -167,7 +167,7 @@ SAUCENAO_SIMILARITY_THRESHOLD=50
 
 `SAUCENAO_SIMILARITY_THRESHOLD` 表示显示原缩略图的最低相似度，默认值为 `50`。低于该数值时，插件会使用表情包替换缩略图，避免搜出奇怪的图社死。
 
-### 搜图
+### 搜图 {#saucenao-search}
 
 ```text
 /搜图
@@ -201,7 +201,7 @@ SAUCENAO_SIMILARITY_THRESHOLD=50
   </ChatMessage>
 </ChatPanel>
 
-### 快捷方式
+### 快捷方式 {#saucenao-shortcuts}
 
 发送「搜图」时附带图片，也会返回搜索结果。群聊需要开启「获取群内全部消息」权限。
 
@@ -209,7 +209,7 @@ SAUCENAO_SIMILARITY_THRESHOLD=50
 搜图
 ```
 
-## ChatGPT
+## ChatGPT {#chatgpt}
 
 ::: warning
 该插件的最后一个版本适用于 Kokkoro v1，尚未适配后续版本。
@@ -219,7 +219,7 @@ SAUCENAO_SIMILARITY_THRESHOLD=50
 bun add kokkoro-plugin-chatgpt
 ```
 
-### 咨询
+### 咨询 {#chatgpt-query}
 
 <ChatPanel self="2225151531">
   <ChatMessage qq="2225151531" nickname="Yuki">咨询 怎么做光刻机？</ChatMessage>
@@ -240,9 +240,9 @@ bun add kokkoro-plugin-chatgpt
 
 这...很简单么？
 
-### 消息队列
+### 消息队列 {#chatgpt-queue}
 
-## 切噜语
+## 切噜语 {#cherugo}
 
 ::: warning
 该插件的最后一个版本适用于 Kokkoro v1，尚未适配后续版本。
@@ -254,21 +254,21 @@ bun add kokkoro-plugin-cherugo
 
 类似 `熊说`、`佛曰`，可使用切噜语实现文本加密
 
-### 加密
+### 加密 {#cherugo-encrypt}
 
 <ChatPanel self="2225151531">
   <ChatMessage qq="2225151531" nickname="Yuki">切噜一下 会长我挂树了</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">切噜～♪切噼噼卟蹦咧噼哔噜蹦巴叮拉嘭噼叮拉噜巴啰铃卟巴噼巴</ChatMessage>
 </ChatPanel>
 
-### 解密
+### 解密 {#cherugo-decrypt}
 
 <ChatPanel self="2225151531">
   <ChatMessage qq="2225151531" nickname="Yuki">切噜～♪切噼噼卟蹦咧噼哔噜蹦巴叮拉嘭噼叮拉噜巴啰铃卟巴噼巴</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">会长我挂树了</ChatMessage>
 </ChatPanel>
 
-## 群管理
+## 群管理 {#group}
 
 ::: warning
 该插件的最后一个版本适用于 Kokkoro v1，尚未适配后续版本。
@@ -278,7 +278,7 @@ bun add kokkoro-plugin-cherugo
 bun add kokkoro-plugin-group
 ```
 
-### 申请头衔
+### 申请头衔 {#group-title}
 
 ::: warning
 该功能依赖第三方 QQ 协议。QQ 官方机器人目前不支持设置群头衔，因此无法在 Kokkoro v3 中实现。
@@ -289,7 +289,7 @@ bun add kokkoro-plugin-group
   <ChatMessage qq="2854205915" nickname="可可萝">申请成功</ChatMessage>
 </ChatPanel>
 
-### 欢新提示
+### 欢新提示 {#group-welcome}
 
 在群成员发生变更时发送
 
@@ -298,7 +298,7 @@ bun add kokkoro-plugin-group
   <ChatMessage qq="2854205915" nickname="可可萝">新人已退出群聊</ChatMessage>
 </ChatPanel>
 
-## 色图
+## 色图 {#setu}
 
 ::: warning
 该插件的最后一个版本适用于 Kokkoro v1，尚未适配后续版本。
@@ -308,34 +308,34 @@ bun add kokkoro-plugin-group
 bun add kokkoro-plugin-setu
 ```
 
-### 随机涩图
+### 随机涩图 {#setu-random}
 
 <ChatPanel self="2225151531">
   <ChatMessage qq="2225151531" nickname="Yuki">来点色图</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">不可以涩涩！</ChatMessage>
 </ChatPanel>
 
-### 指定涩图
+### 指定涩图 {#setu-tags}
 
 <ChatPanel self="2225151531">
   <ChatMessage qq="2225151531" nickname="Yuki">来点萝莉色图</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">不可以涩涩！</ChatMessage>
 </ChatPanel>
 
-### 多张色图
+### 多张色图 {#setu-multiple}
 
 <ChatPanel self="2225151531">
   <ChatMessage qq="2225151531" nickname="Yuki">来10份色图</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">不可以涩涩！</ChatMessage>
 </ChatPanel>
 
-## RSS 订阅
+## RSS 订阅 {#rss}
 
 ::: warning
 该插件来自 Kokkoro v1，目前无法从 npm 安装。
 :::
 
-## 公主连结
+## 公主连结 {#pcr}
 
 ::: warning
 该插件的最后一个版本适用于 Kokkoro v2，尚未适配 v3。
@@ -357,7 +357,7 @@ kokkoro 最初就是以公主连结玩家为核心开发相关功能的，现在
 
 上列插件月底将全部废弃，并正式更名为 kokkoro-plugin-pcr
 
-### 会战
+### 会战 {#pcr-clan-battle}
 
 <ChatPanel self="2225151531">
   <ChatMessage qq="2225151531" nickname="Yuki">开启会战</ChatMessage>
@@ -382,22 +382,22 @@ kokkoro 最初就是以公主连结玩家为核心开发相关功能的，现在
   <ChatMessage qq="2854205915" nickname="可可萝">预约成功</ChatMessage>
 </ChatPanel>
 
-### 十连
+### 十连 {#pcr-gacha}
 
 <ChatPanel self="2225151531">
   <ChatMessage qq="2225151531" nickname="Yuki">来发十连</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">素敵な仲間が増えますよ~</ChatMessage>
 </ChatPanel>
 
-### 竞技场
+### 竞技场 {#pcr-arena}
 
-### 买药
+### 买药 {#pcr-stamina}
 
-### Rank
+### Rank {#pcr-rank}
 
-### 日程推送
+### 日程推送 {#pcr-schedule}
 
-## 空调
+## 空调 {#aircon}
 
 ::: warning
 该插件的最后一个版本适用于 Kokkoro v2，尚未适配 v3。
@@ -407,41 +407,41 @@ kokkoro 最初就是以公主连结玩家为核心开发相关功能的，现在
 bun add kokkoro-plugin-aircon
 ```
 
-### 开关
+### 开关 {#aircon-power}
 
 <ChatPanel self="2225151531">
   <ChatMessage qq="2225151531" nickname="Yuki">开空调</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">哔~❄️当前温度 20°</ChatMessage>
 </ChatPanel>
 
-### 温度调节
+### 温度调节 {#aircon-temperature}
 
 <ChatPanel self="2225151531">
   <ChatMessage qq="2225151531" nickname="Yuki">设置温度 28</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">哔~☀️当前温度 28°</ChatMessage>
 </ChatPanel>
 
-### 温度查询
+### 温度查询 {#aircon-query}
 
 <ChatPanel self="2225151531">
   <ChatMessage qq="2225151531" nickname="Yuki">群温度</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">☀️当前温度 28°</ChatMessage>
 </ChatPanel>
 
-### ~~群友的第一款人造太阳~~
+### ~~群友的第一款人造太阳~~ {#aircon-sun}
 
 <ChatPanel self="2225151531">
   <ChatMessage qq="2225151531" nickname="Yuki">设置温度 114514</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">哔~🥵当前温度 114514°</ChatMessage>
 </ChatPanel>
 
-## 五子棋
+## 五子棋 {#gomoku}
 
 ::: warning 早期功能
 以下功能来自 Kokkoro v1 以前的版本，当时没有作为独立的 npm 包发布，目前也尚未适配 v3。
 :::
 
-### 开始游戏
+### 开始游戏 {#gomoku-start}
 
 <ChatPanel self="2225151531">
   <ChatMessage qq="2225151531" nickname="Yuki">五子棋</ChatMessage>
@@ -458,7 +458,7 @@ bun add kokkoro-plugin-aircon
   </ChatMessage>
 </ChatPanel>
 
-### 落子
+### 落子 {#gomoku-move}
 
   <ChatPanel self="2225151531">
     <ChatMessage qq="2225151531" nickname="Yuki">落子 d4</ChatMessage>
@@ -475,7 +475,7 @@ bun add kokkoro-plugin-aircon
     </ChatMessage>
   </ChatPanel>
 
-## 猜头像
+## 猜头像 {#avatar-quiz}
 
 本来是计划把猜头像也整合进 pcr 插件，考虑到后续可能会添加其它游戏类型的头像，所以仍然独立。
 
@@ -492,9 +492,9 @@ bun add kokkoro-plugin-aircon
   </ChatMessage>
 </ChatPanel>
 
-## 人生重开
+## 人生重开 {#life-restart}
 
-### 重开
+### 重开 {#life-restart-start}
 
 <ChatPanel self="2225151531">
   <ChatMessage qq="2225151531" nickname="Yuki">重开</ChatMessage>
@@ -513,9 +513,9 @@ bun add kokkoro-plugin-aircon
   </ChatMessage>
 </ChatPanel>
 
-## 你问我答
+## 你问我答 {#question-answer}
 
-### 问
+### 问 {#question-answer-ask}
 
 <ChatPanel self="2225151531">
   <ChatMessage qq="2225151531" nickname="Yuki">有人说贴贴你就说不要贴贴，贴贴危险，还会密接</ChatMessage>
@@ -526,27 +526,27 @@ bun add kokkoro-plugin-aircon
   <ChatMessage qq="2854205915" nickname="可可萝">好的，我记住了</ChatMessage>
 </ChatPanel>
 
-### 答
+### 答 {#question-answer-reply}
 
 <ChatPanel self="2225151531">
   <ChatMessage qq="2225151531" nickname="Yuki">贴贴</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">不要贴贴，贴贴危险，还会密接</ChatMessage>
 </ChatPanel>
 
-### 查
+### 查 {#question-answer-list}
 
 <ChatPanel self="2225151531">
   <ChatMessage qq="2225151531" nickname="Yuki">看看有人问</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">贴贴 | 妈 | <img width="100" src="/images/meme/这河里妈.jpg" /></ChatMessage>
 </ChatPanel>
 
-## Galgame
+## Galgame {#galgame}
 
 ::: danger
 该功能始于 2020 年，从未发布到 npm，目前已经停止开发。
 :::
 
-### 开始
+### 开始 {#galgame-start}
 
 <ChatPanel self="2225151531">
   <ChatMessage qq="2225151531" nickname="Yuki">galgame</ChatMessage>
@@ -565,6 +565,6 @@ bun add kokkoro-plugin-aircon
   </ChatMessage>
 </ChatPanel>
 
-### 存档
+### 存档 {#galgame-save}
 
-### 载入
+### 载入 {#galgame-load}
