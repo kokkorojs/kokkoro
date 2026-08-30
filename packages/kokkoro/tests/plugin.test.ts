@@ -6,7 +6,7 @@ import { findPlugins } from '../src/plugin';
 
 import { events } from './fixtures/failure/plugins/example/src/state';
 
-test('发现本地插件', async () => {
+test('检索本地插件', async () => {
   const plugins = await findPlugins(`${import.meta.dir}/fixtures/runtime`);
 
   expect(plugins.map(plugin => plugin.name)).toEqual(['example']);
@@ -18,7 +18,7 @@ test('读取本地插件包名', async () => {
   expect(plugins.map(plugin => plugin.name)).toEqual(['kokkoro-plugin-failure']);
 });
 
-test('package.json 缺失 name', async () => {
+test('加载无包名插件', async () => {
   const [entry] = await findPlugins(`${import.meta.dir}/fixtures/unnamed`);
 
   if (!entry) {
@@ -30,31 +30,26 @@ test('package.json 缺失 name', async () => {
   await plugin.dispose();
 });
 
-test('package.json 空白 name', async () => {
-  await expect(findPlugins(`${import.meta.dir}/fixtures/invalid`)).rejects.toThrow(
-    '插件 example 的 package.json 中的 name 不是有效值',
-  );
-});
-
-test('发现依赖插件', async () => {
+test('检索依赖插件', async () => {
   const plugins = await findPlugins(`${import.meta.dir}/fixtures`);
 
   expect(plugins.map(plugin => plugin.name)).toEqual(['kokkoro-plugin-example']);
 });
 
-test('拒绝重复插件名', async () => {
+test('拒绝重名插件', async () => {
   await expect(findPlugins(`${import.meta.dir}/fixtures/duplicate`)).rejects.toThrow(
     '插件 kokkoro-plugin-example 重复',
   );
 });
 
-test('插件加载失败回滚', async () => {
+test('加载失败时回滚', async () => {
   const [entry] = await findPlugins(`${import.meta.dir}/fixtures/failure`);
 
   if (!entry) {
     throw new Error('未找到插件');
   }
   events.length = 0;
+
   await expect(loadPlugin(entry.loader)).rejects.toThrow('加载失败');
   expect(events).toEqual(['import', 'dispose']);
 });

@@ -1,4 +1,5 @@
-import { file, fileURLToPath, Glob, pathToFileURL, resolveSync } from 'bun';
+import { file, Glob } from 'bun';
+import { basename, join, resolve } from 'node:path';
 
 import { type PluginLoader } from '@kokkoro/core';
 
@@ -15,32 +16,28 @@ const scanDirectory = async (directory: string): Promise<PluginEntry[]> => {
 
   return Promise.all(
     paths.toSorted().map(async path => {
-      const folderName = path.replace('plugins/', '');
-      const pluginPath = `${directory}/${path}`;
-      const manifest = file(`${pluginPath}/package.json`);
+      const folderName = basename(path);
+      const pluginPath = join(directory, path);
+      const manifest = file(join(pluginPath, 'package.json'));
       const hasManifest = await manifest.exists();
       const { name } = hasManifest ? await manifest.json() : {};
 
       if (name === undefined) {
         return {
           name: folderName,
-          loader: () => import(pathToFileURL(pluginPath).href),
+          loader: () => import(import.meta.resolve(pluginPath)),
         };
-      }
-
-      if (typeof name !== 'string' || name.trim().length === 0) {
-        throw new TypeError(`插件 ${folderName} 的 package.json 中的 name 不是有效值`);
       }
       return {
         name,
-        loader: () => import(resolveSync(name, pluginPath)),
+        loader: () => import(import.meta.resolve(name, join(pluginPath, 'package.json'))),
       };
     }),
   );
 };
 
 const scanDependencies = async (directory: string): Promise<PluginEntry[]> => {
-  const manifest = file(`${directory}/package.json`);
+  const manifest = file(join(directory, 'package.json'));
   const hasManifest = await manifest.exists();
 
   if (!hasManifest) {
@@ -51,11 +48,11 @@ const scanDependencies = async (directory: string): Promise<PluginEntry[]> => {
   return Object.keys(dependencies)
     .filter(name => name.startsWith(PACKAGE_PREFIX))
     .toSorted()
-    .map(name => ({ name, loader: () => import(resolveSync(name, directory)) }));
+    .map(name => ({ name, loader: () => import(import.meta.resolve(name, join(directory, 'package.json'))) }));
 };
 
 export const findPlugins = async (directory = '.'): Promise<PluginEntry[]> => {
-  const root = fileURLToPath(pathToFileURL(directory));
+  const root = resolve(directory);
   const [plugins, dependencies] = await Promise.all([scanDirectory(root), scanDependencies(root)]);
   const entries = [...plugins, ...dependencies];
   const names = new Set<string>();
