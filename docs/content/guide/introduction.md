@@ -21,10 +21,10 @@ export default () => {
 
 结果展示：
 
-<ChatPanel self="2225151531">
-  <ChatMessage qq="2225151531" nickname="Yuki" at="可可萝">/ping</ChatMessage>
+<ChatPanel self="2225151531" :bots="['2854205915']">
+  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /ping</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">pong</ChatMessage>
-  <ChatMessage qq="2225151531" nickname="Yuki" at="可可萝">/nya 你好</ChatMessage>
+  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /nya 你好</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">你好喵</ChatMessage>
 </ChatPanel>
 

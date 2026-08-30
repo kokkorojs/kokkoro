@@ -121,8 +121,8 @@ bun add kokkoro-plugin-hitokoto
 
 安装完成后，重新启动项目。Kokkoro 会自动加载该插件。
 
-<ChatPanel self="2225151531">
-  <ChatMessage qq="2225151531" nickname="Yuki" at="可可萝">/一言</ChatMessage>
+<ChatPanel self="2225151531" :bots="['2854205915']">
+  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /一言</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">『大部分人并不想长大，只是没办法继续当一个小孩子。』——「小林家的龙女仆」</ChatMessage>
 </ChatPanel>
 
@@ -142,8 +142,8 @@ bunx @kokkoro/cli plugin example
 
 命令会在 `plugins/example` 中创建插件模板。重新启动项目后，向机器人发送 `/ping`，机器人会回复 `pong`。
 
-<ChatPanel self="2225151531">
-  <ChatMessage qq="2225151531" nickname="Yuki" at="可可萝">/ping</ChatMessage>
+<ChatPanel self="2225151531" :bots="['2854205915']">
+  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /ping</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">pong</ChatMessage>
 </ChatPanel>
 

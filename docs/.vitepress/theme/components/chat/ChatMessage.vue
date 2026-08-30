@@ -1,25 +1,27 @@
 <script setup lang="ts">
-  import { computed, inject, onMounted, onUnmounted, shallowRef, useTemplateRef } from 'vue';
+  import { type ComputedRef, computed, inject, onMounted, onUnmounted, shallowRef, useTemplateRef } from 'vue';
 
   import ChatAvatar from './ChatAvatar.vue';
+  import botLabelUrl from './robot-label.svg';
 
   interface Props {
-    at?: string;
     qq: string;
     nickname: string;
   }
 
   const props = defineProps<Props>();
   const self = inject<string>('chat-self');
+  const bots = inject<ComputedRef<ReadonlySet<string>>>('chat-bots');
 
-  if (!self) {
+  if (!self || !bots) {
     throw new Error('ChatMessage 必须在 ChatPanel 中使用');
   }
-
   const isSelf = computed(() => props.qq === self);
+  const isBot = computed(() => bots.value.has(props.qq));
+
   const message = useTemplateRef<HTMLDivElement>('message');
   const isVisible = shallowRef(false);
-  let observer: IntersectionObserver | null = null;
+  const observer = shallowRef<IntersectionObserver>();
 
   onMounted(() => {
     const element = message.value;
@@ -27,96 +29,140 @@
     if (!element) {
       return;
     }
-    observer = new IntersectionObserver(entries => {
+    observer.value = new IntersectionObserver(entries => {
       if (!entries.some(entry => entry.isIntersecting)) {
         return;
       }
       isVisible.value = true;
-      observer?.disconnect();
+
+      observer.value?.disconnect();
     });
-    observer.observe(element);
+    observer.value.observe(element);
   });
 
-  onUnmounted(() => observer?.disconnect());
+  onUnmounted(() => observer.value?.disconnect());
 </script>
 
 <template>
-  <div ref="message" class="chat-message" :class="{ self: isSelf, visible: isVisible }">
-    <ChatAvatar :qq="props.qq" />
-    <div class="message">
-      <div class="nickname">{{ props.nickname }}</div>
-      <div class="bubble">
-        <span v-if="props.at" class="mention">@{{ props.at }}&nbsp;</span>
-        <slot />
+  <div ref="message" class="message">
+    <div
+      class="message-container"
+      :class="{ 'message-container--self': isSelf, 'message-container--align-right': isSelf }"
+      :data-visible="isVisible || undefined"
+    >
+      <span class="avatar-span">
+        <ChatAvatar :qq="props.qq" />
+      </span>
+      <div class="user-name">
+        <span class="text-ellipsis">{{ props.nickname }}</span>
+        <img v-if="isBot" class="bot-label" :src="botLabelUrl" alt="机器人" width="16" height="16" />
+      </div>
+      <div class="message-content__wrapper">
+        <div class="msg-content-container" :class="isSelf ? 'container--self' : 'container--others'">
+          <div class="message-content">
+            <slot />
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped lang="scss">
-  .chat-message {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
+  .message {
     margin-top: 16px;
-    opacity: 0;
-    transform: translateX(-10%);
-    transition:
-      transform 0.4s ease-out,
-      opacity 0.4s ease-in;
 
-    &.self {
-      flex-direction: row-reverse;
-      transform: translateX(10%);
+    .message-container {
+      display: grid;
+      grid-template-areas:
+        'avatar user-name'
+        'avatar content';
+      grid-template-columns: 32px minmax(0, 1fr);
+      column-gap: 8px;
+      row-gap: 4px;
+      opacity: 0;
+      transform: translateX(-10%);
+      transition:
+        transform 0.4s ease-out,
+        opacity 0.4s ease-in;
 
-      .message {
-        align-items: flex-end;
+      &[data-visible] {
+        opacity: 1;
+        transform: translateX(0);
       }
 
-      .nickname {
-        text-align: right;
-      }
+      &.message-container--self {
+        grid-template-areas:
+          'user-name avatar'
+          'content avatar';
+        grid-template-columns: minmax(0, 1fr) 32px;
+        transform: translateX(10%);
 
-      .bubble {
-        background: var(--bubble_host);
-        color: var(--on_bubble_host_text);
-      }
+        &[data-visible] {
+          transform: translateX(0);
+        }
 
-      .mention {
-        color: inherit;
+        .user-name,
+        .message-content__wrapper {
+          justify-self: end;
+        }
+
+        .msg-content-container {
+          background: var(--bubble_host);
+          color: var(--on_bubble_host_text);
+        }
       }
     }
 
-    &.visible {
-      opacity: 1;
-      transform: translateX(0);
+    .avatar-span {
+      display: block;
+      grid-area: avatar;
     }
 
-    .message {
+    .user-name {
       display: flex;
-      min-width: 0;
-      max-width: min(72%, calc(100% - 48px));
-      flex-direction: column;
-      align-items: flex-start;
-    }
-
-    .nickname {
+      grid-area: user-name;
       max-width: 100%;
-      margin-bottom: 4px;
-      overflow: hidden;
+      align-items: center;
+      gap: 4px;
       color: var(--text_secondary_01);
+      cursor: default;
       font-size: 12px;
       line-height: 18px;
+    }
+
+    .text-ellipsis {
+      min-width: 0;
+      overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
-    .bubble {
-      max-width: 100%;
-      padding: 8px 12px;
+    .bot-label {
+      display: block;
+      width: 16px;
+      height: 16px;
+      flex: 0 0 16px;
+      margin: 0;
+    }
+
+    .message-content__wrapper {
+      width: fit-content;
+      min-width: 0;
+      max-width: min(72%, calc(100% - 40px));
+      grid-area: content;
+      justify-self: start;
+    }
+
+    .msg-content-container {
+      overflow: hidden;
+      padding: 8px 10px;
       border-radius: 8px;
       background: var(--bubble_guest);
       color: var(--bubble_guest_text);
+    }
+
+    .message-content {
       font-size: 14px;
       line-height: 22px;
       overflow-wrap: anywhere;
@@ -130,18 +176,16 @@
       }
     }
 
-    .mention {
-      color: var(--text_link);
-    }
-
     @media (width <= 640px) {
-      .message {
-        max-width: min(82%, calc(100% - 48px));
+      .message-content__wrapper {
+        max-width: min(82%, calc(100% - 40px));
       }
     }
 
     @media (prefers-reduced-motion: reduce) {
-      transition: none;
+      .message-container {
+        transition: none;
+      }
     }
   }
 </style>

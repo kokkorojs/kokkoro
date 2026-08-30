@@ -10,15 +10,16 @@
 </script>
 
 <template>
-  <img class="chat-avatar" :src="avatarUrl" alt="" width="40" height="40" loading="lazy" />
+  <img class="message-container__avatar" :src="avatarUrl" alt="" width="32" height="32" loading="lazy" />
 </template>
 
 <style scoped lang="scss">
-  .chat-avatar {
+  .message-container__avatar {
     display: block;
-    width: 40px;
-    height: 40px;
-    flex: 0 0 40px;
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
+    margin: 0;
     border-radius: 50%;
     object-fit: cover;
   }

@@ -11,7 +11,7 @@
 
 除了指令以外，Kokkoro 还可以通过 `useEvent()` 监听 QQ 事件。现在，我们先来监听机器人连接成功时收到的 `READY` 事件。
 
-<ChatPanel self="2225151531">
+<ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="437402067" nickname="友人A">那个那个，context 到底是什么呀？</ChatMessage>
   <ChatMessage qq="2225151531" nickname="Yuki">哈？你问我干嘛，打出来看看不就知道了嘛！</ChatMessage>
 </ChatPanel>
@@ -108,8 +108,8 @@ export default () => {
 };
 ```
 
-<ChatPanel self="2225151531">
-  <ChatMessage qq="2225151531" nickname="Yuki" at="可可萝">/测试</ChatMessage>
+<ChatPanel self="2225151531" :bots="['2854205915']">
+  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /测试</ChatMessage>
 </ChatPanel>
 
 ```shell {7}
@@ -128,7 +128,7 @@ export default () => {
 
 这样一来，就可以直接获取到机器人收到指令消息的事件详情。
 
-<ChatPanel self="2225151531">
+<ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="437402067" nickname="友人A">Yuki Yuki，听你这么一说，我完全懂了</ChatMessage>
   <ChatMessage qq="2225151531" nickname="Yuki">啊？懂...懂什么哦？</ChatMessage>
   <ChatMessage qq="437402067" nickname="友人A">既然通过事件就能获取到消息内容，那么指令的响应我是不是就可以这样去写？</ChatMessage>
@@ -152,8 +152,8 @@ export default () => {
 };
 ```
 
-<ChatPanel self="2225151531">
-  <ChatMessage qq="437402067" nickname="友人A" at="可可萝">/ping</ChatMessage>
+<ChatPanel self="2225151531" :bots="['2854205915']">
+  <ChatMessage qq="437402067" nickname="友人A">@可可萝 /ping</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">pong</ChatMessage>
   <ChatMessage qq="437402067" nickname="友人A">蒋蒋~怎么样，是不是这样就可以解决问题了？</ChatMessage>
   <ChatMessage qq="2225151531" nickname="Yuki">哈？！</ChatMessage>

@@ -42,8 +42,8 @@ export default () => {
 
 通过日志，我们还可以查看到已加载的插件信息。
 
-<ChatPanel self="2225151531">
-  <ChatMessage qq="2225151531" nickname="Yuki" at="可可萝">/ping</ChatMessage>
+<ChatPanel self="2225151531" :bots="['2854205915', '2854211958']">
+  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /ping</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">pong</ChatMessage>
 </ChatPanel>
 
@@ -93,13 +93,13 @@ Kokkoro v3 的插件权限正在重构，以下内容为 v2 时期的功能。
 }
 ```
 
-<ChatPanel self="2225151531">
-  <ChatMessage qq="2225151531" nickname="Yuki" at="可可萝">/一言</ChatMessage>
+<ChatPanel self="2225151531" :bots="['2854205915', '2854211958']">
+  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /一言</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">『只有分离后才能懂的事，却没有了感慨的时间。』——「宝石之国」</ChatMessage>
-  <ChatMessage qq="2225151531" nickname="Yuki" at="爱梅斯">/一言</ChatMessage>
+  <ChatMessage qq="2225151531" nickname="Yuki">@爱梅斯 /一言</ChatMessage>
   <ChatMessage qq="2854211958" nickname="爱梅斯">『只要努力活下去，总有一天会笑着回忆。』——「不可思议游戏」</ChatMessage>
-  <ChatMessage qq="2225151531" nickname="Yuki" at="可可萝">/疯狂星期四</ChatMessage>
+  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /疯狂星期四</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">Steam上多买了一个艾尔登法环的key，送给有缘人了:KFCC-RAZY-THUR-SDAY-VME50</ChatMessage>
-  <ChatMessage qq="2225151531" nickname="Yuki" at="爱梅斯">/疯狂星期四</ChatMessage>
+  <ChatMessage qq="2225151531" nickname="Yuki">@爱梅斯 /疯狂星期四</ChatMessage>
   <ChatMessage qq="2225151531" nickname="Yuki">在这里，爱梅斯不会对 kfc 插件指令作出响应</ChatMessage>
 </ChatPanel>

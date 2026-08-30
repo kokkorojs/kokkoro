@@ -28,14 +28,14 @@ HITOKOTO_TYPES=c,d
 
 不填写类型时，插件会从一言接口随机返回一条动画或漫画语句。
 
-<ChatPanel self="2225151531">
+<ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">/一言</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">『不对失误耿耿于怀，而是专心为今后做打算，这才是最有效率的』——「间谍过家家」</ChatMessage>
 </ChatPanel>
 
 填写类型可以限定本次返回的语句，多个类型使用空格分隔。指令支持动画、漫画、游戏、文学、原创、来自网络、其他、影视、诗词、网易云、哲学和抖机灵。
 
-<ChatPanel self="2225151531">
+<ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">/一言 诗词 文学</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">『人生天地间，忽如远行客。』——「古诗十九首」</ChatMessage>
 </ChatPanel>
@@ -44,7 +44,7 @@ HITOKOTO_TYPES=c,d
 
 发送「来点骚话」也会随机返回一条语句，群聊需要开启「获取群内全部消息」权限。
 
-<ChatPanel self="2225151531">
+<ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">来点骚话</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">『能哭的地方，只有厕所和爸爸的怀里。』——「CLANNAD」</ChatMessage>
 </ChatPanel>
@@ -57,7 +57,7 @@ Kokkoro v3 正在重构，该功能尚未适配。
 
 在每天凌晨自动发送
 
-<ChatPanel self="2225151531">
+<ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2854205915" nickname="可可萝">
     <span>失恋的时候，许多年轻人以为整个世界都抛弃了自己，别傻了，世界根本就没需要过你。</span>
   </ChatMessage>
@@ -75,7 +75,7 @@ bun add kokkoro-plugin-kfc
 
 发送「/疯狂星期四」，插件会随机返回一条疯狂星期四文案。
 
-<ChatPanel self="2225151531">
+<ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">/疯狂星期四</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">从前有一个国王叫肯，娶了一个歌姬为妾。国王的国家矿产资源发达，国王十分宠爱歌姬，将一部分矿产给了歌姬的家族开发。但歌姬十分贪婪，为了实现矿产垄断，歌姬把其他同行的矿井都给封了，包括国王分派给贴身武士的。于是国王把歌姬抓起来审判，歌姬问定什么罪？国王说：死罪。肯的姬封矿刑期死，为我武士。</ChatMessage>
 </ChatPanel>
@@ -88,7 +88,7 @@ bun add kokkoro-plugin-kfc
 - 肯德基，例如「肯德基」或「KFC」
 - 星期四，例如「周四」、「星期四」、「木曜日」或「Thursday」
 
-<ChatPanel self="2225151531">
+<ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">今天星期四，V我50</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">
     <span>优秀是“渐渐的事”</span>
@@ -103,7 +103,7 @@ bun add kokkoro-plugin-kfc
 
 北京时间每周四，消息中出现「麦当劳」、「金拱门」、「华莱士」、「汉堡王」、「德克士」或「塔斯汀」时，也会随机返回一条疯狂星期四文案。
 
-<ChatPanel self="2225151531">
+<ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">晚饭去麦当劳</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">我是盗号的 我把这个人的号盗了 但是我看了这个人聊天记录发现他过得非常艰苦 他生活过的一直很烂 我希望有人看见了能帮助他 让他能有钱去吃肯德基疯狂星期四 就这样吧 眼眶都湿润了 我下了</ChatMessage>
 </ChatPanel>
@@ -122,7 +122,7 @@ bun add kokkoro-plugin-eval
 
 发送「/执行」并在后面填写 JavaScript 或 TypeScript 代码，插件会返回执行结果。
 
-<ChatPanel self="2225151531">
+<ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">/执行 1 + 1</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">2</ChatMessage>
 </ChatPanel>
@@ -131,7 +131,7 @@ bun add kokkoro-plugin-eval
 
 也可以在代码前输入「>」。群聊需要开启「获取群内全部消息」权限。
 
-<ChatPanel self="2225151531">
+<ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">> ((value: number) => value * 2)(21)</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">42</ChatMessage>
 </ChatPanel>
@@ -175,7 +175,7 @@ SAUCENAO_SIMILARITY_THRESHOLD=50
 
 发送「/搜图」时附带图片，插件会搜索消息中的第一张图片，并以 Markdown 返回搜索结果，默认显示相似度最高的 3 条。
 
-<ChatPanel self="2225151531">
+<ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">
     <span>/搜图</span>
     <img width="200" src="/74237509.jpg" />
@@ -221,7 +221,7 @@ bun add kokkoro-plugin-chatgpt
 
 ### 咨询 {#chatgpt-query}
 
-<ChatPanel self="2225151531">
+<ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">咨询 怎么做光刻机？</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">
   {{
@@ -256,14 +256,14 @@ bun add kokkoro-plugin-cherugo
 
 ### 加密 {#cherugo-encrypt}
 
-<ChatPanel self="2225151531">
+<ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">切噜一下 会长我挂树了</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">切噜～♪切噼噼卟蹦咧噼哔噜蹦巴叮拉嘭噼叮拉噜巴啰铃卟巴噼巴</ChatMessage>
 </ChatPanel>
 
 ### 解密 {#cherugo-decrypt}
 
-<ChatPanel self="2225151531">
+<ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">切噜～♪切噼噼卟蹦咧噼哔噜蹦巴叮拉嘭噼叮拉噜巴啰铃卟巴噼巴</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">会长我挂树了</ChatMessage>
 </ChatPanel>
@@ -284,7 +284,7 @@ bun add kokkoro-plugin-group
 该功能依赖第三方 QQ 协议。QQ 官方机器人目前不支持设置群头衔，因此无法在 Kokkoro v3 中实现。
 :::
 
-<ChatPanel self="2225151531">
+<ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">申请头衔 咕咕咕</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">申请成功</ChatMessage>
 </ChatPanel>
@@ -293,7 +293,7 @@ bun add kokkoro-plugin-group
 
 在群成员发生变更时发送
 
-<ChatPanel self="2225151531">
+<ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2854205915" nickname="可可萝">欢迎新人的加入</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">新人已退出群聊</ChatMessage>
 </ChatPanel>
@@ -310,21 +310,21 @@ bun add kokkoro-plugin-setu
 
 ### 随机涩图 {#setu-random}
 
-<ChatPanel self="2225151531">
+<ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">来点色图</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">不可以涩涩！</ChatMessage>
 </ChatPanel>
 
 ### 指定涩图 {#setu-tags}
 
-<ChatPanel self="2225151531">
+<ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">来点萝莉色图</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">不可以涩涩！</ChatMessage>
 </ChatPanel>
 
 ### 多张色图 {#setu-multiple}
 
-<ChatPanel self="2225151531">
+<ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">来10份色图</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">不可以涩涩！</ChatMessage>
 </ChatPanel>
@@ -359,7 +359,7 @@ kokkoro 最初就是以公主连结玩家为核心开发相关功能的，现在
 
 ### 会战 {#pcr-clan-battle}
 
-<ChatPanel self="2225151531">
+<ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">开启会战</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">
     <div>当前状态:</div>
@@ -384,7 +384,7 @@ kokkoro 最初就是以公主连结玩家为核心开发相关功能的，现在
 
 ### 十连 {#pcr-gacha}
 
-<ChatPanel self="2225151531">
+<ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">来发十连</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">素敵な仲間が増えますよ~</ChatMessage>
 </ChatPanel>
@@ -409,28 +409,28 @@ bun add kokkoro-plugin-aircon
 
 ### 开关 {#aircon-power}
 
-<ChatPanel self="2225151531">
+<ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">开空调</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">哔~❄️当前温度 20°</ChatMessage>
 </ChatPanel>
 
 ### 温度调节 {#aircon-temperature}
 
-<ChatPanel self="2225151531">
+<ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">设置温度 28</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">哔~☀️当前温度 28°</ChatMessage>
 </ChatPanel>
 
 ### 温度查询 {#aircon-query}
 
-<ChatPanel self="2225151531">
+<ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">群温度</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">☀️当前温度 28°</ChatMessage>
 </ChatPanel>
 
 ### ~~群友的第一款人造太阳~~ {#aircon-sun}
 
-<ChatPanel self="2225151531">
+<ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">设置温度 114514</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">哔~🥵当前温度 114514°</ChatMessage>
 </ChatPanel>
@@ -443,7 +443,7 @@ bun add kokkoro-plugin-aircon
 
 ### 开始游戏 {#gomoku-start}
 
-<ChatPanel self="2225151531">
+<ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">五子棋</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">
     <div>&ensp;&ensp;①&ensp;②&ensp;③&ensp;④&ensp;⑤&ensp;⑥&ensp;⑦&ensp;⑧</div>
@@ -460,7 +460,7 @@ bun add kokkoro-plugin-aircon
 
 ### 落子 {#gomoku-move}
 
-  <ChatPanel self="2225151531">
+  <ChatPanel self="2225151531" :bots="['2854205915']">
     <ChatMessage qq="2225151531" nickname="Yuki">落子 d4</ChatMessage>
     <ChatMessage qq="2854205915" nickname="可可萝">
       <div>&ensp;&ensp;①&ensp;②&ensp;③&ensp;④&ensp;⑤&ensp;⑥&ensp;⑦&ensp;⑧</div>
@@ -479,7 +479,7 @@ bun add kokkoro-plugin-aircon
 
 本来是计划把猜头像也整合进 pcr 插件，考虑到后续可能会添加其它游戏类型的头像，所以仍然独立。
 
-<ChatPanel self="2225151531">
+<ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">猜头像</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">
     <img src="/ranfa.png" />
@@ -496,7 +496,7 @@ bun add kokkoro-plugin-aircon
 
 ### 重开 {#life-restart-start}
 
-<ChatPanel self="2225151531">
+<ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">重开</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">
     <div>请选取 3 个天赋：</div>
@@ -517,7 +517,7 @@ bun add kokkoro-plugin-aircon
 
 ### 问 {#question-answer-ask}
 
-<ChatPanel self="2225151531">
+<ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">有人说贴贴你就说不要贴贴，贴贴危险，还会密接</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">好的，我记住了</ChatMessage>
   <ChatMessage qq="2225151531" nickname="Yuki">有人说妈你就说崽</ChatMessage>
@@ -528,14 +528,14 @@ bun add kokkoro-plugin-aircon
 
 ### 答 {#question-answer-reply}
 
-<ChatPanel self="2225151531">
+<ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">贴贴</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">不要贴贴，贴贴危险，还会密接</ChatMessage>
 </ChatPanel>
 
 ### 查 {#question-answer-list}
 
-<ChatPanel self="2225151531">
+<ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">看看有人问</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">贴贴 | 妈 | <img width="100" src="/images/meme/这河里妈.jpg" /></ChatMessage>
 </ChatPanel>
@@ -548,7 +548,7 @@ bun add kokkoro-plugin-aircon
 
 ### 开始 {#galgame-start}
 
-<ChatPanel self="2225151531">
+<ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">galgame</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">
     <div>序章：翘家</div>
