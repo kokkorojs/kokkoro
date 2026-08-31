@@ -1,4 +1,11 @@
-import { type ClientEvent, type ClientOptions, Client } from 'chobits';
+import {
+  type ClientEvent,
+  type ClientOptions,
+  type GroupMessage,
+  type MediaMessage,
+  type UserMessage,
+  Client,
+} from 'chobits';
 
 import { type CommandEventType, type MountedCommand, COMMAND_EVENT_TYPES, createCommandTasks } from './command';
 import {
@@ -14,6 +21,9 @@ import {
   trackPending,
 } from './plugin';
 
+/** 发送图片时附带的消息参数。 */
+export type SendImagePayload = Omit<MediaMessage, 'image' | 'media' | 'msg_type'>;
+
 /** 支持 Hook 插件的 QQ 机器人客户端。 */
 export class Bot<
   CustomEvents extends Record<keyof CustomEvents, unknown[]> = Record<never, never>,
@@ -28,6 +38,32 @@ export class Bot<
     for (const type of EVENT_TYPES) {
       this.subscribe(type);
     }
+  }
+
+  /** 向指定用户发送图片。 */
+  public async sendUserImage(user_openid: string, url: string, payload: SendImagePayload = {}): Promise<UserMessage> {
+    const { file_info } = await this.uploadUserFile(user_openid, {
+      file_type: 1,
+      url,
+      srv_send_msg: false,
+    });
+
+    return this.sendUserMessage(user_openid, { ...payload, msg_type: 7, media: { file_info } });
+  }
+
+  /** 向指定群聊发送图片。 */
+  public async sendGroupImage(
+    group_openid: string,
+    url: string,
+    payload: SendImagePayload = {},
+  ): Promise<GroupMessage> {
+    const { file_info } = await this.uploadGroupFile(group_openid, {
+      file_type: 1,
+      url,
+      srv_send_msg: false,
+    });
+
+    return this.sendGroupMessage(group_openid, { ...payload, msg_type: 7, media: { file_info } });
   }
 
   /**

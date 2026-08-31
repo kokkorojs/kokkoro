@@ -11,6 +11,7 @@ import {
   type Plugin,
   type PluginLoader,
   type PluginSetup,
+  type SendImagePayload,
 } from '@kokkoro/core';
 
 type Equal<Left, Right> =
@@ -30,6 +31,7 @@ test('公开类型', () => {
   expectType<Equal<Assignable<() => Promise<{ default: () => Promise<void> }>, PluginLoader>, false>>();
   expectType<Equal<Plugin['setup'], PluginSetup>>();
   expectType<Equal<ReturnType<Plugin['dispose']>, Promise<void>>>();
+  expectType<Equal<SendImagePayload['msg_id'], string | undefined>>();
 
   expectType<
     Equal<

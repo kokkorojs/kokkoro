@@ -45,7 +45,7 @@
       "name": "@kokkoro/core",
       "version": "3.1.3",
       "dependencies": {
-        "chobits": "^1.1.2",
+        "chobits": "^1.1.3",
       },
       "peerDependencies": {
         "typescript": "^6.0.3",
@@ -407,7 +407,7 @@
 
     "character-entities-legacy": ["character-entities-legacy@3.0.0", "", {}, "sha512-RpPp0asT/6ufRm//AJVwpViZbGM/MkjQFxJccQRHmISF/22NBtsHqAWmL+/pmkPWoIUJdWyeVleTl1wydHATVQ=="],
 
-    "chobits": ["chobits@1.1.2", "", { "dependencies": { "embus": "^1.1.4" }, "peerDependencies": { "typescript": "^6.0.3" } }, "sha512-96Lg03wq/6NjjFSrncOI/QymHWGMUsHzZDX0Vuv/HTFxHMR+4mCn4a3enrmBz3iUqVmyMLrPSBhzH1agc2lwZg=="],
+    "chobits": ["chobits@1.1.3", "", { "dependencies": { "embus": "^1.1.4" }, "peerDependencies": { "typescript": "^6.0.3" } }, "sha512-vpncgA0AJS0IOFrt1qUZPvzqQ33mbrk+PEcvp2glwqferZz1l4rFO0soUB5nOBwc7F2dGwhADK6L5mZ4xq9SqQ=="],
 
     "chokidar": ["chokidar@5.0.0", "", { "dependencies": { "readdirp": "^5.0.0" } }, "sha512-TQMmc3w+5AxjpL8iIiwebF73dRDF4fBIieAqGn9RGCWaEVwQ6Fb2cGe31Yns0RRIzii5goJ1Y7xbMwo1TxMplw=="],
 
