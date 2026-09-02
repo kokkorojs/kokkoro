@@ -102,7 +102,7 @@ export type CommandHandler<Args extends object> = (context: CommandContext<Args>
 /** `useCommand()` 返回的链式配置接口。 */
 export interface Command {
   /** 为当前 Command 添加自然语言 Shortcut。 */
-  shortcut(shortcut: string | RegExp): this;
+  shortcut(pattern: string | RegExp): this;
 }
 
 interface Parameter {
@@ -210,14 +210,14 @@ const parseArgs = (
 
 const matchShortcut = (
   command: CommandRegistration,
-  shortcut: string | RegExp,
+  pattern: string | RegExp,
   content: string,
 ): Record<string, string | string[] | undefined> | null => {
-  if (typeof shortcut === 'string') {
-    return shortcut === content ? createDefaultArgs(command.parameters) : null;
+  if (typeof pattern === 'string') {
+    return pattern === content ? createDefaultArgs(command.parameters) : null;
   }
-  shortcut.lastIndex = 0;
-  const match = shortcut.exec(content);
+  pattern.lastIndex = 0;
+  const match = pattern.exec(content);
 
   if (!match) {
     return null;
@@ -337,8 +337,8 @@ export const createCommandTasks = (
   }
 
   return commands.flatMap(mounted =>
-    mounted.command.shortcuts.flatMap(shortcut => {
-      const args = matchShortcut(mounted.command, shortcut, content);
+    mounted.command.shortcuts.flatMap(pattern => {
+      const args = matchShortcut(mounted.command, pattern, content);
 
       return args === null
         ? []
@@ -383,13 +383,13 @@ export function useCommand<const Syntax extends `/${string}`>(
   };
   const scope = collectCommand(registration);
   const command: Command = {
-    shortcut(shortcut) {
+    shortcut(pattern) {
       assertCurrentEffectScope(scope);
 
-      if (typeof shortcut !== 'string' && !(shortcut instanceof RegExp)) {
+      if (typeof pattern !== 'string' && !(pattern instanceof RegExp)) {
         throw new TypeError('Command shortcut must be a string or RegExp');
       }
-      registration.shortcuts.push(shortcut);
+      registration.shortcuts.push(pattern);
       return this;
     },
   };
