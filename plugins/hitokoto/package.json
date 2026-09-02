@@ -1,7 +1,7 @@
 {
   "name": "kokkoro-plugin-hitokoto",
-  "version": "3.0.1",
-  "description": "ヒトコト",
+  "version": "3.0.2",
+  "description": "Hitokoto 一言，随机获取动漫、小说、诗词等类型的语句。",
   "keywords": [
     "bot",
     "kokkoro",
