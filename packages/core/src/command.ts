@@ -1,6 +1,6 @@
 import { type ClientEvent, type SendGroupMessagePayload, type SendUserMessagePayload } from 'chobits';
 
-import { type Context, type EffectScope, assertCurrentScope, collectCommand } from './plugin';
+import { type Context, type EffectScope, assertCurrentEffectScope, collectCommand } from './plugin';
 
 /** Command 声明中的参数仅用 ASCII 空格分隔。 */
 type Whitespace = ' ';
@@ -374,7 +374,7 @@ export function useCommand<const Syntax extends `/${string}`>(
   const scope = collectCommand(registration);
   const command: Command = {
     shortcut(shortcut) {
-      assertCurrentScope(scope);
+      assertCurrentEffectScope(scope);
 
       if (typeof shortcut !== 'string' && !(shortcut instanceof RegExp)) {
         throw new TypeError('Command shortcut must be a string or RegExp');

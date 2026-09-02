@@ -1,6 +1,15 @@
 import { expect, test } from 'bun:test';
 
-import { type Bot, type PluginLoader, type PluginSetup, loadPlugin, useDispose, useEvent } from '@kokkoro/core';
+import {
+  type Bot,
+  type Logger,
+  type PluginLoader,
+  type PluginSetup,
+  loadPlugin,
+  useDispose,
+  useEvent,
+  useLogger,
+} from '@kokkoro/core';
 
 import { createBot, createEvent } from './helpers';
 
@@ -62,6 +71,25 @@ test('useDispose 调用时机', async () => {
   await expect(import('./fixtures/unmanaged-plugin')).rejects.toThrow(
     'useDispose() can only be called while loading a plugin',
   );
+});
+
+test('插件日志', async () => {
+  const calls: unknown[][] = [];
+  const logger: Logger = {
+    debug: (...args) => calls.push(args),
+    info: (...args) => calls.push(args),
+    warn: (...args) => calls.push(args),
+    error: (...args) => calls.push(args),
+  };
+
+  const plugin = await loadPlugin(async () => {
+    useLogger().info('loaded');
+    return { default() {} };
+  }, logger);
+
+  expect(calls).toEqual([['loaded']]);
+  expect(() => useLogger()).toThrow('useLogger() can only be called while loading a plugin');
+  await plugin.dispose();
 });
 
 test('插件加载失败', async () => {

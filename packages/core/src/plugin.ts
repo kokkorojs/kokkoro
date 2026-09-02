@@ -48,6 +48,14 @@ type VoidOrUndefinedOnly = void | { [UNDEFINED_VOID_ONLY]: never };
 /** 释放资源的函数。 */
 export type Cleanup = () => void | Promise<void>;
 
+/** 插件日志记录器。 */
+export interface Logger {
+  debug(...args: unknown[]): void;
+  info(...args: unknown[]): void;
+  warn(...args: unknown[]): void;
+  error(...args: unknown[]): void;
+}
+
 /** 挂载到 Bot 时同步登记 Hook，并可返回清理函数。 */
 export type PluginSetup = (bot: Bot) => VoidOrUndefinedOnly | Cleanup;
 
@@ -79,11 +87,16 @@ export interface EffectScope {
   status: 'mounting' | 'mounted' | 'unmounting';
 }
 
-/** 同步 render 期间使用的 Hook 收集作用域。 */
-let currentScope: EffectScope | null = null;
+interface ModuleScope {
+  readonly disposables: AsyncDisposableStack;
+  readonly logger: Logger;
+}
 
-/** 动态加载插件模块期间使用的资源栈。 */
-let currentDisposables: AsyncDisposableStack | null = null;
+/** 同步 render 期间使用的 Hook 收集作用域。 */
+let currentEffectScope: EffectScope | null = null;
+
+/** 动态加载插件模块期间使用的作用域。 */
+let currentModuleScope: ModuleScope | null = null;
 
 const isPromiseLike = (value: unknown): value is PromiseLike<unknown> => {
   if (value === null || (typeof value !== 'object' && typeof value !== 'function')) {
@@ -93,24 +106,24 @@ const isPromiseLike = (value: unknown): value is PromiseLike<unknown> => {
   return typeof (<{ then?: unknown }>value).then === 'function';
 };
 
-const getCurrentScope = (): EffectScope => {
-  if (!currentScope) {
+const getCurrentEffectScope = (): EffectScope => {
+  if (!currentEffectScope) {
     throw new Error('Hooks can only be called while mounting a plugin');
   }
 
-  return currentScope;
+  return currentEffectScope;
 };
 
 /** Hook 只在 PluginSetup 的同步调用链中收集。 */
-const invokeWithScope = (scope: EffectScope, callback: () => unknown): unknown => {
-  const previous = currentScope;
+const invokeWithEffectScope = (scope: EffectScope, callback: () => unknown): unknown => {
+  const previous = currentEffectScope;
 
-  currentScope = scope;
+  currentEffectScope = scope;
 
   try {
     return callback();
   } finally {
-    currentScope = previous;
+    currentEffectScope = previous;
   }
 };
 
@@ -163,54 +176,59 @@ export const createEffectScope = (): EffectScope => ({
 });
 
 export const collectCommand = (command: CommandRegistration): EffectScope => {
-  const scope = getCurrentScope();
+  const scope = getCurrentEffectScope();
 
   scope.commands.push(command);
   return scope;
 };
 
-export const assertCurrentScope = (scope: EffectScope): void => {
-  if (currentScope !== scope) {
+export const assertCurrentEffectScope = (scope: EffectScope): void => {
+  if (currentEffectScope !== scope) {
     throw new Error('Command shortcuts can only be registered while mounting a plugin');
   }
 };
 
 export const render = (scope: EffectScope, setup: PluginSetup, bot: Bot): Promise<Cleanup | undefined> =>
-  validateSetupResult(invokeWithScope(scope, () => setup(bot)));
+  validateSetupResult(invokeWithEffectScope(scope, () => setup(bot)));
 
 /**
  * 加载默认导出为 PluginSetup 的插件模块。
  *
- * 同一时刻只能加载一个插件，使顶层 `useDispose()` 始终归属当前模块。
+ * 同一时刻只能加载一个插件，使顶层模块 Hook 始终归属当前模块。
+ *
+ * @param loader 动态导入插件模块的函数。
+ * @param logger 提供给 `useLogger()` 的日志记录器，默认使用 `console`。
  */
-export const loadPlugin = async (loader: PluginLoader): Promise<Plugin> => {
+export const loadPlugin = async (loader: PluginLoader, logger: Logger = console): Promise<Plugin> => {
   if (typeof loader !== 'function') {
     throw new TypeError('Plugin loader must be a function');
   }
-  if (currentDisposables) {
+  if (currentModuleScope) {
     throw new Error('Plugins cannot be loaded concurrently');
   }
-  const disposables = new AsyncDisposableStack();
-
-  currentDisposables = disposables;
   try {
+    await using disposables = new AsyncDisposableStack();
+
+    currentModuleScope = { disposables, logger };
     const module = await loader();
     const setup = getSetup(module);
+    const resources = disposables.move();
 
     return {
       setup,
-      dispose: () => disposables.disposeAsync(),
+      dispose: () => resources.disposeAsync(),
     };
-  } catch (error) {
-    try {
-      await disposables.disposeAsync();
-    } catch (disposeError) {
-      throw new SuppressedError(disposeError, error, 'Plugin loading failed and cleanup was incomplete');
-    }
-    throw error;
   } finally {
-    currentDisposables = null;
+    currentModuleScope = null;
   }
+};
+
+/** 获取当前插件模块的日志记录器。 */
+export const useLogger = (): Logger => {
+  if (!currentModuleScope) {
+    throw new Error('useLogger() can only be called while loading a plugin');
+  }
+  return currentModuleScope.logger;
 };
 
 /** 登记插件模块释放时执行的清理函数。 */
@@ -218,10 +236,10 @@ export const useDispose = (cleanup: Cleanup): void => {
   if (typeof cleanup !== 'function') {
     throw new TypeError('Plugin cleanup must be a function');
   }
-  if (!currentDisposables) {
+  if (!currentModuleScope) {
     throw new Error('useDispose() can only be called while loading a plugin');
   }
-  currentDisposables.defer(cleanup);
+  currentModuleScope.disposables.defer(cleanup);
 };
 
 export const mountEffects = async (scope: EffectScope): Promise<void> => {
@@ -304,7 +322,7 @@ export function useEvent(callback: unknown, dependencies?: readonly EventType[])
       }
     }
   }
-  const scope = getCurrentScope();
+  const scope = getCurrentEffectScope();
 
   scope.effects.push({
     callback: <EventCallback | MountCallback>callback,
