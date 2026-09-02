@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import { type Command, type CommandReply, useCommand, useEvent } from '@kokkoro/core';
+import { type Command, type CommandReply, type CommandTrigger, useCommand, useEvent } from '@kokkoro/core';
 
 import { createBot, createMessageEvent } from './helpers';
 
@@ -236,24 +236,28 @@ test('Command 回复', async () => {
 test('Command 异常', async () => {
   const bot = createBot();
   const replies: CommandReply[] = [];
+  const triggers: CommandTrigger[] = [];
   const handlerError = new Error('指令处理失败');
 
   function setup() {
-    useCommand('/error', () => {
+    useCommand('/error', context => {
+      triggers.push(context.trigger);
       throw handlerError;
-    });
+    }).shortcut('快捷失败');
     useCommand('/invalid', () => Promise.reject('invalid'));
   }
 
   await bot.mount(setup);
   await expect(bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/error', replies))).rejects.toBe(handlerError);
+  await expect(bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('快捷失败', replies))).rejects.toBe(handlerError);
   await expect(bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/invalid', replies))).rejects.toMatchObject({
     cause: 'invalid',
     message: 'Command handler must throw an Error',
     name: 'TypeError',
   });
 
-  expect(replies).toEqual(['指令处理失败']);
+  expect(replies).toEqual(['指令处理失败', '指令处理失败']);
+  expect(triggers).toEqual(['command', 'shortcut']);
 });
 
 test('Command 注册时机', async () => {

@@ -85,10 +85,15 @@ export const COMMAND_EVENT_TYPES = ['C2C_MESSAGE_CREATE', 'GROUP_AT_MESSAGE_CREA
 
 export type CommandEventType = (typeof COMMAND_EVENT_TYPES)[number];
 
+/** Command 处理函数的触发方式。 */
+export type CommandTrigger = 'command' | 'shortcut';
+
 /** 传给 Command 处理函数的上下文。 */
 export type CommandContext<Args extends object> = Context<CommandEventType> & {
   /** 由 Command 参数或 Shortcut 命名捕获组生成的参数。 */
   readonly args: Args;
+  /** 本次处理由斜杠 Command 或 Shortcut 触发。 */
+  readonly trigger: CommandTrigger;
 };
 
 /** Command 处理函数。抛出 `Error` 时，其消息会回复给消息来源。 */
@@ -241,11 +246,12 @@ const runCommand = async (
   command: CommandRegistration,
   event: ClientEvent<CommandEventType>,
   args: Record<string, string | string[] | undefined>,
+  trigger: CommandTrigger,
 ): Promise<void> => {
   let result: unknown;
 
   // Chobits 的事件对象是只读的，展开后的上下文也保持只读。
-  const context = Object.freeze({ ...event, args });
+  const context = Object.freeze({ ...event, args, trigger });
 
   try {
     result = await command.handler(context);
@@ -320,7 +326,7 @@ export const createCommandTasks = (
         promise: Promise.resolve().then(() =>
           args === null
             ? reply(event, `缺少指令参数，有效语句为："${mounted.command.syntax}"`)
-            : runCommand(mounted.command, event, args),
+            : runCommand(mounted.command, event, args, 'command'),
         ),
       },
     ];
@@ -335,7 +341,7 @@ export const createCommandTasks = (
         : [
             {
               scope: mounted.scope,
-              promise: Promise.resolve().then(() => runCommand(mounted.command, event, args)),
+              promise: Promise.resolve().then(() => runCommand(mounted.command, event, args, 'shortcut')),
             },
           ];
     }),

@@ -5,6 +5,7 @@ import {
   type Cleanup,
   type CommandContext,
   type CommandHandler,
+  type CommandTrigger,
   type Context,
   type EventType,
   type ParseCommand,
@@ -45,6 +46,7 @@ test('公开类型', () => {
   expectType<Equal<ParseCommand<'/invalid <value> [value]'>, never>>();
   expectType<Equal<ParseCommand<'/invalid <values>... [other]'>, never>>();
   expectType<Equal<CommandContext<Record<never, never>>['id'], string>>();
+  expectType<Equal<CommandContext<Record<never, never>>['trigger'], CommandTrigger>>();
   expectType<Assignable<() => number, CommandHandler<Record<never, never>>>>();
 
   expectType<Equal<Assignable<readonly EventType[], readonly [EventType, ...EventType[]]>, false>>();
