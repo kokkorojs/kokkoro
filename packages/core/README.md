@@ -47,6 +47,20 @@ await bot.online();
 
 `Bot` 直接继承 Chobits 的 `Client` 类，特性与 SDK 保持一致。原生 QQ 事件、`online()`、`offline()`、`callback()` 和所有 OpenAPI 方法都可以直接使用。
 
+### 发送图片
+
+`sendUserImage()` 向指定用户发送图片，`sendGroupImage()` 向指定群聊发送图片。第一个参数是用户或群聊的 OpenID，第二个参数是图片 URL。可选的第三个参数用于附加 `msg_id` 等消息字段。
+
+```typescript
+await bot.sendUserImage('USER_OPENID', 'https://example.com/image.png');
+
+await bot.sendGroupImage('GROUP_OPENID', 'https://example.com/image.png', {
+  msg_id: 'MESSAGE_ID',
+});
+```
+
+Core 会先上传图片，再使用上传结果发送富媒体消息。
+
 ## 插件
 
 你可以在项目根目录创建 `plugins` 文件夹，用于存放插件代码。
@@ -181,13 +195,17 @@ export default (bot: Bot) => {
 
 必填参数必须位于可选参数之前，剩余参数必须位于末尾。消息内容按空白分隔参数，不解析 Shell 引号。指令缺少必填参数时，Core 会回复正确的指令语法。没有对应声明的多余参数会被忽略。
 
-Command 的 `context` 会直接展开消息事件并添加解析后的 `context.args`，因此可以直接使用 `context.id`、`context.content` 和 `context.reply()`。需要调用 `Bot` 方法时，同样使用 `PluginSetup` 接收的参数。
+Command 的 `context` 会直接展开消息事件，并添加解析后的 `context.args` 和触发方式 `context.trigger`。`trigger` 的值为 `command` 或 `shortcut`。事件字段与 `context.reply()` 可以直接使用，需要调用 `Bot` 方法时则使用 `PluginSetup` 接收的参数。
 
 处理函数返回 `undefined` 时不会自动回复。返回 QQ 消息对象时会原样交给 `context.reply()`，返回其他对象或数组时使用 `JSON.stringify()` 转为文本，其他返回值使用 `String()` 转为文本。
 
-处理函数抛出 `Error` 时，Core 会将 `error.message` 回复给消息来源，并继续抛出该错误。应用层仍可记录或处理这个错误。处理函数不得抛出 `Error` 以外的值。
+处理函数抛出 `Error` 时，Core 会将 `error.message` 回复给消息来源，错误会继续向上传播。该行为不受 `context.trigger` 影响。需要让 Shortcut 的预期失败保持静默时，可以根据 `context.trigger` 返回 `undefined`。处理函数不得抛出 `Error` 以外的值。
 
-`shortcut()` 可以使用字符串或正则表达式匹配自然语言。正则表达式中的命名捕获组会写入 `context.args` 的同名字段，例如：
+`shortcut()` 可以使用字符串或正则表达式匹配自然语言。正则表达式中的命名捕获组会写入 `context.args` 的同名字段。
+
+字符串 Shortcut 只能用于没有必填参数的 Command。Command 包含必填参数时，正则表达式必须通过同名捕获组提供对应的值。
+
+下面的示例通过 `city` 命名捕获组提供必填参数：
 
 ```typescript
 import { useCommand } from '@kokkoro/core';
@@ -197,6 +215,22 @@ export default () => {
   useCommand('/天气 <city>', context => `${context.args.city}天气晴`).shortcut(/^查询(?<city>.+)天气$/);
 };
 ```
+
+### 日志
+
+`useLogger()` 获取 `loadPlugin()` 提供的日志记录器。它只能在插件模块加载期间调用，因此需要写在模块顶层。获取到的日志记录器可以在 `PluginSetup`、事件回调和指令处理函数中使用。
+
+```typescript
+import { useLogger } from '@kokkoro/core';
+
+const logger = useLogger();
+
+logger.info('插件模块已加载');
+
+export default () => {};
+```
+
+`loadPlugin()` 的第二个参数可以传入自定义 `Logger`。省略该参数时，Core 使用 `console`。
 
 ### 副作用清理
 
