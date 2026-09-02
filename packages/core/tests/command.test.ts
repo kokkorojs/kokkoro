@@ -1,6 +1,13 @@
 import { expect, test } from 'bun:test';
 
-import { type Command, type CommandReply, type CommandTrigger, useCommand, useEvent } from '@kokkoro/core';
+import {
+  type ClientEvent,
+  type Command,
+  type CommandReply,
+  type CommandTrigger,
+  useCommand,
+  useEvent,
+} from '@kokkoro/core';
 
 import { createBot, createMessageEvent } from './helpers';
 
@@ -258,6 +265,30 @@ test('Command 异常', async () => {
 
   expect(replies).toEqual(['指令处理失败', '指令处理失败']);
   expect(triggers).toEqual(['command', 'shortcut']);
+});
+
+test('Command 异常回复失败', async () => {
+  const bot = createBot();
+  const handlerError = new Error('指令处理失败');
+  const replyError = new Error('错误回复失败');
+
+  function setup() {
+    useCommand('/error', () => {
+      throw handlerError;
+    });
+  }
+
+  await bot.mount(setup);
+  const event = <ClientEvent<'GROUP_MESSAGE_CREATE'>>(<unknown>{
+    content: '/error',
+    reply: () => Promise.reject(replyError),
+  });
+
+  await expect(bot.emit('GROUP_MESSAGE_CREATE', event)).rejects.toMatchObject({
+    error: replyError,
+    name: 'SuppressedError',
+    suppressed: handlerError,
+  });
 });
 
 test('Command 注册时机', async () => {

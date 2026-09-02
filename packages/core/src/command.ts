@@ -96,7 +96,7 @@ export type CommandContext<Args extends object> = Context<CommandEventType> & {
   readonly trigger: CommandTrigger;
 };
 
-/** Command 处理函数。抛出 `Error` 时，其消息会回复给消息来源。 */
+/** Command 处理函数。抛出 `Error` 时，其消息会回复给消息来源，错误会继续向上传播。 */
 export type CommandHandler<Args extends object> = (context: CommandContext<Args>) => unknown;
 
 /** `useCommand()` 返回的链式配置接口。 */
@@ -257,7 +257,11 @@ const runCommand = async (
     result = await command.handler(context);
   } catch (error) {
     if (error instanceof Error) {
-      await reply(event, error.message);
+      try {
+        await reply(event, error.message);
+      } catch (replyError) {
+        throw new SuppressedError(replyError, error, 'Command failed and error reply failed');
+      }
       throw error;
     }
     throw new TypeError('Command handler must throw an Error', { cause: error });
