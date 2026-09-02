@@ -52,8 +52,16 @@ test('Command 输入处理', async () => {
   await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/missing', replies));
   await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/echo', replies));
   await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/echo hello world', replies));
+  await bot.emit(
+    'GROUP_MESSAGE_CREATE',
+    createMessageEvent('<@BOT_OPENID> /echo mention', replies, [{ id: 'BOT_OPENID', is_you: true }]),
+  );
+  await bot.emit(
+    'GROUP_MESSAGE_CREATE',
+    createMessageEvent('<@OTHER_OPENID> /echo ignored', replies, [{ id: 'OTHER_OPENID' }]),
+  );
 
-  expect(replies).toEqual(['/echo <part>', '缺少指令参数，有效语句为："/echo <part>"', 'hello']);
+  expect(replies).toEqual(['/echo <part>', '缺少指令参数，有效语句为："/echo <part>"', 'hello', 'mention']);
 });
 
 test('Shortcut 匹配', async () => {

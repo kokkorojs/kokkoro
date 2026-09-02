@@ -269,6 +269,23 @@ const runCommand = async (
   }
 };
 
+const normalizeContent = (event: ClientEvent<CommandEventType>): string => {
+  const content = event.content.trimStart();
+
+  if ('mentions' in event) {
+    const mention = event.mentions?.find(({ is_you }) => is_you);
+
+    if (mention) {
+      const prefix = `<@${mention.id}>`;
+
+      if (content.startsWith(prefix)) {
+        return content.slice(prefix.length).trimStart();
+      }
+    }
+  }
+  return content;
+};
+
 /**
  * 为当前消息创建所有匹配的 Command 任务。
  *
@@ -278,7 +295,7 @@ export const createCommandTasks = (
   commands: readonly MountedCommand[],
   event: ClientEvent<CommandEventType>,
 ): CommandTask[] => {
-  const content = event.content.trimStart();
+  const content = normalizeContent(event);
 
   if (content.startsWith('/')) {
     const [prefix, ...values] = content.trimEnd().split(/\s+/u);
