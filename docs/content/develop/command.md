@@ -155,7 +155,7 @@ export default () => {
 
 ## 异常处理 {#errors}
 
-指令处理函数抛出 `Error` 时，Kokkoro 会将 `error.message` 回复给消息来源，并在日志中记录该错误。处理函数不得抛出字符串、对象或其他非 `Error` 值。
+指令处理函数抛出 `Error` 时，Kokkoro 会将 `error.message` 回复到当前私聊或群聊，并在终端记录一条 **ERROR** 日志。无论处理函数由斜杠指令还是快捷方式触发，异常处理规则都相同。
 
 ```typescript
 import { useCommand } from '@kokkoro/core';
@@ -177,6 +177,8 @@ export default () => {
 ```text
 [2026-08-26T02:58:00.000Z] ERROR kokkoro:APP_ID:dispatch - 事件处理失败 Error: 请求超时
 ```
+
+需要表示处理失败时，请抛出 `Error`，不要抛出字符串、对象或其他值。其他插件异常和日志规则参阅 [日志与异常](/develop/logging#errors)。
 
 ## 类型推导 {#type-inference}
 
@@ -222,7 +224,7 @@ export default () => {
 
 ### 正则表达式 {#regular-expressions}
 
-字符串只能匹配一种固定内容。需要从自然语言中提取参数时，可以把正则表达式传给 `shortcut()`，再用命名捕获组保存参数：
+字符串快捷方式只能匹配固定内容，无法从消息中提取指令参数。如果想从自然语言中提取参数，可以使用正则表达式：
 
 ```typescript
 import { useCommand } from '@kokkoro/core';
@@ -246,6 +248,10 @@ export default () => {
 命名捕获组 `city` 必须与指令参数 `<city>` 同名。收到「查询北京天气」时，`context.args.city` 的值就是 `"北京"`。
 
 更多语法参阅 [MDN 正则表达式指南](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Guide/Regular_expressions) 和 [命名捕获组](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Guide/Regular_expressions/Groups_and_backreferences#%E4%BD%BF%E7%94%A8%E5%91%BD%E5%90%8D%E7%BB%84)。
+
+### 触发方式 {#trigger}
+
+`context.trigger` 记录处理函数由斜杠指令还是快捷方式触发。用户执行斜杠指令时，该字段为 `command`。普通消息命中 `shortcut()` 时，该字段为 `shortcut`。只有需要为两种触发方式采用不同处理策略时，才需要读取这个字段。
 
 ### 链式调用 {#chaining}
 
