@@ -56,7 +56,7 @@ export interface Logger {
   error(...args: unknown[]): void;
 }
 
-/** 挂载到 Bot 时同步登记 Hook，并可返回清理函数。 */
+/** 挂载到 Bot 时同步声明 Hook，并可返回清理函数。 */
 export type PluginSetup = (bot: Bot) => VoidOrUndefinedOnly | Cleanup;
 
 /** 用于动态导入默认导出为 PluginSetup 的模块。 */
@@ -67,7 +67,7 @@ export interface Plugin {
   /** 模块默认导出的 PluginSetup。 */
   readonly setup: PluginSetup;
 
-  /** 释放通过 `useDispose()` 登记的模块资源。 */
+  /** 执行通过 `useDispose()` 收集的模块清理函数。 */
   dispose(): Promise<void>;
 }
 
@@ -79,7 +79,7 @@ interface Effect {
   readonly dependencies: readonly EventType[] | undefined;
 }
 
-export interface EffectScope {
+export interface MountScope {
   readonly effects: Effect[];
   readonly commands: CommandRegistration[];
   readonly pending: Set<Promise<void>>;
@@ -87,43 +87,45 @@ export interface EffectScope {
   status: 'mounting' | 'mounted' | 'unmounting';
 }
 
-interface ModuleScope {
+interface LoadScope {
   readonly disposables: AsyncDisposableStack;
   readonly logger: Logger;
 }
 
-/** 同步 render 期间使用的 Hook 收集作用域。 */
-let currentEffectScope: EffectScope | null = null;
+interface ActiveScopes {
+  load: LoadScope | null;
+  mount: MountScope | null;
+}
 
-/** 动态加载插件模块期间使用的作用域。 */
-let currentModuleScope: ModuleScope | null = null;
+const activeScopes: ActiveScopes = {
+  load: null,
+  mount: null,
+};
 
 const isPromiseLike = (value: unknown): value is PromiseLike<unknown> => {
   if (value === null || (typeof value !== 'object' && typeof value !== 'function')) {
     return false;
   }
-
   return typeof (<{ then?: unknown }>value).then === 'function';
 };
 
-const getCurrentEffectScope = (): EffectScope => {
-  if (!currentEffectScope) {
+const getActiveMountScope = (): MountScope => {
+  if (!activeScopes.mount) {
     throw new Error('Hooks can only be called while mounting a plugin');
   }
-
-  return currentEffectScope;
+  return activeScopes.mount;
 };
 
 /** Hook 只在 PluginSetup 的同步调用链中收集。 */
-const invokeWithEffectScope = (scope: EffectScope, callback: () => unknown): unknown => {
-  const previous = currentEffectScope;
+const invokeWithMountScope = (scope: MountScope, callback: () => unknown): unknown => {
+  const previous = activeScopes.mount;
 
-  currentEffectScope = scope;
+  activeScopes.mount = scope;
 
   try {
     return callback();
   } finally {
-    currentEffectScope = previous;
+    activeScopes.mount = previous;
   }
 };
 
@@ -146,12 +148,13 @@ const validateSetupResult = async (result: unknown): Promise<Cleanup | undefined
     } catch (cause) {
       throw new TypeError('Plugin setup must be synchronous', { cause });
     }
-
     throw new TypeError('Plugin setup must be synchronous');
   }
+
   if (result === undefined) {
     return undefined;
   }
+
   if (typeof result !== 'function') {
     throw new TypeError('Plugin setup must return void or a cleanup function');
   }
@@ -167,7 +170,7 @@ const runEffect = async (effect: Effect, context?: Context): Promise<void> => {
   }
 };
 
-export const createEffectScope = (): EffectScope => ({
+export const createMountScope = (): MountScope => ({
   effects: [],
   commands: [],
   pending: new Set(),
@@ -175,21 +178,21 @@ export const createEffectScope = (): EffectScope => ({
   status: 'mounting',
 });
 
-export const collectCommand = (command: CommandRegistration): EffectScope => {
-  const scope = getCurrentEffectScope();
+export const collectCommand = (command: CommandRegistration): MountScope => {
+  const scope = getActiveMountScope();
 
   scope.commands.push(command);
   return scope;
 };
 
-export const assertCurrentEffectScope = (scope: EffectScope): void => {
-  if (currentEffectScope !== scope) {
+export const assertActiveMountScope = (scope: MountScope): void => {
+  if (activeScopes.mount !== scope) {
     throw new Error('Command shortcuts can only be registered while mounting a plugin');
   }
 };
 
-export const render = (scope: EffectScope, setup: PluginSetup, bot: Bot): Promise<Cleanup | undefined> =>
-  validateSetupResult(invokeWithEffectScope(scope, () => setup(bot)));
+export const render = (scope: MountScope, setup: PluginSetup, bot: Bot): Promise<Cleanup | undefined> =>
+  validateSetupResult(invokeWithMountScope(scope, () => setup(bot)));
 
 /**
  * 加载默认导出为 PluginSetup 的插件模块。
@@ -203,13 +206,16 @@ export const loadPlugin = async (loader: PluginLoader, logger: Logger = console)
   if (typeof loader !== 'function') {
     throw new TypeError('Plugin loader must be a function');
   }
-  if (currentModuleScope) {
+
+  if (activeScopes.load) {
     throw new Error('Plugins cannot be loaded concurrently');
   }
+
   try {
     await using disposables = new AsyncDisposableStack();
 
-    currentModuleScope = { disposables, logger };
+    activeScopes.load = { disposables, logger };
+
     const module = await loader();
     const setup = getSetup(module);
     const resources = disposables.move();
@@ -219,30 +225,31 @@ export const loadPlugin = async (loader: PluginLoader, logger: Logger = console)
       dispose: () => resources.disposeAsync(),
     };
   } finally {
-    currentModuleScope = null;
+    activeScopes.load = null;
   }
 };
 
 /** 获取当前插件模块的日志记录器。 */
 export const useLogger = (): Logger => {
-  if (!currentModuleScope) {
+  if (!activeScopes.load) {
     throw new Error('useLogger() can only be called while loading a plugin');
   }
-  return currentModuleScope.logger;
+  return activeScopes.load.logger;
 };
 
-/** 登记插件模块释放时执行的清理函数。 */
+/** 收集插件模块释放时执行的清理函数。 */
 export const useDispose = (cleanup: Cleanup): void => {
   if (typeof cleanup !== 'function') {
     throw new TypeError('Plugin cleanup must be a function');
   }
-  if (!currentModuleScope) {
+
+  if (!activeScopes.load) {
     throw new Error('useDispose() can only be called while loading a plugin');
   }
-  currentModuleScope.disposables.defer(cleanup);
+  activeScopes.load.disposables.defer(cleanup);
 };
 
-export const mountEffects = async (scope: EffectScope): Promise<void> => {
+export const mountEffects = async (scope: MountScope): Promise<void> => {
   for (const effect of scope.effects) {
     if (effect.dependencies?.length === 0) {
       await runEffect(effect);
@@ -251,7 +258,7 @@ export const mountEffects = async (scope: EffectScope): Promise<void> => {
 };
 
 export const dispatchEffects = async <Type extends EventType>(
-  scope: EffectScope,
+  scope: MountScope,
   type: Type,
   event: ClientEvent<Type>,
 ): Promise<void> => {
@@ -269,7 +276,7 @@ export const dispatchEffects = async <Type extends EventType>(
   }
 };
 
-export const trackPending = (scope: EffectScope, task: Promise<void>): Promise<void> => {
+export const trackPending = (scope: MountScope, task: Promise<void>): Promise<void> => {
   scope.pending.add(task);
   task.then(
     () => scope.pending.delete(task),
@@ -279,13 +286,13 @@ export const trackPending = (scope: EffectScope, task: Promise<void>): Promise<v
   return task;
 };
 
-export const disposeScope = async (scope: EffectScope): Promise<void> => {
+export const disposeScope = async (scope: MountScope): Promise<void> => {
   if (!scope.disposables) {
     throw new Error('Plugin resources are unavailable');
   }
   const disposables = scope.disposables;
-
   scope.disposables = null;
+
   await disposables.disposeAsync();
 };
 
@@ -322,7 +329,7 @@ export function useEvent(callback: unknown, dependencies?: readonly EventType[])
       }
     }
   }
-  const scope = getCurrentEffectScope();
+  const scope = getActiveMountScope();
 
   scope.effects.push({
     callback: <EventCallback | MountCallback>callback,

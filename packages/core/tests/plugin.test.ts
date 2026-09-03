@@ -390,7 +390,7 @@ test('卸载等待任务', async () => {
   expect(calls).toEqual(['mounted', 'event:start', 'event:end', 'disposed']);
 });
 
-test('事件任务登记', async () => {
+test('事件任务跟踪', async () => {
   const bot = createBot();
   const gate = Promise.withResolvers<void>();
   const started = Promise.withResolvers<void>();

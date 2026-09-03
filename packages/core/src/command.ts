@@ -1,6 +1,6 @@
 import { type ClientEvent, type SendGroupMessagePayload, type SendUserMessagePayload } from 'chobits';
 
-import { type Context, type EffectScope, assertCurrentEffectScope, collectCommand } from './plugin';
+import { type Context, type MountScope, assertActiveMountScope, collectCommand } from './plugin';
 
 /** Command 声明中的参数仅用 ASCII 空格分隔。 */
 type Whitespace = ' ';
@@ -121,11 +121,11 @@ export interface CommandRegistration {
 
 export interface MountedCommand {
   readonly command: CommandRegistration;
-  readonly scope: EffectScope;
+  readonly scope: MountScope;
 }
 
 export interface CommandTask {
-  readonly scope: EffectScope | null;
+  readonly scope: MountScope | null;
   readonly promise: Promise<void>;
 }
 
@@ -141,7 +141,6 @@ const parseSyntax = (syntax: string): Pick<CommandRegistration, 'parameters' | '
   }
   const names = new Set<string>();
   const parameters: Parameter[] = [];
-
   let hasOptional = false;
 
   for (const [index, token] of tokens.entries()) {
@@ -165,10 +164,9 @@ const parseSyntax = (syntax: string): Pick<CommandRegistration, 'parameters' | '
       throw new SyntaxError('A variadic Command parameter must be last');
     }
     names.add(name);
+    parameters.push({ name, required, variadic });
 
     hasOptional ||= !required;
-
-    parameters.push({ name, required, variadic });
   }
   return { parameters, prefix };
 };
@@ -227,7 +225,6 @@ const matchShortcut = (
 
   for (const parameter of command.parameters) {
     const value = groups[parameter.name];
-
     args[parameter.name] = parameter.variadic ? (value === undefined ? [] : [value]) : value;
   }
   return args;
@@ -248,10 +245,9 @@ const runCommand = async (
   args: Record<string, string | string[] | undefined>,
   trigger: CommandTrigger,
 ): Promise<void> => {
-  let result: unknown;
-
   // Chobits 的事件对象是只读的，展开后的上下文也保持只读。
   const context = Object.freeze({ ...event, args, trigger });
+  let result: unknown;
 
   try {
     result = await command.handler(context);
@@ -384,12 +380,13 @@ export function useCommand<const Syntax extends `/${string}`>(
   const scope = collectCommand(registration);
   const command: Command = {
     shortcut(pattern) {
-      assertCurrentEffectScope(scope);
+      assertActiveMountScope(scope);
 
       if (typeof pattern !== 'string' && !(pattern instanceof RegExp)) {
         throw new TypeError('Command shortcut must be a string or RegExp');
       }
       registration.shortcuts.push(pattern);
+
       return this;
     },
   };

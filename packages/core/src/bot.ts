@@ -9,10 +9,10 @@ import {
 
 import { type CommandEventType, type MountedCommand, COMMAND_EVENT_TYPES, createCommandTasks } from './command';
 import {
-  type EffectScope,
   type EventType,
+  type MountScope,
   type PluginSetup,
-  createEffectScope,
+  createMountScope,
   dispatchEffects,
   disposeScope,
   EVENT_TYPES,
@@ -28,7 +28,7 @@ export type SendImagePayload = Omit<MediaMessage, 'image' | 'media' | 'msg_type'
 export class Bot<
   CustomEvents extends Record<keyof CustomEvents, unknown[]> = Record<never, never>,
 > extends Client<CustomEvents> {
-  private readonly scopes = new Map<PluginSetup, EffectScope>();
+  private readonly scopes = new Map<PluginSetup, MountScope>();
   private readonly commands = new Map<string, MountedCommand>();
 
   /** @param options Chobits 客户端选项。 */
@@ -75,10 +75,11 @@ export class Bot<
     if (typeof setup !== 'function') {
       throw new TypeError('Plugin setup must be a function');
     }
+
     if (this.scopes.has(setup)) {
       throw new Error('Plugin setup is already mounted');
     }
-    const scope = createEffectScope();
+    const scope = createMountScope();
 
     this.scopes.set(setup, scope);
     await using disposables = new AsyncDisposableStack();
@@ -91,11 +92,13 @@ export class Bot<
       }
       this.mountCommands(scope);
       await mountEffects(scope);
+
       scope.disposables = disposables.move();
       scope.status = 'mounted';
     } catch (error) {
       this.unmountCommands(scope);
       this.scopes.delete(setup);
+
       throw error;
     }
   }
@@ -111,8 +114,8 @@ export class Bot<
       throw new Error('Plugin setup is not mounted');
     }
     scope.status = 'unmounting';
-    this.unmountCommands(scope);
 
+    this.unmountCommands(scope);
     await Promise.allSettled([...scope.pending]);
 
     try {
@@ -127,7 +130,7 @@ export class Bot<
   }
 
   private async handleEvent<Type extends EventType>(type: Type, event: ClientEvent<Type>): Promise<void> {
-    // 先登记任务，再执行回调，确保卸载会等待当前事件。
+    // 先跟踪任务，再执行回调，确保卸载会等待当前事件。
     const tasks: Promise<void>[] = [...this.scopes.values()]
       .filter(scope => scope.status === 'mounted')
       .map(scope =>
@@ -155,7 +158,7 @@ export class Bot<
     }
   }
 
-  private mountCommands(scope: EffectScope): void {
+  private mountCommands(scope: MountScope): void {
     const prefixes = new Set<string>();
 
     // 先完成全部冲突校验，避免注册表留下部分结果。
@@ -171,7 +174,7 @@ export class Bot<
     }
   }
 
-  private unmountCommands(scope: EffectScope): void {
+  private unmountCommands(scope: MountScope): void {
     for (const command of scope.commands) {
       const mounted = this.commands.get(command.prefix);
 
