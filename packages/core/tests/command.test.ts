@@ -9,7 +9,7 @@ import {
   useEvent,
 } from '@kokkoro/core';
 
-import { createBot, createMessageEvent } from './helpers';
+import { createBot, createGroupMessageEvent } from './helpers';
 
 test('Command 参数', async () => {
   const bot = createBot();
@@ -22,8 +22,8 @@ test('Command 参数', async () => {
   }
 
   await bot.mount(setup);
-  await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('  /search kokkoro 2 bot qq'));
-  await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/search bun'));
+  await bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('  /search\tkokkoro　2 bot qq'));
+  await bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('/search bun'));
 
   expect(args).toEqual([
     { keyword: 'kokkoro', page: '2', tags: ['bot', 'qq'] },
@@ -42,7 +42,7 @@ test('Command 分词', async () => {
   }
 
   await bot.mount(setup);
-  await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/say "hello world" \\path'));
+  await bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('/say "hello world" \\path'));
 
   expect(values).toEqual(['"hello', 'world"', '\\path']);
 });
@@ -56,16 +56,16 @@ test('Command 输入处理', async () => {
   }
 
   await bot.mount(setup);
-  await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/missing', replies));
-  await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/echo', replies));
-  await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/echo hello world', replies));
+  await bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('/missing', replies));
+  await bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('/echo', replies));
+  await bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('/echo hello world', replies));
   await bot.emit(
     'GROUP_MESSAGE_CREATE',
-    createMessageEvent('<@BOT_OPENID> /echo mention', replies, [{ id: 'BOT_OPENID', is_you: true }]),
+    createGroupMessageEvent('<@BOT_OPENID> /echo mention', replies, [{ id: 'BOT_OPENID', is_you: true }]),
   );
   await bot.emit(
     'GROUP_MESSAGE_CREATE',
-    createMessageEvent('<@OTHER_OPENID> /echo ignored', replies, [{ id: 'OTHER_OPENID' }]),
+    createGroupMessageEvent('<@OTHER_OPENID> /echo ignored', replies, [{ id: 'OTHER_OPENID' }]),
   );
 
   expect(replies).toEqual(['/echo <part>', '缺少指令参数，有效语句为："/echo <part>"', 'hello', 'mention']);
@@ -85,10 +85,10 @@ test('Shortcut 匹配', async () => {
   }
 
   await bot.mount(setup);
-  await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('没有命中'));
-  await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('来点涩图'));
-  await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('来点可可萝单图'));
-  await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('来点可可萝、萝莉涩图'));
+  await bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('没有命中'));
+  await bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('来点涩图'));
+  await bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('来点可可萝单图'));
+  await bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('来点可可萝、萝莉涩图'));
 
   expect(args).toEqual([
     { tag: undefined, tags: [] },
@@ -101,16 +101,16 @@ test('Shortcut 并发', async () => {
   const bot = createBot();
   const gate = Promise.withResolvers<void>();
   const started = Promise.withResolvers<void>();
-  let running = 0;
+  let activeCount = 0;
 
   async function handler() {
-    running++;
+    activeCount++;
 
-    if (running === 3) {
+    if (activeCount === 3) {
       started.resolve();
     }
     await gate.promise;
-    running--;
+    activeCount--;
   }
 
   function setup() {
@@ -121,10 +121,10 @@ test('Shortcut 并发', async () => {
   }
 
   await bot.mount(setup);
-  const dispatch = bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('hello'));
+  const dispatch = bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('hello'));
 
   await started.promise;
-  expect(running).toBe(3);
+  expect(activeCount).toBe(3);
 
   gate.resolve();
   await dispatch;
@@ -184,36 +184,36 @@ test('Command 生命周期', async () => {
   const mountGate = Promise.withResolvers<void>();
   const handlerGate = Promise.withResolvers<void>();
   const handlerStarted = Promise.withResolvers<void>();
-  let calls = 0;
+  let callCount = 0;
 
   function setup() {
     useEvent(async () => {
       await mountGate.promise;
     }, []);
     useCommand('/wait', async () => {
-      calls++;
+      callCount++;
       handlerStarted.resolve();
       await handlerGate.promise;
     });
   }
 
-  const mount = bot.mount(setup);
-  await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/wait'));
-  expect(calls).toBe(0);
+  const mounting = bot.mount(setup);
+  await bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('/wait'));
+  expect(callCount).toBe(0);
 
   mountGate.resolve();
-  await mount;
+  await mounting;
 
-  const dispatch = bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/wait'));
+  const dispatch = bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('/wait'));
   await handlerStarted.promise;
-  expect(calls).toBe(1);
+  expect(callCount).toBe(1);
 
-  const unmount = bot.unmount(setup);
-  await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/wait'));
-  expect(calls).toBe(1);
+  const unmounting = bot.unmount(setup);
+  await bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('/wait'));
+  expect(callCount).toBe(1);
 
   handlerGate.resolve();
-  await Promise.all([dispatch, unmount]);
+  await Promise.all([dispatch, unmounting]);
 });
 
 test('Command 回复', async () => {
@@ -231,11 +231,11 @@ test('Command 回复', async () => {
   }
 
   await bot.mount(setup);
-  await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/text', replies));
-  await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/object', replies));
-  await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/record', replies));
-  await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/array', replies));
-  await bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/explicit', replies));
+  await bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('/text', replies));
+  await bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('/object', replies));
+  await bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('/record', replies));
+  await bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('/array', replies));
+  await bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('/explicit', replies));
 
   expect(replies).toEqual(['hello', { msg_type: 0, content: 'payload' }, '{"key":"value"}', '[]', 'manual']);
 });
@@ -255,9 +255,11 @@ test('Command 异常', async () => {
   }
 
   await bot.mount(setup);
-  await expect(bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/error', replies))).rejects.toBe(handlerError);
-  await expect(bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('快捷失败', replies))).rejects.toBe(handlerError);
-  await expect(bot.emit('GROUP_MESSAGE_CREATE', createMessageEvent('/invalid', replies))).rejects.toMatchObject({
+  await expect(bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('/error', replies))).rejects.toBe(handlerError);
+  await expect(bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('快捷失败', replies))).rejects.toBe(
+    handlerError,
+  );
+  await expect(bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('/invalid', replies))).rejects.toMatchObject({
     cause: 'invalid',
     message: 'Command handler must throw an Error',
     name: 'TypeError',

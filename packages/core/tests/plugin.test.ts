@@ -45,20 +45,20 @@ test('插件模块生命周期', async () => {
 
 test('插件并发加载', async () => {
   const gate = Promise.withResolvers<void>();
-  let loads = 0;
+  let loadCount = 0;
   const loading = loadPlugin(async () => {
-    loads++;
+    loadCount++;
     await gate.promise;
     return { default() {} };
   });
 
   await expect(
     loadPlugin(async () => {
-      loads++;
+      loadCount++;
       return { default() {} };
     }),
   ).rejects.toThrow('Plugins cannot be loaded concurrently');
-  expect(loads).toBe(1);
+  expect(loadCount).toBe(1);
 
   gate.resolve();
   const plugin = await loading;
@@ -135,7 +135,7 @@ test('插件挂载状态', async () => {
   const bot = createBot();
   const other = createBot();
   const gate = Promise.withResolvers<void>();
-  let mounts = 0;
+  let mountCount = 0;
 
   function setup() {
     useEvent(async () => {
@@ -154,12 +154,12 @@ test('插件挂载状态', async () => {
 
   function otherSetup() {
     useEvent(() => {
-      mounts++;
+      mountCount++;
     }, []);
   }
 
   await other.mount(otherSetup);
-  expect(mounts).toBe(1);
+  expect(mountCount).toBe(1);
 
   gate.resolve();
   await mounting;
@@ -186,14 +186,14 @@ test('PluginSetup 返回值', async () => {
 test('挂载失败回滚', async () => {
   const bot = createBot();
   const calls: string[] = [];
-  let fails = true;
+  let isFailing = true;
 
   function setup() {
     useEvent(() => {
       calls.push('setup');
     }, []);
     useEvent(() => {
-      if (fails) {
+      if (isFailing) {
         throw new Error('mount failed');
       }
     }, []);
@@ -206,7 +206,7 @@ test('挂载失败回滚', async () => {
   await expect(bot.mount(setup)).rejects.toThrow('mount failed');
   expect(calls).toEqual(['setup', 'cleanup']);
 
-  fails = false;
+  isFailing = false;
   await bot.mount(setup);
   await bot.unmount(setup);
   expect(calls).toEqual(['setup', 'cleanup', 'setup', 'cleanup']);
@@ -271,17 +271,17 @@ test('多 Bot 挂载', async () => {
 
 test('事件依赖', async () => {
   const bot = createBot();
-  let every = 0;
-  let selected = 0;
+  let eventCount = 0;
+  let resumedCount = 0;
   const ready = createEvent<'READY'>();
   const resumed = createEvent<'RESUMED'>();
 
   function setup() {
     useEvent(() => {
-      every++;
+      eventCount++;
     });
     useEvent(() => {
-      selected++;
+      resumedCount++;
     }, ['RESUMED']);
   }
 
@@ -289,8 +289,8 @@ test('事件依赖', async () => {
   await bot.emit('READY', ready);
   await bot.emit('RESUMED', resumed);
 
-  expect(every).toBe(2);
-  expect(selected).toBe(1);
+  expect(eventCount).toBe(2);
+  expect(resumedCount).toBe(1);
 });
 
 test('事件回调并发', async () => {
@@ -330,29 +330,29 @@ test('事件并发', async () => {
   const bot = createBot();
   const gate = Promise.withResolvers<void>();
   const started = Promise.withResolvers<void>();
-  let running = 0;
+  let activeCount = 0;
 
   function setup() {
     useEvent(async () => {
-      running++;
+      activeCount++;
 
-      if (running === 2) {
+      if (activeCount === 2) {
         started.resolve();
       }
       await gate.promise;
-      running--;
+      activeCount--;
     }, ['READY', 'RESUMED']);
   }
 
   await bot.mount(setup);
-  const first = bot.emit('READY', createEvent<'READY'>());
-  const second = bot.emit('RESUMED', createEvent<'RESUMED'>());
+  const ready = bot.emit('READY', createEvent<'READY'>());
+  const resumed = bot.emit('RESUMED', createEvent<'RESUMED'>());
 
   await started.promise;
-  expect(running).toBe(2);
+  expect(activeCount).toBe(2);
 
   gate.resolve();
-  await Promise.all([first, second]);
+  await Promise.all([ready, resumed]);
 });
 
 test('卸载等待任务', async () => {
@@ -381,12 +381,12 @@ test('卸载等待任务', async () => {
   const dispatch = bot.emit('READY', createEvent<'READY'>());
 
   await started.promise;
-  const unmount = bot.unmount(setup);
+  const unmounting = bot.unmount(setup);
   await bot.emit('READY', createEvent<'READY'>());
   expect(calls).toEqual(['mounted', 'event:start']);
 
   gate.resolve();
-  await Promise.all([dispatch, unmount]);
+  await Promise.all([dispatch, unmounting]);
   expect(calls).toEqual(['mounted', 'event:start', 'event:end', 'disposed']);
 });
 
@@ -395,11 +395,11 @@ test('事件任务跟踪', async () => {
   const gate = Promise.withResolvers<void>();
   const started = Promise.withResolvers<void>();
   const calls: string[] = [];
-  let unmount: Promise<void> | undefined;
+  let unmounting: Promise<void> | undefined;
 
   function setup() {
     useEvent(async () => {
-      unmount = bot.unmount(setup);
+      unmounting = bot.unmount(setup);
       started.resolve();
       await gate.promise;
       calls.push('event');
@@ -418,10 +418,10 @@ test('事件任务跟踪', async () => {
 
   gate.resolve();
 
-  if (!unmount) {
+  if (!unmounting) {
     throw new Error('未开始取消挂载');
   }
-  await Promise.all([dispatch, unmount]);
+  await Promise.all([dispatch, unmounting]);
   expect(calls).toEqual(['event', 'cleanup']);
 });
 

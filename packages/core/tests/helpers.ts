@@ -8,7 +8,7 @@ export const createBot = (): Bot =>
 
 export const createEvent = <Type extends 'READY' | 'RESUMED'>(): ClientEvent<Type> => <ClientEvent<Type>>(<unknown>{});
 
-export const createMessageEvent = (
+export const createGroupMessageEvent = (
   content: string,
   replies: CommandReply[] = [],
   mentions?: ClientEvent<'GROUP_MESSAGE_CREATE'>['mentions'],

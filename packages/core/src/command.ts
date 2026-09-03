@@ -17,14 +17,14 @@ type Tokenize<
     ? Tokens
     : [...Tokens, Token];
 
-type InvalidParameterName<Name extends string> = Name extends ''
+type IsInvalidParameterName<Name extends string> = Name extends ''
   ? true
   : Name extends `${string}${'.' | '<' | '>' | '[' | ']'}${string}`
     ? true
     : false;
 
 type AddParameter<Args extends object, Names extends string, Name extends string, Value> =
-  InvalidParameterName<Name> extends true
+  IsInvalidParameterName<Name> extends true
     ? never
     : Name extends Names
       ? never
@@ -75,8 +75,8 @@ export type ParseCommand<Syntax extends string> = Syntax extends `/${string}`
 
 type CheckedSyntax<Syntax extends string> = ParseCommand<Syntax> extends never ? never : Syntax;
 
-type ReplyManagedField = 'event_id' | 'msg_id' | 'msg_seq';
-type ReplyMessage<Message> = Message extends unknown ? Omit<Message, ReplyManagedField> : never;
+type ManagedReplyField = 'event_id' | 'msg_id' | 'msg_seq';
+type ReplyMessage<Message> = Message extends unknown ? Omit<Message, ManagedReplyField> : never;
 
 /** Command 处理函数可以直接返回的消息。 */
 export type CommandReply = string | ReplyMessage<SendGroupMessagePayload> | ReplyMessage<SendUserMessagePayload>;
