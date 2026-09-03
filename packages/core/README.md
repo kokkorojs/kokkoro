@@ -236,9 +236,9 @@ export default () => {};
 
 插件模块的顶层代码只在首次导入时执行一次。在这里建立的数据库连接等资源会由所有 `Bot` 共享，不属于任何一次 `Bot` 挂载，因此 `bot.unmount()` 不会释放它们。
 
-使用 `useDispose()` 可以为这类共享资源登记清理函数。调用 `useDispose()` 的插件必须通过 `loadPlugin()` 动态导入，未使用 `useDispose()` 的插件仍然可以像前文一样静态导入。
+使用 `useDispose()` 可以为这类共享资源声明清理函数。调用 `useDispose()` 的插件必须通过 `loadPlugin()` 动态导入，未使用 `useDispose()` 的插件仍然可以像前文一样静态导入。
 
-例如，下面的签到插件会在模块首次导入时连接 MongoDB，并登记关闭连接的清理函数：
+例如，下面的签到插件会在模块首次导入时连接 MongoDB，并通过 `useDispose()` 声明关闭连接的清理函数：
 
 ```typescript
 // plugins/check-in.ts
@@ -287,7 +287,7 @@ await bot.unmount(plugin.setup);
 await plugin.dispose();
 ```
 
-`plugin.setup` 是模块默认导出的 `PluginSetup`，同一个函数可以分别挂载到多个 `Bot`。释放插件前，要先从所有 `Bot` 取消挂载，再调用 `plugin.dispose()` 执行由 `useDispose()` 登记的清理函数。
+`plugin.setup` 是模块默认导出的 `PluginSetup`，同一个函数可以分别挂载到多个 `Bot`。释放插件前，要先从所有 `Bot` 取消挂载，再调用 `plugin.dispose()` 执行由 `useDispose()` 收集的清理函数。
 
 `loadPlugin()` 接收 `() => import()`，不直接接收路径字符串。文件路径仍由原生 `import()` 解析，同时保留编辑器补全与 TypeScript 类型检查。
 
@@ -326,11 +326,11 @@ await bot.mount(Example);
 await bot.unmount(Example);
 ```
 
-`PluginSetup` 接收当前 `Bot`，并且必须同步执行。`bot.unmount()` 只会执行该次挂载返回的清理函数，`plugin.dispose()` 只会执行通过 `useDispose()` 登记的清理函数。其他副作用由开发者自行管理。
+`PluginSetup` 接收当前 `Bot`，并且必须同步执行。`bot.unmount()` 只会执行该次挂载返回的清理函数，`plugin.dispose()` 只会执行通过 `useDispose()` 收集的清理函数。其他副作用由开发者自行管理。
 
 `loadPlugin()`、`bot.mount()`、`bot.unmount()` 和 `plugin.dispose()` 不会静默捕获错误，任何失败都会通过 Promise rejection 交给调用方。错误记录与插件隔离由完整的 Kokkoro 框架处理。
 
-`bot.unmount()` 会等待该次挂载当前的任务全部结束。不要在由同一个 `PluginSetup` 登记的 Event 或 Command 处理函数中执行 `await bot.unmount(Example)`，如果需要卸载当前插件，应交给应用层处理。
+`bot.unmount()` 会等待该次挂载当前的任务全部结束。不要在通过同一个 `PluginSetup` 声明的 Event 或 Command 处理函数中执行 `await bot.unmount(Example)`，如果需要卸载当前插件，应交给应用层处理。
 
 ## 示例
 

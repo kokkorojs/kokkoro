@@ -56,7 +56,7 @@ export default () => {
 
 `useCommand()`、`useEvent()` 等用于声明插件功能的函数称为 **Hook**。
 
-插件每挂载到一个 `Bot`，`PluginSetup` 就会执行一次，并在函数中登记当前 `Bot` 使用的 Hook。
+插件每挂载到一个 `Bot`，`PluginSetup` 就会执行一次。Core 会收集这次执行为当前 `Bot` 声明的 Hook。
 
 `Bot` 继承 Chobits 的 `Client`，可以直接调用 QQ 官方接口。插件需要使用这些方法时，可以通过函数参数获取当前 `Bot`。不需要时，则可以像上面的示例一样省略参数。
 

@@ -45,7 +45,7 @@ export default () => {
 
 ## 挂载生命周期 {#mount-lifecycle}
 
-插件加载完成后，Kokkoro 会将 `PluginSetup` 分别挂载到每个 `Bot`。每次挂载都会重新执行该函数，将当前 `Bot` 作为参数传入，并单独注册 Hook。
+插件加载完成后，Kokkoro 会将 `PluginSetup` 分别挂载到每个 `Bot`。每次挂载都会重新执行该函数，将当前 `Bot` 作为参数传入，并收集这次执行声明的 Hook。
 
 ```typescript
 import { useCommand, useEvent } from '@kokkoro/core';
@@ -100,11 +100,11 @@ await plugin.dispose();
 
 `bot.mount()` 和 `bot.unmount()` 使用 `PluginSetup` 的函数引用识别挂载。因此，取消挂载时必须传入同一个 `plugin.setup`。
 
-`bot.unmount()` 会等待当前挂载正在处理的事件与指令，再执行 `PluginSetup` 返回的清理函数。所有 `Bot` 都取消挂载后，调用 `plugin.dispose()` 可以执行通过 `useDispose()` 登记的模块清理函数。
+`bot.unmount()` 会等待当前挂载正在处理的事件与指令，再执行 `PluginSetup` 返回的清理函数。所有 `Bot` 都取消挂载后，调用 `plugin.dispose()` 可以执行通过 `useDispose()` 收集的模块清理函数。
 
 加载多个插件时，需要逐个等待 `loadPlugin()` 完成。上述生命周期方法不会静默处理错误，调用失败时，`await` 会直接抛出错误。
 
-不要在同一个 `PluginSetup` 注册的事件或指令回调中等待自身取消挂载。`bot.unmount()` 会等待这些任务执行完成，这样调用会让当前任务等待自己结束。需要由插件触发自身取消挂载时，应交给应用层处理。
+不要在通过同一个 `PluginSetup` 声明的事件或指令回调中等待自身取消挂载。`bot.unmount()` 会等待这些任务执行完成，这样调用会让当前任务等待自己结束。需要由插件触发自身取消挂载时，应交给应用层处理。
 
 ::: warning 插件热更新正在重构
 当前版本尚不支持插件热更新，也不会主动释放正在运行的插件。未来，在开发模式中检测到本地插件代码变化，或安装、更新社区插件时，Kokkoro 将触发热更新。

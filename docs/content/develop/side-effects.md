@@ -6,7 +6,7 @@
 
 插件模块的顶层代码只会在首次导入时执行一次，很适合用来创建由所有机器人共享的资源。
 
-Bun 原生提供了 [SQLite](https://bun.com/docs/runtime/sqlite) 数据库支持，不需要安装第三方依赖。下面的插件会在首次导入时打开数据库，并通过 `useDispose()` 登记关闭数据库的函数：
+Bun 原生提供了 [SQLite](https://bun.com/docs/runtime/sqlite) 数据库支持，不需要安装第三方依赖。下面的插件会在首次导入时打开数据库，并通过 `useDispose()` 声明关闭数据库的清理函数：
 
 ```typescript {7}
 import { Database } from 'bun:sqlite';
@@ -39,7 +39,7 @@ export default () => {
 };
 ```
 
-调用 `plugin.dispose()` 释放插件模块时，`@kokkoro/core` 会执行通过 `useDispose()` 登记的清理函数。
+调用 `plugin.dispose()` 释放插件模块时，`@kokkoro/core` 会执行通过 `useDispose()` 收集的清理函数。
 
 ## `PluginSetup` 中的副作用 {#plugin-setup}
 
@@ -47,4 +47,4 @@ export default () => {
 
 在 [自定义事件](/develop/event#custom-events) 的示例中，`PluginSetup` 通过 `bot.on()` 注册监听器，再通过返回函数调用 `bot.off()`。定时器、网络连接等副作用也可以使用相同的方式清理。清理函数可以同步执行，也可以返回 `Promise`。
 
-`useEvent()` 注册的 Hook 会在取消挂载时自动移除，因此它的回调函数不能返回清理函数。
+通过 `useEvent()` 声明的 Hook 会在取消挂载时自动移除，因此它的回调函数不能返回清理函数。

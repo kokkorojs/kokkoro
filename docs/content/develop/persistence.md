@@ -161,7 +161,7 @@ await database.del('user-id');
 
 #### `database.close()` {#leveldb-close}
 
-关闭数据库连接。插件在模块顶层创建数据库时，可以通过 `useDispose()` 登记清理函数。
+关闭数据库连接。插件在模块顶层创建数据库时，可以通过 `useDispose()` 声明清理函数。
 
 ```typescript
 useDispose(() => database.close());
