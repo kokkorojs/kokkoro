@@ -2,8 +2,8 @@ import { type ClientEvent, type SendGroupMessagePayload, type SendUserMessagePay
 
 import { type Context, type MountScope, assertActiveMountScope, collectCommand } from './plugin';
 
-/** Command 声明中的参数仅用 ASCII 空格分隔。 */
-type Whitespace = ' ';
+/** Command 声明中的参数支持使用半角空格、制表符和全角空格分隔。 */
+type Whitespace = ' ' | '\t' | '\u3000';
 
 type Tokenize<
   Source extends string,

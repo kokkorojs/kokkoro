@@ -40,6 +40,12 @@ test('公开类型', () => {
       { readonly keyword: string; readonly page: string | undefined; readonly tags: string[] }
     >
   >();
+  expectType<
+    Equal<
+      ParseCommand<'/search\t<keyword>\u3000[page]'>,
+      { readonly keyword: string; readonly page: string | undefined }
+    >
+  >();
   expectType<Equal<ParseCommand<'/hello'>, Record<never, never>>>();
   expectType<Equal<ParseCommand<' /hello'>, never>>();
   expectType<Equal<ParseCommand<'/invalid [optional] <required>'>, never>>();
