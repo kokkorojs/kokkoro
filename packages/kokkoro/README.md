@@ -85,6 +85,8 @@ bun run main.ts
 
 Kokkoro 使用 [Annal](https://github.com/xueelf/annal) 将日志输出到终端。`debug` 日志包含插件挂载、鉴权、OpenAPI、WebSocket、WebHook 和 Dispatch 的详细信息。
 
+插件通过 `useLogger()` 输出的日志使用独立作用域。例如，`kokkoro-plugin-example` 的日志前缀为 `kokkoro:plugin:example`。
+
 插件加载、挂载和执行过程中抛出的错误都会写入日志。
 
 ## 添加插件
@@ -127,8 +129,8 @@ bun add kokkoro-plugin-example
 
 ## 运行示例
 
-[`examples`](./examples) 包含一个入口文件和 Ping、Echo、Eval 三个本地插件。填写 `examples/kokkoro.json` 中的机器人配置，然后运行：
+[`examples`](./examples) 包含一个本地 Ping 插件，并配置了 Eval、Hitokoto、KFC 和 SauceNAO 插件包。在 `examples` 目录创建 `kokkoro.json` 并填写机器人配置后，可以从仓库根目录运行：
 
 ```shell
-bun run ./examples/main.ts
+bun run ./packages/kokkoro/examples/main.ts
 ```
