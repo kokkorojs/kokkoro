@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import { isErrorResponse, resolveTypeCodes, resolveTypes } from 'kokkoro-plugin-hitokoto';
+import { isErrorResponse, resolveTypeCodes, resolveTypes } from '../src/hitokoto';
 
 test('类型代码', () => {
   expect(resolveTypeCodes(['动画', '漫画', '游戏'])).toEqual(['a', 'b', 'c']);
