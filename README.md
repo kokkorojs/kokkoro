@@ -57,6 +57,7 @@ bun start
 | **[kokkoro-plugin-kfc](./plugins/kfc)**           | 获取疯狂星期四文案                         |
 | **[kokkoro-plugin-eval](./plugins/eval)**         | 在聊天中执行 JavaScript 或 TypeScript 代码 |
 | **[kokkoro-plugin-saucenao](./plugins/saucenao)** | 使用 SauceNAO 搜索图片来源                 |
+| **[kokkoro-plugin-og](./plugins/og)**             | 发送网页声明的 Open Graph 预览图片         |
 
 更多插件可以在 [插件市场](https://kokkoro.js.org/plugin/market) 中查找。
 

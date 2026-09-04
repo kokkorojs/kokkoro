@@ -1,0 +1,32 @@
+{
+  "name": "kokkoro-plugin-og",
+  "version": "1.0.0",
+  "description": "Open Graph 图片预览，解析网页链接并发送 og:image 声明的图片。",
+  "keywords": [
+    "bot",
+    "kokkoro",
+    "og",
+    "open graph",
+    "qq"
+  ],
+  "bugs": "https://github.com/kokkorojs/kokkoro/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kokkorojs/kokkoro.git",
+    "directory": "plugins/og"
+  },
+  "license": "MIT",
+  "author": "Yuki <admin@yuki.sh>",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./service": "./src/service.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "peerDependencies": {
+    "@kokkoro/core": "^3.1.4",
+    "typescript": "^6.0.3"
+  }
+}
