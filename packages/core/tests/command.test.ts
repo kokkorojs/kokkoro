@@ -1,13 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import {
-  type ClientEvent,
-  type Command,
-  type CommandReply,
-  type CommandTrigger,
-  useCommand,
-  useEvent,
-} from '@kokkoro/core';
+import { type ClientEvent, type Command, type CommandTrigger, useCommand, useEvent } from '@kokkoro/core';
 
 import { createBot, createGroupMessageEvent } from './helpers';
 
@@ -49,7 +42,7 @@ test('Command 分词', async () => {
 
 test('Command 输入处理', async () => {
   const bot = createBot();
-  const replies: CommandReply[] = [];
+  const replies: unknown[] = [];
 
   function setup() {
     useCommand('/echo <part>', context => context.args.part);
@@ -95,6 +88,37 @@ test('Shortcut 匹配', async () => {
     { tag: '可可萝', tags: [] },
     { tag: undefined, tags: ['可可萝、萝莉'] },
   ]);
+});
+
+test('Shortcut 必填参数', async () => {
+  const patterns = ['required', /^required .+$/] as const;
+
+  for (const pattern of patterns) {
+    const bot = createBot();
+
+    await expect(
+      bot.mount(() => {
+        useCommand('/required <value>', () => undefined).shortcut(pattern);
+      }),
+    ).rejects.toThrow('Command shortcut is missing required parameters: value');
+  }
+
+  const bot = createBot();
+  const args: string[] = [];
+
+  await expect(
+    bot.mount(() => {
+      useCommand('/required <value>', context => {
+        args.push(context.args.value);
+      }).shortcut(/^required(?: (?<value>.*))?$/);
+    }),
+  ).resolves.toBeUndefined();
+
+  await bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('required'));
+  await bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('required '));
+  await bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('required value'));
+
+  expect(args).toEqual(['value']);
 });
 
 test('Shortcut 并发', async () => {
@@ -218,7 +242,7 @@ test('Command 生命周期', async () => {
 
 test('Command 回复', async () => {
   const bot = createBot();
-  const replies: CommandReply[] = [];
+  const replies: unknown[] = [];
 
   function setup() {
     useCommand('/text', () => 'hello');
@@ -226,7 +250,7 @@ test('Command 回复', async () => {
     useCommand('/record', () => ({ key: 'value' }));
     useCommand('/array', () => []);
     useCommand('/explicit', async context => {
-      await context.reply('manual');
+      await context.reply({ content: 'manual' });
     });
   }
 
@@ -237,12 +261,18 @@ test('Command 回复', async () => {
   await bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('/array', replies));
   await bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('/explicit', replies));
 
-  expect(replies).toEqual(['hello', { msg_type: 0, content: 'payload' }, '{"key":"value"}', '[]', 'manual']);
+  expect(replies).toEqual([
+    'hello',
+    '{"msg_type":0,"content":"payload"}',
+    '{"key":"value"}',
+    '[]',
+    { content: 'manual' },
+  ]);
 });
 
 test('Command 异常', async () => {
   const bot = createBot();
-  const replies: CommandReply[] = [];
+  const replies: unknown[] = [];
   const triggers: CommandTrigger[] = [];
   const handlerError = new Error('指令处理失败');
 

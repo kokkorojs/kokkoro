@@ -1,6 +1,6 @@
 import { Image } from 'bun';
 
-import { type CommandReply, useCommand } from '@kokkoro/core';
+import { useCommand } from '@kokkoro/core';
 
 /**
  * SauceNAO JSON API 搜索响应。
@@ -175,7 +175,7 @@ async function searchImage(image: string) {
   return results;
 }
 
-async function createMessage(results: readonly ImageSource[]) {
+async function createMarkdown(results: readonly ImageSource[]): Promise<string> {
   const content = await Promise.all(
     results.map(async ({ data, header }, index) => {
       const { index_name: indexName, similarity, thumbnail } = header;
@@ -210,12 +210,7 @@ async function createMessage(results: readonly ImageSource[]) {
     }),
   );
 
-  return {
-    msg_type: 2,
-    markdown: {
-      content: ['## SauceNAO 搜图结果', '***', ...content].join('\n\n'),
-    },
-  } satisfies CommandReply;
+  return ['## SauceNAO 搜图结果', '***', ...content].join('\n\n');
 }
 
 export default () => {
@@ -225,6 +220,11 @@ export default () => {
     if (!image?.url) {
       throw new Error('请在指令中附带需要搜索的图片');
     }
-    return createMessage(await searchImage(image.url));
+    await context.reply({
+      msg_type: 2,
+      markdown: {
+        content: await createMarkdown(await searchImage(image.url)),
+      },
+    });
   }).shortcut('搜图');
 };

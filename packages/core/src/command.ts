@@ -1,4 +1,4 @@
-import { type ClientEvent, type SendGroupMessagePayload, type SendUserMessagePayload } from 'chobits';
+import { type ClientEvent } from 'chobits';
 
 import { type Context, type MountScope, assertActiveMountScope, collectCommand } from './plugin';
 
@@ -74,12 +74,6 @@ export type ParseCommand<Syntax extends string> = Syntax extends `/${string}`
   : never;
 
 type CheckedSyntax<Syntax extends string> = ParseCommand<Syntax> extends never ? never : Syntax;
-
-type ManagedReplyField = 'event_id' | 'msg_id' | 'msg_seq';
-type ReplyMessage<Message> = Message extends unknown ? Omit<Message, ManagedReplyField> : never;
-
-/** Command 处理函数可以直接返回的消息。 */
-export type CommandReply = string | ReplyMessage<SendGroupMessagePayload> | ReplyMessage<SendUserMessagePayload>;
 
 export const COMMAND_EVENT_TYPES = ['C2C_MESSAGE_CREATE', 'GROUP_AT_MESSAGE_CREATE', 'GROUP_MESSAGE_CREATE'] as const;
 
@@ -225,18 +219,38 @@ const matchShortcut = (
 
   for (const parameter of command.parameters) {
     const value = groups[parameter.name];
+
+    if (parameter.required && !value) {
+      return null;
+    }
     args[parameter.name] = parameter.variadic ? (value === undefined ? [] : [value]) : value;
   }
   return args;
 };
 
-interface EventWithReply {
-  reply(message: CommandReply): Promise<unknown>;
-}
+const getCaptureNames = (pattern: RegExp): Set<string> => {
+  // 空分支让 exec() 返回匹配结果，groups 会包含正则中声明的全部命名捕获组。
+  const match = new RegExp(`(?:${pattern.source})|`, pattern.flags).exec('');
 
-/** `ClientEvent` 联合无法保留事件类型与 `reply()` 重载之间的对应关系。 */
-const reply = async (event: ClientEvent<CommandEventType>, message: CommandReply): Promise<void> => {
-  await (<EventWithReply>(<unknown>event)).reply(message);
+  return new Set(Object.keys(match?.groups ?? {}));
+};
+
+const validateShortcut = (command: CommandRegistration, pattern: string | RegExp): void => {
+  const requiredNames = command.parameters.filter(parameter => parameter.required).map(parameter => parameter.name);
+
+  if (requiredNames.length === 0) {
+    return;
+  }
+  const captureNames = typeof pattern === 'string' ? new Set<string>() : getCaptureNames(pattern);
+  const missingNames = requiredNames.filter(name => !captureNames.has(name));
+
+  if (missingNames.length > 0) {
+    throw new SyntaxError(`Command shortcut is missing required parameters: ${missingNames.join(', ')}`);
+  }
+};
+
+const reply = async (event: ClientEvent<CommandEventType>, message: string): Promise<void> => {
+  await event.reply(message);
 };
 
 const runCommand = async (
@@ -264,12 +278,7 @@ const runCommand = async (
   }
 
   if (result !== undefined) {
-    const message =
-      typeof result === 'object' && result !== null && !Array.isArray(result) && Object.hasOwn(result, 'msg_type')
-        ? <CommandReply>result
-        : typeof result === 'object'
-          ? <string>JSON.stringify(result)
-          : String(result);
+    const message = typeof result === 'object' ? (JSON.stringify(result) ?? String(result)) : String(result);
 
     await reply(event, message);
   }
@@ -385,6 +394,7 @@ export function useCommand<const Syntax extends `/${string}`>(
       if (typeof pattern !== 'string' && !(pattern instanceof RegExp)) {
         throw new TypeError('Command shortcut must be a string or RegExp');
       }
+      validateShortcut(registration, pattern);
       registration.shortcuts.push(pattern);
 
       return this;

@@ -1,4 +1,4 @@
-import { type ClientEvent, type CommandReply, Bot } from '@kokkoro/core';
+import { type ClientEvent, Bot } from '@kokkoro/core';
 
 export const createBot = (): Bot =>
   new Bot({
@@ -10,12 +10,12 @@ export const createEvent = <Type extends 'READY' | 'RESUMED'>(): ClientEvent<Typ
 
 export const createGroupMessageEvent = (
   content: string,
-  replies: CommandReply[] = [],
+  replies: unknown[] = [],
   mentions?: ClientEvent<'GROUP_MESSAGE_CREATE'>['mentions'],
 ): ClientEvent<'GROUP_MESSAGE_CREATE'> => <ClientEvent<'GROUP_MESSAGE_CREATE'>>(<unknown>{
     content,
     mentions,
-    async reply(message: CommandReply) {
+    async reply(message: unknown) {
       replies.push(message);
     },
   });
