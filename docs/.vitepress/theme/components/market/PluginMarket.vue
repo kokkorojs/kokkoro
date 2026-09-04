@@ -149,7 +149,7 @@
 <template>
   <main class="market">
     <header class="header">
-      <h1 class="title">插件市场</h1>
+      <h1 id="plugin-market" class="title">插件市场</h1>
       <p class="description">发现并安装 Kokkoro 插件，列表按近一个月下载量排序。</p>
     </header>
 

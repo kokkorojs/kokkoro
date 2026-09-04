@@ -1,272 +1,138 @@
-# 指令参数 {#command-arguments}
+# 指令处理 {#commands}
 
-Kokkoro 会根据指令语法解析聊天消息，并将参数保存在 `context.args` 中。本页介绍参数的声明、读取与类型转换。
+QQ 指令同样来自消息事件。`useCommand()` 封装了这些事件的监听、指令匹配和参数解析，让插件只需要声明指令语法和处理函数。
 
-QQ 要求机器人指令以 `/` 开头，这种设计在机器人平台中十分常见，Telegram、Discord 等平台的机器人也同样使用斜杠指令。这样设计可以让用户在聊天框输入斜杠时，客户端能识别正在输入指令，并显示可用指令及其说明，方便用户查找和选择。QQ 的指令菜单可以通过 [指令面板](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/menu-panel/) 配置。
+## 注册指令 {#register-command}
 
-## 参数语法 {#syntax}
-
-你可以通过命令行语法（command line syntax）为指令添加参数，例如 `<arg>`、`[arg]`、`<args>...` 和 `[args]...`。
-
-必填参数必须位于可选参数之前，可变参数必须位于末尾。
-
-```typescript {4}
-import { useCommand } from '@kokkoro/core';
-
-export default () => {
-  useCommand('/复读 <part>', context => context.args.part);
-};
-```
-
-<ChatPanel self="2225151531" :bots="['2854205915']">
-  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /复读 ciallo</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">ciallo</ChatMessage>
-</ChatPanel>
-
-指令参数会全部存储在 `context.args` 中。如果指令没有声明任何参数，那么 `args` 的值是 `{}` 空对象。
-
-## 必填参数 {#required-arguments}
-
-如果指令缺少必填参数，Kokkoro 会回复正确的指令语法。
-
-<ChatPanel self="2225151531" :bots="['2854205915']">
-  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /复读</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">缺少指令参数，有效语句为："/复读 &lt;part>"</ChatMessage>
-</ChatPanel>
-
-## 可选参数 {#optional-arguments}
-
-如果你为指令添加了可选参数（`[arg]`），那么当指令未传入参数时，该字段的值是 `undefined`，这点需要注意。
-
-```typescript {4}
-import { useCommand } from '@kokkoro/core';
-
-export default () => {
-  useCommand('/复读 [part]', context => String(context.args.part));
-};
-```
-
-<ChatPanel self="2225151531" :bots="['2854205915']">
-  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /复读</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">undefined</ChatMessage>
-</ChatPanel>
-
-## 多余参数 {#extra-arguments}
-
-Kokkoro 会使用空格分隔指令中的参数。`<part>` 和 `[part]` 每项只接收一个值。实际传入的参数多于声明的参数时，多出的部分会被**忽略**。
-
-在命令行中，POSIX Shell 允许使用引号将包含空格的内容作为一个整体参数，部分机器人框架也支持这种写法。但 Kokkoro 没有沿用这套规则，引号只会作为普通字符保留：
-
-<ChatPanel self="2225151531" :bots="['2854205915']">
-  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /复读 hello world</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">hello</ChatMessage>
-  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /复读 "hello world"</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">"hello</ChatMessage>
-</ChatPanel>
-
-带引号的指令仍会被拆成 `"hello` 和 `world"`，`<part>` 只接收传入的第一个参数。
-
-POSIX Shell 的引号和转义规则面向命令行工具，用户需要先理解参数边界才能正确调用指令。而 QQ 机器人则通过聊天窗口进行交流，两者在使用场景上就存在着明显差异。
-
-Kokkoro 的设计理念，是让没有编程基础的用户也能轻松体验机器人带来的乐趣。如果用户为了向机器人发送一条普通指令，还要先学习 POSIX Shell 语法，无疑会增加额外的学习成本。
-
-如果需要接收后续的全部参数，可以使用可变参数。
-
-::: tip
-Kokkoro 使用正则表达式 `\s` 匹配指令中的空白字符，因此全角空格和制表符也能分隔参数。但为了便于输入和辨认，建议只使用半角空格。
-:::
-
-## 可变参数 {#variadic-arguments}
-
-可变参数（`<args>...`、`[args]...`）会将后续参数依次存入数组，这与 JavaScript 中的 [Rest 语法](https://zh.javascript.info/rest-parameters-spread) 十分相似。
-
-```typescript {4}
-import { useCommand } from '@kokkoro/core';
-
-export default () => {
-  useCommand('/复读 <parts>...', context => context.args.parts.join(' '));
-};
-```
-
-<ChatPanel self="2225151531" :bots="['2854205915']">
-  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /复读 hello world</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">hello world</ChatMessage>
-</ChatPanel>
-
-`useCommand()` 针对可变参数做了严格的语法校验。与 JavaScript 一样，可变参数只能放在**参数的最后面**，不然会导致插件无法被正常挂载。
-
-```typescript {4}
-import { useCommand } from '@kokkoro/core';
-
-export default () => {
-  useCommand('/来点涩图 <tags>...', context => context.args.tags);
-};
-```
-
-<ChatPanel self="2225151531" :bots="['2854205915']">
-  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /来点涩图 贫乳 萝莉 白丝</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">["贫乳","萝莉","白丝"]</ChatMessage>
-</ChatPanel>
-
-::: warning 不可以涩涩
-这里只是为了趣味性才举了这么一个例子，你可别真的去做一个涩图插件，连指令都过不了审。~~别问我是怎么知道的。~~
-:::
-
-值得注意的是，必填可变参数的非空校验依然存在，而可选可变参数在不传入任何内容的时候，其变量的值是 `[]` 空数组，而不是 `undefined`。
-
-## 参数类型 {#argument-types}
-
-在 QQ 中，所有消息都是通过聊天窗口下半部分的输入框发送的，我们可以将其视为一个 `textarea` 元素。
-
-因此，`args` 中的普通参数类型为 `string`，可变参数类型为 `string[]`。
-
-```typescript {4}
-import { useCommand } from '@kokkoro/core';
-
-export default () => {
-  useCommand('/复读 <part>', context => JSON.stringify(context.args.part));
-};
-```
-
-<ChatPanel self="2225151531" :bots="['2854205915']">
-  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /复读 114514</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">"114514"</ChatMessage>
-</ChatPanel>
-
-在这里，`part` 参数的值是 `"114514"` 字符串，而不是数字。经过 `JSON.stringify()` 处理后，它会变成 `'"114514"'`，最终回复为 `"114514"`。
-
-Kokkoro 将数据处理交给开发者，设计原因可以参阅 [为什么指令参数都是字符串？](/about/faq#command-arguments-as-strings)。如果需要转换参数类型，可以直接使用 JavaScript 提供的方法。
-
-```typescript {6-8}
-import { useCommand } from '@kokkoro/core';
-
-export default () => {
-  useCommand('/复读 <part>', context => {
-    const { part } = context.args;
-    const number = Number(part);
-
-    return Number.isNaN(number) ? JSON.stringify(part) : JSON.stringify(number);
-  });
-};
-```
-
-<ChatPanel self="2225151531" :bots="['2854205915']">
-  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /复读 114514</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">114514</ChatMessage>
-  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /复读 哼哼哼啊啊啊啊啊啊啊</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">"哼哼哼啊啊啊啊啊啊啊"</ChatMessage>
-</ChatPanel>
-
-## 异常处理 {#errors}
-
-指令处理函数抛出 `Error` 时，Kokkoro 会将 `error.message` 回复到当前私聊或群聊，并在终端记录一条 **ERROR** 日志。无论处理函数由斜杠指令还是快捷方式触发，异常处理规则都相同。
+下面的插件注册了 `/ping` 指令，并在收到指令后回复「pong」：
 
 ```typescript
 import { useCommand } from '@kokkoro/core';
 
 export default () => {
-  useCommand('/ping', () => {
-    throw new Error('请求超时');
-  });
+  useCommand('/ping', () => 'pong');
 };
 ```
 
 <ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /ping</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">请求超时</ChatMessage>
-</ChatPanel>
-
-终端会同时输出错误日志：
-
-```text
-[2026-08-26T02:58:00.000Z] ERROR kokkoro:APP_ID:dispatch - 事件处理失败 Error: 请求超时
-```
-
-需要表示处理失败时，请抛出 `Error`，不要抛出字符串、对象或其他值。其他插件异常和日志规则参阅 [日志与异常](/develop/logging#errors)。
-
-## 类型推导 {#type-inference}
-
-只要为 `useCommand()` 传入字符串字面量，TypeScript 就会根据指令语法自动推导 `args` 的字段与类型，不需要手动标注泛型。
-
-```typescript {4}
-import { useCommand } from '@kokkoro/core';
-
-export default () => {
-  useCommand('/天气 <city>', context => `${context.args.city}天气：晴`);
-};
-```
-
-<ChatPanel self="2225151531" :bots="['2854205915']">
-  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /天气 北京</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">北京天气：晴</ChatMessage>
-</ChatPanel>
-
-## 快捷方式 {#shortcuts}
-
-在「多余参数」一栏中，我们介绍了 Kokkoro 对参数解析的设计哲学。尽管 Kokkoro 没有沿用 POSIX Shell 的引号和转义规则，但斜杠指令在实际使用中仍然接近命令行交互。
-
-例如，上面的天气指令要求用户按照 `/天气 北京` 的形式输入消息。不熟悉命令行的用户还需要记住指令名称和参数顺序，而使用 `shortcut()` 可以为同一条指令添加更接近自然语言的快捷方式，让用户按照日常表达触发指令。
-
-### 字符串 {#string}
-
-将字符串传给 `shortcut()` 时，只有消息内容与字符串完全相同才会触发指令：
-
-```typescript
-import { useCommand } from '@kokkoro/core';
-
-export default () => {
-  useCommand('/ping', () => 'pong').shortcut('在吗');
-};
-```
-
-<ChatPanel self="2225151531" :bots="['2854205915']">
-  <ChatMessage qq="2225151531" nickname="Yuki">在吗</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">pong</ChatMessage>
 </ChatPanel>
 
-发送 `/ping` 与「在吗」都会执行同一个处理函数。
+`useCommand()` 接收两个参数。第一个参数声明指令语法，第二个参数是匹配成功后执行的处理函数。处理函数返回的文本会自动回复到当前私聊或群聊。
 
-### 正则表达式 {#regular-expressions}
+Kokkoro 要求传给 `useCommand()` 的指令语法以 `/` 开头。斜杠后还必须包含指令名称，因此单独的 `/` 也不是有效语法。下面的 `ping` 缺少 `/` 前缀：
 
-字符串快捷方式只能匹配固定内容，无法从消息中提取指令参数。如果想从自然语言中提取参数，可以使用正则表达式：
+```typescript
+useCommand('ping', () => 'pong');
+```
+
+TypeScript 会在编辑器中标记这个错误。Kokkoro 还会在挂载插件时检查指令语法，并在终端记录以下错误：
+
+```text
+[2026-09-03T00:00:00.000Z] ERROR kokkoro:APP_ID:plugin - 挂载失败 kokkoro-plugin-example
+SyntaxError: Command syntax must start with /
+```
+
+包含这段代码的插件不会完成挂载，其他插件仍会继续加载。
+
+QQ 开放平台的 [指令面板](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/menu-panel/) 用于在 QQ 客户端中展示指令或链接。用户点击指令后，面板会将配置的 `name` 填入输入框，但不会替 Kokkoro 注册指令。要让面板项触发 `/ping`，需要将它的 `name` 配置为 `/ping`。
+
+`useCommand()` 会处理私聊消息、群聊 @ 消息和已经开启「获取群内全部消息」权限的群消息。同一条指令不需要为不同消息事件重复注册。
+
+同一个 `Bot` 中，每条指令的前缀必须唯一。两个插件都注册 `/ping` 时，后挂载的插件会失败，终端也会记录前缀冲突。
+
+收到未注册的斜杠指令时，Kokkoro 会回复当前 `Bot` 已经注册的指令语法列表。当前 `Bot` 没有注册任何指令时，不会回复。
+
+## 指令上下文 {#command-context}
+
+处理函数可以接收 `context` 参数。它包含当前消息的数据，以及 Kokkoro 为指令添加的 `args` 和 `trigger`。
+
+下面的指令读取消息 ID，并把它回复给用户：
 
 ```typescript
 import { useCommand } from '@kokkoro/core';
 
 export default () => {
-  useCommand('/天气 <city>', context => `${context.args.city}天气：晴`).shortcut(/^查询(?<city>.+)天气$/);
+  useCommand('/消息', context => `消息 ID：${context.id}`);
 };
+```
+
+`context.args` 保存解析后的指令参数，具体用法见 [指令参数](/develop/command-arguments)。`context.trigger` 记录本次处理由斜杠指令还是快捷方式触发，具体用法见 [指令快捷方式](/develop/command-shortcuts#trigger)。
+
+## 回复消息 {#reply-messages}
+
+`context.reply()` 用于向当前会话发送回复。处理函数返回文本时，Kokkoro 会自动调用它，因此下面两种写法的效果相同：
+
+::: code-group
+
+```typescript [返回文本]
+useCommand('/ping', () => 'pong');
+```
+
+```typescript [调用 reply]
+useCommand('/ping', async context => {
+  await context.reply('pong');
+});
+```
+
+:::
+
+只需回复一条文本时，可以直接返回字符串。需要等待发送结果、连续发送多条消息，或发送 QQ 消息对象时，可以调用 `context.reply()`。处理函数没有返回值时，Kokkoro 不会自动回复。
+
+调用 `context.reply()` 后，处理函数应当保持无返回值。下面的写法会把 `reply()` 返回的发送结果再次作为指令返回值，导致机器人发送第二条消息：
+
+```typescript
+// 不要这样写
+useCommand('/ping', context => context.reply('pong'));
+```
+
+需要调用 `reply()` 时，可以使用带花括号的函数体，并通过 `await` 等待消息发送完成，前面的「调用 reply」示例采用的就是这种写法。
+
+返回值不是字符串时，对象和数组会通过 `JSON.stringify()` 转为文本，其他值会通过 `String()` 转为文本：
+
+```typescript
+export default () => {
+  useCommand('/成员', () => ['镜华', '美美', '未奏希']);
+
+  useCommand('/状态', () => ({
+    name: '可可萝',
+    protocol: 'websocket',
+  }));
+};
+```
+
+这两条指令会分别回复 `["镜华","美美","未奏希"]` 和 `{"name":"可可萝","protocol":"websocket"}`。它们不会被当作 QQ 消息结构处理。
+
+发送 QQ 消息对象时，需要直接调用 `context.reply()`：
+
+```typescript
+useCommand('/ping', async context => {
+  await context.reply({ msg_type: 0, content: 'pong' });
+});
+```
+
+## 异常处理 {#error-handling}
+
+处理函数抛出 `Error` 时，Kokkoro 会把 `error.message` 回复到当前会话，并在终端记录一条 **ERROR** 日志：
+
+```typescript
+useCommand('/状态', () => {
+  throw new Error('暂时无法查询机器人状态');
+});
 ```
 
 <ChatPanel self="2225151531" :bots="['2854205915']">
-  <ChatMessage qq="2225151531" nickname="Yuki">查询北京天气</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">北京天气：晴</ChatMessage>
+  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /状态</ChatMessage>
+  <ChatMessage qq="2854205915" nickname="可可萝">暂时无法查询机器人状态</ChatMessage>
 </ChatPanel>
 
-两侧的 `/` 表示这是一段**正则表达式**，内部规则可以拆成三部分：
+终端会同时记录这次异常：
 
-- **^查询** 要求消息以「查询」开头。
-- **(?&lt;city&gt;.+)** 将中间的一个或多个字符保存为名为 `city` 的参数。
-- **天气$** 要求消息以「天气」结尾。
-
-命名捕获组 `city` 必须与指令参数 `<city>` 同名。收到「查询北京天气」时，`context.args.city` 的值就是 `"北京"`。
-
-更多语法参阅 [MDN 正则表达式指南](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Guide/Regular_expressions) 和 [命名捕获组](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Guide/Regular_expressions/Groups_and_backreferences#%E4%BD%BF%E7%94%A8%E5%91%BD%E5%90%8D%E7%BB%84)。
-
-### 触发方式 {#trigger}
-
-`context.trigger` 记录处理函数由斜杠指令还是快捷方式触发。用户执行斜杠指令时，该字段为 `command`。普通消息命中 `shortcut()` 时，该字段为 `shortcut`。只有需要为两种触发方式采用不同处理策略时，才需要读取这个字段。
-
-### 链式调用 {#chaining}
-
-同一条指令可以链式调用多次 `shortcut()`，以匹配不同的自然语言表达：
-
-```typescript
-import { useCommand } from '@kokkoro/core';
-
-export default () => {
-  useCommand('/天气 <city>', context => `${context.args.city}天气：晴`)
-    .shortcut(/^查询(?<city>.+)天气$/)
-    .shortcut(/^(?<city>.+)天气怎么样$/);
-};
+```text
+[2026-09-03T00:00:00.000Z] ERROR kokkoro:APP_ID:dispatch - 事件处理失败 Error: 暂时无法查询机器人状态
 ```
+
+斜杠指令和快捷方式遵循相同的异常处理规则。处理函数应当抛出 `Error`，抛出其他值时，Kokkoro 会将它转换为 `TypeError`，但不会自动回复给用户。有关 Kokkoro 自动记录哪些异常，参阅 [日志与异常](/develop/logging#logging-and-errors)。
+
+必填参数、可选参数和可变参数的声明与解析规则见 [指令参数](/develop/command-arguments)。

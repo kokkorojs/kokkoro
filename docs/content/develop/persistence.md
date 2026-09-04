@@ -1,7 +1,7 @@
 # 数据持久化 {#persistence}
 
 ::: warning
-Kokkoro v3 已基于 Bun 重构，Bun 原生提供 [SQLite](https://bun.com/docs/runtime/sqlite) API。新的数据持久化体系仍在设计和评估。`@kokkoro/jsondb` 与 `@kokkoro/database` 仍可正常使用，但不推荐用于 v3。
+Kokkoro v3 已基于 Bun 重构，Bun 原生提供 [SQLite](https://bun.com/docs/runtime/sqlite) API。新的数据持久化体系仍在设计和评估。本页保留旧版数据包的 API，示例使用 v3 的插件语法。旧版数据包与 v3 的兼容性尚未验证。
 :::
 
 机器人插件经常需要保存群配置、用户数据和运行状态。Kokkoro 以前提供过两种本地数据持久化方案：
@@ -9,7 +9,7 @@ Kokkoro v3 已基于 Bun 重构，Bun 原生提供 [SQLite](https://bun.com/docs
 - **@kokkoro/jsondb** 将数据写入 JSON 文件，适合数据量较小且需要直接查看或修改的场景。
 - **@kokkoro/database** 基于 LevelDB，适合按键读写大量数据的场景。
 
-## JSON 文件 {#json}
+## Kokkoro v1：JSON 文件 {#v1-json}
 
 Kokkoro v1 提供了 `@kokkoro/jsondb`，可以像操作普通对象一样读写 JSON 文件。
 
@@ -17,26 +17,35 @@ Kokkoro v1 提供了 `@kokkoro/jsondb`，可以像操作普通对象一样读写
 bun add @kokkoro/jsondb @kokkoro/utils
 ```
 
-`@kokkoro/jsondb@1.2.3` 的运行代码依赖 `@kokkoro/utils`，但发布清单没有将其声明为 `dependencies`，因此需要同时安装这两个包。
+`@kokkoro/jsondb@1.2.3` 在运行时依赖 `@kokkoro/utils`，但其 `package.json` 没有声明该依赖，因此需要同时安装这两个包。
 
-下面的插件记录 `/计数` 指令的累计调用次数。即使重新启动 Kokkoro，计数结果也不会丢失。
+下面的插件会为每位用户保存最近一次签到时间。重新启动 Kokkoro 后，之前的签到记录仍然可以查询。
 
 ```typescript
 import { useCommand } from '@kokkoro/core';
 import { Database } from '@kokkoro/jsondb';
 
-const database = new Database('data/plugins/counter');
+const database = new Database('data/plugins/check-in');
 
 export default () => {
-  useCommand('/计数', () => {
-    database.count = (database.count ?? 0) + 1;
+  useCommand('/签到', context => {
+    const userId = context.author.union_openid;
+    const checkedAt = new Date().toLocaleString('zh-CN');
 
-    return `这条指令已经调用了 ${database.count} 次`;
+    database[userId] = checkedAt;
+
+    return `签到成功\n签到时间：${checkedAt}`;
+  });
+
+  useCommand('/签到记录', context => {
+    const checkedAt = database[context.author.union_openid];
+
+    return checkedAt ? `上次签到时间：${checkedAt}` : '还没有签到记录';
   });
 };
 ```
 
-首次创建 `Database` 时，模块会自动生成 `data/plugins/counter/index.json`。读取属性会重新载入文件，赋值和删除属性则会立即写回文件。
+首次创建 `Database` 时，模块会自动生成 `data/plugins/check-in/index.json`。读取属性会重新载入文件，赋值和删除属性则会立即写回文件。
 
 ### API {#json-api}
 
@@ -69,7 +78,7 @@ delete database.message;
 
 删除属性后，模块也会立即更新 `index.json`。
 
-## LevelDB {#leveldb}
+## Kokkoro v2：LevelDB {#v2-leveldb}
 
 Kokkoro v2 提供了 `@kokkoro/database`。该模块继承 [ClassicLevel](https://www.npmjs.com/package/classic-level)，并新增了 `has()` 方法。
 
@@ -161,10 +170,10 @@ await database.del('user-id');
 
 #### `database.close()` {#leveldb-close}
 
-关闭数据库连接。插件在模块顶层创建数据库时，可以通过 `useDispose()` 声明清理函数。
+关闭数据库连接。插件在模块顶层创建数据库时，可以通过 `useDispose()` 注册清理函数。
 
 ```typescript
 useDispose(() => database.close());
 ```
 
-`@kokkoro/database` 也继承了 `ClassicLevel` 的批量操作和迭代器等 API。完整用法请参阅 [ClassicLevel API](https://github.com/Level/classic-level#api)。
+`@kokkoro/database` 也继承了 `ClassicLevel` 的批量操作和迭代器等 API。完整用法见 [ClassicLevel API](https://github.com/Level/classic-level#api)。

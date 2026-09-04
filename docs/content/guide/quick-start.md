@@ -1,152 +1,200 @@
 # 快速上手 {#quick-start}
 
-::: tip 准备工作
-在开始前，请先确保你安装了 [Bun](https://bun.com)，并在 [QQ 开放平台](https://q.qq.com) 创建好了机器人。
-:::
+## 准备工作 {#prerequisites}
 
-## 初始化项目 {#initialize}
+在运行 Kokkoro 前，需要做好以下准备：
 
-Kokkoro 提供两种初始化方式。`bun create` 创建新目录，`kokkoro init` 初始化当前目录。
+- **Bun 运行时**：Kokkoro 只支持 Bun 运行时。如果开发环境中尚未安装 Bun，可以按照 [Bun 安装文档](https://bun.com/docs/installation) 中适用于当前操作系统的步骤完成安装。
+- **QQ 机器人**：需要提前在 [QQ 开放平台](https://q.qq.com) 创建，并从管理后台获取机器人的 AppID 和 ClientSecret。初始化项目时会用到这两项凭证。
+
+安装 Bun 后，在终端运行以下命令：
+
+```shell
+bun --version
+```
+
+终端显示 Bun 的版本号，说明 Bun 已经可以正常运行。
+
+## 初始化项目 {#initialize-project}
+
+Kokkoro 提供两种初始化项目的方式。`bun create kokkoro` 会创建一个新的文件夹作为项目目录，并将项目文件写入其中。`kokkoro init` 则会将项目文件写入当前目录。
+
+`kokkoro init` 由 Kokkoro 命令行工具（CLI）提供，后文创建本地插件也会用到这个工具。全局安装后，可以在任意目录运行 `kokkoro`：
+
+```shell
+bun add --global @kokkoro/cli
+```
+
+安装完成后，运行以下命令检查 CLI 是否可用：
+
+```shell
+kokkoro --version
+```
+
+终端显示 Kokkoro CLI 的版本号，说明安装成功。
 
 ### 创建新项目 {#create-project}
 
-如果你还没有创建项目目录，可以直接使用 Bun 的项目创建命令：
+在终端中进入准备存放新项目的上级目录，再运行：
 
 ```shell
 bun create kokkoro
 ```
 
-命令启动后，会依次询问以下内容：
+命令会先询问项目名称。直接按回车键会使用默认名称 `kokkoro-app`，配置向导完成后会创建同名文件夹，并将项目文件写入其中。
 
-1. **项目名称**：项目目录的名称，默认为 `kokkoro-app`。
-2. **服务端口**：Kokkoro 服务使用的端口，默认为 `3000`。
-3. **QQ 服务接入方式**：首次在本地运行时，建议选择 **WebSocket**。使用 **WebHook** 需要一个可以从公网访问的 HTTPS 回调地址。
-4. **是否添加机器人**：为了完成本页后续的消息交互，请选择 **是**。
-5. **机器人 AppID** 和 **机器人 ClientSecret**：填写 QQ 开放平台中的机器人凭证。
-6. **WebHook 路径**：选择 **WebHook** 并添加机器人时需要填写，默认为 `/callback`。
+### 初始化当前目录 {#initialize-current-directory}
 
-配置完成后，脚手架会以项目名称创建目录，并生成项目所需的文件。
-
-创建完成后，进入项目目录：
+如果已经准备好一个空目录，并且要将它作为项目目录，可以进入该目录后运行：
 
 ```shell
-cd kokkoro-app
-```
-
-请将 `kokkoro-app` 替换为你输入的项目名称。
-
-### 初始化当前目录 {#current-directory}
-
-如果你希望自行创建项目目录，可以全局安装 Kokkoro CLI，再通过 `init` 命令初始化当前目录：
-
-```shell
-# 安装 Kokkoro CLI
-bun add --global @kokkoro/cli
-
-# 创建并进入项目目录
-mkdir kokkoro-app
-cd kokkoro-app
-
-# 初始化当前目录
 kokkoro init
 ```
 
-`kokkoro init` 不会询问项目名称，而是直接使用当前目录。除此之外，两种方式的配置过程和生成内容完全相同。
+### 完成配置向导 {#configuration-wizard}
 
-如果目标目录不是空目录，脚手架会停止创建项目。添加 `--force` 选项后，脚手架会覆盖同名的模板文件，并保留目录中的其他内容。
+无论使用哪种初始化方式，都会进入相同的配置向导。本页以无需公网地址的本地开发为例，使用以下配置：
 
-::: code-group
+1. **服务端口**：保留默认值 `3000`。
+2. **QQ 服务接入方式**：选择 **WebSocket**。WebHook 需要可以从公网访问的 HTTPS 回调地址，而 WebSocket 可以直接从本地连接 QQ。
+3. **是否添加机器人**：选择 **是**。
+4. **机器人 AppID** 和 **机器人 ClientSecret**：填写从 QQ 开放平台获取的凭证。
 
-```shell [创建新项目]
-bun create kokkoro --force
-```
-
-```shell [初始化当前目录]
-kokkoro init --force
-```
-
+::: warning
+ClientSecret 是敏感凭证。不要向他人公开，也不要将包含真实 ClientSecret 的 `kokkoro.json` 提交到公开仓库。
 :::
 
-## 目录结构 {#structure}
+向导完成后，项目目录中会生成以下内容：
 
-项目初始化完成后，Kokkoro 会生成以下目录结构：
+| 路径             | 用途                             |
+| ---------------- | -------------------------------- |
+| **plugins/**     | 保存项目中的本地插件             |
+| **kokkoro.json** | 配置机器人和 Kokkoro 服务        |
+| **main.ts**      | 加载配置并启动 Kokkoro           |
+| **package.json** | 声明启动脚本、依赖和本地插件目录 |
 
-```text
-.
-├── plugins/       插件目录
-├── kokkoro.json   配置文件
-├── main.ts        程序入口
-└── package.json   包配置文件
+服务端口、接入方式和机器人凭证都保存在 `kokkoro.json` 中，初始化后仍可修改。各字段的含义参阅 [配置文件](/guide/config)。
+
+## 安装依赖 {#install-dependencies}
+
+`bun create kokkoro` 会将项目文件写入新目录，因此安装依赖前需要先进入该目录。下面的命令使用默认项目名称：
+
+```shell
+cd kokkoro-app
 ```
 
-## 安装依赖 {#install}
+如果在向导中输入了其他项目名称，需要将 `kokkoro-app` 换成实际的文件夹名称。
 
-安装项目依赖：
+使用 `kokkoro init` 时，当前目录已经是项目目录。接下来，在项目目录中安装依赖：
 
 ```shell
 bun install
 ```
 
-安装完成后，Bun 会生成 `node_modules` 目录和 `bun.lock` 文件。`package.json` 已由脚手架创建，其中记录了项目依赖和启动命令。
+安装完成后，Bun 会创建 `node_modules` 目录和 `bun.lock` 文件。项目依赖和 `start` 脚本已经由初始化工具写入 `package.json`，不需要手动添加。
 
-如果需要修改接入方式、服务端口或机器人凭证，请参阅 [配置文件](/guide/config)。
+## 启动项目 {#start-project}
 
-## 启动项目 {#start}
-
-启动项目：
+在项目目录中运行 `start` 脚本：
 
 ```shell
 bun start
 ```
 
-如果你已经全局安装 Kokkoro CLI，也可以直接运行：
+前面已经全局安装 Kokkoro CLI，因此也可以使用下面的命令启动同一个项目：
 
 ```shell
 kokkoro start
 ```
 
-启动后，Kokkoro 会加载项目内的插件并启动 HTTP 服务，再为使用 WebSocket 的机器人建立连接。WebHook 机器人会通过各自的回调路由等待 QQ 推送事件。
+Kokkoro 启动时，终端会显示类似下面的日志。时间、AppID 和机器人名称以当前项目为准：
 
-终端输出「服务已启动」和「启动完成」，表示 Kokkoro 已完成启动。WebSocket 机器人连接成功时还会输出「已连接」。
-
-如果 WebSocket 无法建立连接，或 WebHook 没有收到事件，请检查 [`kokkoro.json`](/guide/config) 和 [QQ 机器人管理后台](https://q.qq.com/qqbot/dashboard) 中的接收事件配置。
-
-## 添加插件 {#plugins}
-
-你可以直接安装**社区插件**，为机器人添加更多功能：
-
-```shell
-bun add kokkoro-plugin-hitokoto
+```text
+[2026-09-03T08:32:45.461Z] INFO kokkoro - 正在启动
+[2026-09-03T08:32:45.474Z] INFO kokkoro - 服务已启动 http://localhost:3000/
+[2026-09-03T08:32:46.122Z] INFO kokkoro:123456789:websocket - 已连接 可可萝
+[2026-09-03T08:32:46.139Z] INFO kokkoro - 启动完成 WebSocket 1 WebHook 0
 ```
 
-安装完成后，重新启动项目。Kokkoro 会自动加载该插件。
+日志中的「WebSocket 1」表示一个 WebSocket 机器人已经连接到 QQ，此时 Kokkoro 已完成启动。
+
+现在可以在 QQ 中向机器人发送消息。下面以群聊为例，先 @ 机器人再发送「你好」：
 
 <ChatPanel self="2225151531" :bots="['2854205915']">
-  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /一言</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">『大部分人并不想长大，只是没办法继续当一个小孩子。』——「小林家的龙女仆」</ChatMessage>
+  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 你好</ChatMessage>
 </ChatPanel>
 
-更多插件可以在 [插件市场](/plugin/market) 中查找。
+Kokkoro 收到消息后，会在终端中输出事件内容：
 
-如果社区插件没有你需要的功能，也可以开发自己的插件。使用 Kokkoro CLI 即可创建一个**本地插件**：
+```text
+[2026-09-03T08:33:12.265Z] INFO kokkoro:123456789 - 收到群聊 @ 消息 {
+  id: "...",
+  group_openid: "...",
+  member_openid: "...",
+  content: " 你好",
+}
+```
+
+机器人暂时不会回复，因为当前项目还没有插件处理这条消息。
+
+如果没有看到上述结果，可以按以下情况排查：
+
+- **没有出现「已连接」**：核对 [`kokkoro.json`](/guide/config) 中的机器人凭证和接入方式。
+- **机器人已经连接，发送消息后没有新日志**：确认当前 QQ 账号或群聊已经加入机器人的测试范围。
+- **群聊中的普通消息没有新日志**：群聊未开启「获取群内全部消息」时，需要先 @ 机器人。
+
+## 添加插件 {#add-plugins}
+
+Kokkoro 可以加载项目中的本地插件，也可以加载通过 npm 安装的插件。
+
+### 创建本地插件 {#create-local-plugin}
+
+回到运行 Kokkoro 的终端，按 **Ctrl+C** 停止项目，再创建示例插件：
 
 ```shell
 kokkoro plugin example
 ```
 
-如果你没有全局安装 CLI，也可以通过 `bunx` 运行该命令：
+该命令会在 `plugins/example` 中创建插件。创建完成后，再安装一次依赖，让 Bun 将新插件链接到当前项目：
 
 ```shell
-bunx @kokkoro/cli plugin example
+bun install
 ```
 
-命令会在 `plugins/example` 中创建插件模板。重新启动项目后，向机器人发送 `/ping`，机器人会回复「pong」。
+重新启动项目：
+
+```shell
+bun start
+```
+
+示例插件注册了 `/ping` 指令。在群聊中 @ 机器人并发送该指令，机器人会回复「pong」：
 
 <ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /ping</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">pong</ChatMessage>
 </ChatPanel>
 
-模板中的 `/ping` 指令只是一个最小示例。你可以使用 `useCommand()`、`useEvent()` 等 Hook API 开发插件，详情参阅 [插件概述](/develop/overview)。
+### 安装 npm 插件 {#install-npm-plugin}
+
+通过 npm 发布的插件可以直接安装为项目依赖。下面以 Kokkoro 官方的一言插件为例。回到运行 Kokkoro 的终端，按 **Ctrl+C** 停止项目，再安装插件：
+
+```shell
+bun add kokkoro-plugin-hitokoto
+```
+
+重新启动项目后，Kokkoro 会自动加载该插件：
+
+```shell
+bun start
+```
+
+<ChatPanel self="2225151531" :bots="['2854205915']">
+  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /一言</ChatMessage>
+  <ChatMessage qq="2854205915" nickname="可可萝">『大部分人并不想长大，只是没办法继续当一个小孩子。』——「小林家的龙女仆」</ChatMessage>
+</ChatPanel>
+
+更多官方插件参阅 [官方插件](/plugin/official)，社区维护的插件可以在 [插件市场](/plugin/market) 中查找。[命令行工具](/guide/cli) 列出了 Kokkoro CLI 的其他命令。
+
+接下来可以阅读 [插件概述](/develop/overview)，了解插件的结构和加载方式。
 
 现在，开启一段属于你的物语吧 ♪ q(≧▽≦q)

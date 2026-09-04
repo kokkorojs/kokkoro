@@ -1,22 +1,28 @@
 # 编写第一个插件 {#first-plugin}
 
-::: tip
-当前页面并不会对编程语言做深入讲解，即使你是小白也可以放心观看。  
-之前从未接触过 TypeScript 也能放心食用，接下来的开发过程中会为你逐一讲解 \(￣︶￣\*\))
-:::
+快速上手创建的 `example` 插件已经包含 `/ping` 指令。本页将保留这条指令，并为插件新增一条能够响应「你好」的指令。
 
-如果你对 npm 并不了解也没关系，在这里只会介绍本地插件的编写。<br>
-但是如果你想对 Kokkoro 有一个更深入的了解，还是需要熟悉 Bun 以及 npm 的基本原理。
+## 创建插件 {#create-plugin}
 
-## 创建插件 {#create}
-
-在项目根目录运行以下命令，创建名为 `example` 的本地插件：
+如果已经完成 [快速上手](/guide/quick-start#create-local-plugin) 中的「创建本地插件」，可以直接进入 [新增指令](#add-command)。尚未创建该插件时，在项目根目录运行：
 
 ```shell
 kokkoro plugin example
 ```
 
-命令会在 `plugins/example` 中创建插件模板，并生成以下代码：
+`kokkoro plugin` 由 Kokkoro CLI 提供。如果终端无法识别 `kokkoro` 命令，先按照 [安装 Kokkoro CLI](/guide/cli#install-cli) 完成安装。
+
+命令会创建 `plugins/example` 文件夹，并生成 `package.json` 和 `src/index.ts`。
+
+创建插件后，在项目根目录再次安装依赖，让 Bun 将新插件链接到当前项目：
+
+```shell
+bun install
+```
+
+## 新增指令 {#add-command}
+
+打开插件入口文件 `plugins/example/src/index.ts`。文件中的初始代码如下：
 
 ```typescript
 import { useCommand } from '@kokkoro/core';
@@ -26,86 +32,47 @@ export default () => {
 };
 ```
 
-其实在这个时候，你就已经准备好了一个可以直接使用的插件。
+第一行从 `@kokkoro/core` 导入 `useCommand()`。默认导出的函数是插件入口，类型为 `PluginSetup`。Kokkoro 将插件挂载到 `Bot` 时会执行这个函数。
 
-## 运行插件 {#run}
+`useCommand()` 注册了 `/ping` 指令，第二个参数是处理指令的函数。该函数返回「pong」后，Kokkoro 会将这段文本回复到当前会话。
 
-相信你这个时候一定有很多疑问，虽然我们前面有讲过，默认导出的函数是插件的入口，但是 `useCommand()` 又是什么？
+保留 `/ping`，并在下方新增 `/hello` 指令：
 
-::: info 不必在意这些细节
-当前章节仅提供示例，目的在于让你能自己编写出可以进行简单交互的插件。  
-目前你无需关心这段代码是什么意思，后面会逐一介绍，所以不用着急，让我们继续。
-:::
+```typescript {5}
+import { useCommand } from '@kokkoro/core';
 
-现在，启动你的项目。如果项目已经在运行，请先重新启动。插件加载完成、机器人建立通信连接后，可以在日志中看到下面的信息：
+export default () => {
+  useCommand('/ping', () => 'pong');
+  useCommand('/hello', () => 'hello, world').shortcut('你好');
+};
+```
 
-```shell {1,3}
+第二个 `useCommand()` 注册了 `/hello` 指令。末尾的 `shortcut('你好')` 为同一条指令添加了自然语言快捷方式，因此发送 `/hello` 或「你好」都会执行这个处理函数。快捷方式的匹配规则将在 [指令快捷方式](/develop/command-shortcuts) 中详细介绍。
+
+## 验证插件 {#verify-plugin}
+
+Kokkoro 只在启动时加载插件。如果项目仍在运行，先按 **Ctrl+C** 停止进程，再重新启动：
+
+```shell
+bun start
+```
+
+插件加载完成后，终端会出现类似下面的日志：
+
+```text
 [2026-08-26T02:57:35.797Z] INFO kokkoro:plugin - 已加载 kokkoro-plugin-example
 [2026-08-26T02:57:35.798Z] INFO kokkoro - 服务已启动 http://localhost:3000/
 [2026-08-26T02:57:35.798Z] INFO kokkoro:APP_ID:websocket - 已连接 可可萝
 [2026-08-26T02:57:35.798Z] INFO kokkoro - 启动完成 WebSocket 1 WebHook 0
 ```
 
-通过日志，我们还可以查看到已加载的插件信息。
+终端出现「启动完成」后，向机器人发送「你好」。群聊没有开启「获取群内全部消息」时，需要先 @ 机器人：
 
-<ChatPanel self="2225151531" :bots="['2854205915', '2854211958']">
-  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /ping</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">pong</ChatMessage>
+<ChatPanel self="2225151531" :bots="['2854205915']">
+  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 你好</ChatMessage>
+  <ChatMessage qq="2854205915" nickname="可可萝">hello, world</ChatMessage>
 </ChatPanel>
 
-这下我们就实现好了一个插件的完整交互，是不是非常简单？ (●'◡'●)
+机器人回复「hello, world」，表示新的处理函数已经生效 (●'◡'●)
 
-## 插件权限
-
-::: warning
-Kokkoro v3 的插件权限正在重构，以下内容为 v2 时期的功能。
-:::
-
-我们在快速开始一栏中有提到，项目内的所有插件，都是在项目启动时（机器人建立会话通信前）自动挂载的。
-
-但是假如现在有一个需求，我们想要在项目内运行多个机器人，但是只需要特定的对象去使用对应的指令，应该如何实现自定义？
-
-打开 `kokkoro.json` 配置文件，你可以在 `bots` 一栏中添加 `plugins` 属性：
-
-```json {7}
-{
-  "bots": [
-    {
-      "appid": "1145141919",
-      "token": "38bc73e16208135fb111c0c573a44eaa",
-      "secret": "6208135fb111c0c5",
-      "plugins": []
-    }
-  ]
-}
-```
-
-`plugins` 传入的是一个字符串数组，数组值正是插件的 `metadata.name` 属性，当 `plugins` 没传入任何参数的时候，该机器人就会响应全部插件。
-
-例如我们现在安装了 `hitokoto` 和 `kfc` 这两个插件，如果机器人**可可萝**想要使用 `kfc` 插件，机器人**爱梅斯**却不需要这个插件时，就可以这样去修改：
-
-```json {5,9}
-{
-  "bots": [
-    // 可可萝
-    {
-      "plugins": ["hitokoto", "kfc"]
-    },
-    // 爱梅斯
-    {
-      "plugins": ["hitokoto"]
-    }
-  ]
-}
-```
-
-<ChatPanel self="2225151531" :bots="['2854205915', '2854211958']">
-  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /一言</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">『只有分离后才能懂的事，却没有了感慨的时间。』——「宝石之国」</ChatMessage>
-  <ChatMessage qq="2225151531" nickname="Yuki">@爱梅斯 /一言</ChatMessage>
-  <ChatMessage qq="2854211958" nickname="爱梅斯">『只要努力活下去，总有一天会笑着回忆。』——「不可思议游戏」</ChatMessage>
-  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /疯狂星期四</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">Steam上多买了一个艾尔登法环的key，送给有缘人了:KFCC-RAZY-THUR-SDAY-VME50</ChatMessage>
-  <ChatMessage qq="2225151531" nickname="Yuki">@爱梅斯 /疯狂星期四</ChatMessage>
-  <ChatMessage qq="2225151531" nickname="Yuki">在这里，爱梅斯不会对 kfc 插件指令作出响应</ChatMessage>
-</ChatPanel>
+接下来可以阅读 [事件监听](/develop/event)，了解 QQ 事件以及事件监听与指令处理的关系。

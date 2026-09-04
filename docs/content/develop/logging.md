@@ -1,14 +1,14 @@
 # 日志 {#logging}
 
-开发插件时，你可以通过日志确认代码是否执行、执行到了哪一步，以及为什么执行失败。日志会显示在运行 Kokkoro 的终端中。
+开发插件时，日志可以帮助你确认代码是否执行、执行到了哪一步，以及为什么失败。Kokkoro 会将日志输出到运行项目的终端中。
 
 日志与消息回复不同。消息回复会发送给 QQ 用户，日志不会发送给用户。
 
-JavaScript 自带的 `console.log()` 也能向终端输出内容，前面的示例使用它演示基本流程。`useLogger()` 获取的日志记录器还会标记日志等级和插件名称，并根据 Kokkoro 的日志配置决定是否输出。多个插件同时运行时，这些信息可以帮助你区分日志来源。
+`console.log()` 也能向终端输出内容，前面的示例用它演示了基本流程。`useLogger()` 返回的日志记录器还会标明日志等级和插件来源，并根据 Kokkoro 的日志配置过滤输出。这些信息可以帮助开发者在多个插件同时运行时定位日志。
 
-## 记录日志 {#write-logs}
+## 记录插件日志 {#write-logs}
 
-Kokkoro 提供了 `useLogger()`，用于获取当前插件的日志记录器。请在默认导出函数的外面调用它，并将返回值保存为 `logger`。随后可以在指令处理函数和其他插件代码中使用这个日志记录器。
+`useLogger()` 返回当前插件的日志记录器。它必须在模块顶层调用，也就是默认导出函数之外。将返回值保存为 `logger` 后，插件中的其他代码都可以使用它。
 
 下面的插件在处理 `/ping` 指令时记录「指令处理中」，回复成功后再记录「指令处理完成」：
 
@@ -31,7 +31,7 @@ export default () => {
   <ChatMessage qq="2854205915" nickname="可可萝">pong</ChatMessage>
 </ChatPanel>
 
-与此同时，终端会输出下面的日志：
+收到指令后，终端会输出下面的日志：
 
 ```text
 [2026-09-02T10:00:00.000Z] INFO kokkoro:2854205915 - 收到群聊 @ 消息 {
@@ -44,13 +44,13 @@ export default () => {
 [2026-09-02T10:00:00.123Z] INFO kokkoro:plugin:example - 指令处理完成
 ```
 
-其中，**INFO** 是日志等级。第一条日志由 Kokkoro 在收到群聊 @ 消息时输出，后两条日志来自 `kokkoro-plugin-example` 插件。最后一条日志写在 `context.reply()` 之后，因此只有回复成功才会输出。
+**INFO** 是日志等级。第一条日志由 Kokkoro 在收到群聊 @ 消息时输出，后两条来自 `example` 插件。最后一条日志写在 `context.reply()` 之后，因此只有回复成功才会出现。
 
-Kokkoro 只在加载插件模块时提供日志记录器，因此 `useLogger()` 必须写在模块顶层。将它写在默认导出函数、事件回调或指令处理函数中会抛出错误。模块顶层与插件挂载之间的关系参阅 [插件生命周期](/develop/lifecycle)。
+Kokkoro 只能在加载插件模块时判断日志记录器属于哪个插件。因此，将 `useLogger()` 写在默认导出函数、事件回调或指令处理函数中都会抛出错误。模块顶层与插件挂载之间的关系见 [插件生命周期](/develop/lifecycle)。
 
-## 日志等级 {#levels}
+## 日志等级 {#log-levels}
 
-日志分为四个等级。根据一条信息的重要程度，调用对应的方法：
+日志分为四个等级，每个等级适用于不同的情况：
 
 | 等级      | 用途                                   |
 | --------- | -------------------------------------- |
@@ -78,11 +78,11 @@ Kokkoro 默认输出 **INFO** 及以上等级的日志，因此 `logger.debug()`
 }
 ```
 
-修改配置后需要重新启动项目。完整配置说明参阅 [配置文件](/guide/config#logger)。
+修改配置后需要重新启动项目。完整配置见 [配置文件](/guide/config#logger)。
 
-## 记录数据 {#data}
+## 为日志附加数据 {#log-data}
 
-日志方法可以接收多个值。如果想记录消息 ID，可以在指令处理函数中将说明文字和 `context.id` 一起传入：
+日志方法可以接收多个值。如果需要记录消息 ID，可以在指令处理函数中将说明文字和 `context.id` 一起传入：
 
 ```typescript
 useCommand('/ping', async context => {
@@ -92,40 +92,50 @@ useCommand('/ping', async context => {
 });
 ```
 
-对象会跟在说明文字后面输出。这样既能看出发生了什么，也能保留排查问题时需要的数据。
+对象会显示在说明文字后面。说明文字概括发生的事情，对象中保存排查问题时需要的数据。
 
 ```text
 [2026-09-02T10:00:00.000Z] INFO kokkoro:plugin:example - 指令处理中 { id: "group-message-id" }
 [2026-09-02T10:00:00.123Z] INFO kokkoro:plugin:example - 指令处理完成 { id: "group-message-id" }
 ```
 
-## 日志与异常 {#errors}
+## 日志与异常 {#logging-and-errors}
 
-记录一条 **ERROR** 日志和抛出 `Error` 的作用不同。
+记录 **ERROR** 日志与抛出 `Error` 的作用不同。
 
-`logger.error()` 只记录发生了什么，不会停止 JavaScript 代码。下面两行代码都会执行：
+`logger.error()` 只负责记录日志，不会停止代码。下面两行都会执行：
 
 ```typescript
 logger.error('任务执行失败');
 logger.info('继续执行后续代码');
 ```
 
-如果发生错误后不能继续执行当前函数，请使用 `throw new Error()`。例如，插件调用外部服务前必须读取 `API_KEY`：
+如果缺少某项配置会导致插件无法运行，可以抛出 `Error`。例如，下面的插件依赖 `API_KEY`：
 
 ```typescript
+import { useLogger } from '@kokkoro/core';
+
+const logger = useLogger();
 const { API_KEY } = import.meta.env;
 
 if (!API_KEY) {
   throw new Error('未配置 API_KEY');
 }
-logger.info('开始请求外部服务');
+logger.info('插件配置已读取');
+
+export default () => {};
 ```
 
-没有配置 `API_KEY` 时，`throw` 会立即停止当前函数，因此最后一行日志不会输出。
+没有配置 `API_KEY` 时，插件会停止加载，后面的日志不会输出，插件也不会挂载到 `Bot`。终端会记录加载失败的原因：
 
-Kokkoro 会自动记录没有被 `try...catch` 处理的异常，包括插件加载、挂载以及事件或指令处理过程中的异常。无需在 `throw` 前重复调用 `logger.error()`，否则同一个错误会在终端中出现两次。
+```text
+[2026-09-02T10:00:00.000Z] ERROR kokkoro:plugin - 加载失败 kokkoro-plugin-example
+error: 未配置 API_KEY
+```
 
-如果插件使用 `try...catch` 处理异常并继续运行，Kokkoro 就不会再收到这个异常。需要保留错误信息时，请在 `catch` 中调用 `logger.warn()` 或 `logger.error()`：
+Kokkoro 会自动记录没有被 `try...catch` 处理的插件加载、挂载、QQ 事件和指令异常。无需在 `throw` 前重复调用 `logger.error()`，否则同一个错误会在终端中出现两次。
+
+如果插件在 `catch` 中处理异常，并且没有再次抛出，Kokkoro 就不会自动记录该异常。需要保留错误信息时，可以调用 `logger.warn()` 或 `logger.error()`：
 
 ```typescript
 try {
@@ -134,3 +144,5 @@ try {
   logger.error('请求外部服务失败', error);
 }
 ```
+
+插件代码在加载、挂载和清理阶段的执行顺序见 [插件生命周期](/develop/lifecycle)。

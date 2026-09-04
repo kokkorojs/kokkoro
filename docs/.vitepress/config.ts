@@ -19,7 +19,7 @@ export default defineConfig({
       {
         text: '文档',
         items: [
-          { text: '深度指南', link: '/guide/introduction' },
+          { text: '简介', link: '/guide/introduction' },
           { text: '快速上手', link: '/guide/quick-start' },
         ],
       },
@@ -33,13 +33,14 @@ export default defineConfig({
         activeMatch: '/plugin/',
         items: [
           { text: '插件市场', link: '/plugin/market' },
-          { text: '插件计划', link: '/plugin/plan' },
+          { text: '官方插件', link: '/plugin/official' },
+          { text: '旧版插件', link: '/plugin/legacy' },
         ],
       },
       {
-        text: '关于',
+        text: '常见问题',
+        link: '/about/faq',
         activeMatch: '/about/',
-        items: [{ text: '常见问题', link: '/about/faq' }],
       },
     ],
     sidebar: {
@@ -54,6 +55,7 @@ export default defineConfig({
         {
           text: '基础',
           items: [
+            { text: '命令行工具', link: '/guide/cli' },
             { text: '配置文件', link: '/guide/config' },
             { text: '环境变量', link: '/guide/environment-variables' },
           ],
@@ -66,17 +68,49 @@ export default defineConfig({
             { text: '插件概述', link: '/develop/overview' },
             { text: '编写第一个插件', link: '/develop/first-plugin' },
             { text: '事件监听', link: '/develop/event' },
-            { text: '指令参数', link: '/develop/command' },
+            { text: '指令处理', link: '/develop/command' },
+            { text: '指令参数', link: '/develop/command-arguments' },
+            { text: '指令快捷方式', link: '/develop/command-shortcuts' },
+            { text: '日志', link: '/develop/logging' },
           ],
         },
         {
           text: '进阶',
           items: [
             { text: '插件生命周期', link: '/develop/lifecycle' },
-            { text: '日志', link: '/develop/logging' },
             { text: '副作用清理', link: '/develop/side-effects' },
-            { text: '数据持久化', link: '/develop/persistence' },
+            { text: '自定义事件', link: '/develop/custom-events' },
           ],
+        },
+        {
+          text: '历史版本',
+          items: [
+            { text: '数据持久化', link: '/develop/persistence' },
+            { text: '旧版插件权限', link: '/develop/legacy-plugin-permissions' },
+          ],
+        },
+      ],
+      '/plugin/': [
+        {
+          text: '插件',
+          items: [
+            { text: '插件市场', link: '/plugin/market' },
+            { text: '官方插件', link: '/plugin/official' },
+          ],
+        },
+        {
+          text: '官方插件',
+          items: [
+            { text: '一言', link: '/plugin/hitokoto' },
+            { text: '疯狂星期四', link: '/plugin/kfc' },
+            { text: '代码执行', link: '/plugin/eval' },
+            { text: 'SauceNAO 图片搜索', link: '/plugin/saucenao' },
+            { text: 'Open Graph 预览图', link: '/plugin/og' },
+          ],
+        },
+        {
+          text: '历史版本',
+          items: [{ text: '旧版插件', link: '/plugin/legacy' }],
         },
       ],
     },

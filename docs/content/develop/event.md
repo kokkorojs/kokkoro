@@ -1,30 +1,27 @@
 # 事件监听 {#events}
 
-::: tip
-本章节将会涉及到变量类型及函数回调，都是一些特别基础的知识。  
-在这里不会做基础讲解，如果你至少对一门编程语言有基础了解，就可以继续往下看。
-:::
+QQ 会在机器人连接成功、收到消息或群成员发生变化时推送相应的事件。插件通过 `useEvent()` 监听这些事件，并在事件到达时执行处理函数。
 
-## 事件上下文 {#context}
+## 监听事件 {#listen-to-events}
 
-在上一章节，我们介绍了如何编写自己的第一个插件，我们使用了 `useCommand()`，让 `example` 插件响应了 `/ping` 指令。
+下面的插件监听 `READY` 事件。机器人与 QQ 建立 WebSocket 会话后会收到该事件，Kokkoro 随后执行处理函数：
 
-除了指令以外，Kokkoro 还可以通过 `useEvent()` 监听 QQ 事件。现在，我们先来监听机器人连接成功时收到的 `READY` 事件。
-
-<ChatPanel self="2225151531" :bots="['2854205915']">
-  <ChatMessage qq="437402067" nickname="友人A">那个那个，context 到底是什么呀？</ChatMessage>
-  <ChatMessage qq="2225151531" nickname="Yuki">哈？你问我干嘛，打出来看看不就知道了嘛！</ChatMessage>
-</ChatPanel>
-
-```typescript {4}
+```typescript
 import { useEvent } from '@kokkoro/core';
 
 export default () => {
-  useEvent(console.log, ['READY']);
+  useEvent(
+    context => {
+      console.log(context);
+    },
+    ['READY'],
+  );
 };
 ```
 
-在机器人建立会话通信后，可以在控制台看到如下输出。初次你可能看不懂这里面的大部分字段，但是下面的这些属性，就算我不写注释你应该也知道代表着什么。
+`useEvent()` 的第一个参数是收到事件后执行的处理函数。列表中的 `READY` 表示这段代码只处理该事件。
+
+机器人连接成功后，终端会输出类似下面的数据：
 
 ```javascript
 {
@@ -40,122 +37,128 @@ export default () => {
 }
 ```
 
-没错，你已经猜到了，回调函数的 `context` 参数正是机器人收到事件时的**事件上下文**。例如刚刚触发的 `READY` 事件，上下文中就包含机器人的 ID 和账号昵称等字段。
+## 事件上下文 {#event-context}
 
-事件上下文包含当前 QQ 事件的数据。部分事件还允许机器人直接回复，例如收到消息、用户添加机器人好友或机器人加入群聊。处理这些事件时，可以调用 `context.reply()` 向对应的用户或群聊发送回复。如果需要调用其他 `Bot` 方法，可以从插件默认导出函数的参数获取当前 `Bot`：
+处理函数接收的 `context` 是事件上下文，其中保存了当前 QQ 事件的数据。上面的代码只监听 `READY`，因此 TypeScript 可以推导出机器人信息、会话 ID 等字段。
+
+监听的事件不同，`context` 的类型也会变化。例如，`GROUP_MEMBER_ADD` 表示有成员加入群聊，对应的上下文包含群聊和成员的标识。
+
+部分事件支持直接回复，这些事件的 `context` 会提供 `reply()`。下面的插件监听 `FRIEND_ADD`，并向刚刚添加机器人的用户发送欢迎消息：
+
+```typescript
+import { useEvent } from '@kokkoro/core';
+
+export default () => {
+  useEvent(
+    async context => {
+      await context.reply('很高兴认识你');
+    },
+    ['FRIEND_ADD'],
+  );
+};
+```
+
+其他事件的 `context` 不会提供 `reply()`，调用时 TypeScript 会提示错误。
+
+## 调用 QQ API {#qq-api}
+
+`context.reply()` 用于回复当前事件。需要查询机器人信息或调用其他 QQ API 时，可以使用传给插件入口函数的 `bot` 参数。
+
+下面的插件在 `READY` 事件发生后查询机器人信息：
 
 ```typescript
 import { type Bot, useEvent } from '@kokkoro/core';
 
 export default (bot: Bot) => {
-  useEvent(
-    async context => {
-      await bot.sendGroupMessage(context.group_openid, {
-        msg_type: 0,
-        content: '收到',
-        msg_id: context.id,
-      });
-    },
-    ['GROUP_MESSAGE_CREATE'],
-  );
+  useEvent(async () => {
+    const info = await bot.getBotInfo();
+
+    console.log(info);
+  }, ['READY']);
 };
 ```
 
-## QQ 事件 {#qq-events}
-
-上面示例中的 `useEvent()` 便是监听机器人事件的方法。刚刚编写的 `example` 插件只监听了 `READY` 事件，所以只会在机器人连接成功时执行对应逻辑。
-
-Kokkoro 将 QQ 推送的原生事件称为 **QQ Dispatch 事件**，其中不包含 QQ 频道事件。原因参阅 [为什么不兼容 QQ 频道？](/about/faq#qq-channel-support)。
-
-`useEvent()` 支持以下 QQ Dispatch 事件：
-
-| 事件名                       | 触发场景                                           |
-| ---------------------------- | -------------------------------------------------- |
-| **C2C_MESSAGE_CREATE**       | 用户向机器人发送私聊消息                           |
-| **FRIEND_ADD**               | 用户添加机器人                                     |
-| **FRIEND_DEL**               | 用户删除机器人                                     |
-| **C2C_MSG_RECEIVE**          | 用户开启私聊主动消息                               |
-| **C2C_MSG_REJECT**           | 用户关闭私聊主动消息                               |
-| **GROUP_AT_MESSAGE_CREATE**  | 用户在群内 @ 机器人                                |
-| **GROUP_MESSAGE_CREATE**     | 群聊开启「获取群内全部消息」后，用户在群内发送消息 |
-| **GROUP_ADD_ROBOT**          | 机器人被添加到群                                   |
-| **GROUP_DEL_ROBOT**          | 机器人被移出群                                     |
-| **GROUP_MSG_RECEIVE**        | 群消息接收设置被开启                               |
-| **GROUP_MSG_REJECT**         | 群消息接收设置被关闭                               |
-| **GROUP_MEMBER_ADD**         | 群成员加入群                                       |
-| **GROUP_MEMBER_REMOVE**      | 群成员离开群                                       |
-| **SUBSCRIBE_MESSAGE_STATUS** | 订阅消息授权状态发生变更                           |
-| **GROUP_JOIN_REQUEST**       | 用户申请加入群                                     |
-| **INTERACTION_CREATE**       | 用户点击消息按钮、变更授权或进入群机器人管理       |
-| **READY**                    | WebSocket 会话准备完成                             |
-| **RESUMED**                  | WebSocket 会话恢复完成                             |
-
-在这里，你可以通过事件制作出各种各样有趣的插件，让机器人变得更加强大。o((>ω< ))o
+`type Bot` 只导入 TypeScript 类型，不会产生运行时代码。`Bot` 继承 Chobits 的 `Client`，因此可以直接调用 QQ OpenAPI。Core 还提供 `sendUserImage()` 和 `sendGroupImage()`，用于通过图片 URL 向指定用户或群聊发送图片。
 
 ## 事件依赖 {#event-dependencies}
 
-`useEvent()` 的第二个参数是事件依赖数组，用于指定需要监听的 QQ Dispatch 事件。
+`useEvent()` 的第二个参数是事件依赖列表，用来限定处理函数响应哪些事件。传入一个或多个事件名后，只有这些事件会执行处理函数：
 
 ```typescript
-import { useEvent } from '@kokkoro/core';
-
-export default () => {
-  useEvent(context => {
-    // 每次收到 QQ Dispatch 事件时执行
+useEvent(
+  context => {
     console.log(context);
-  });
-
-  useEvent(() => {
-    // 插件挂载时执行一次
-  }, []);
-
-  useEvent(console.log, ['READY', 'RESUMED']);
-};
-```
-
-不传入第二个参数时，回调函数会处理全部 QQ Dispatch 事件。传入空数组时，回调函数只在插件挂载时执行一次。传入事件数组时，回调函数只处理数组中的事件，`context` 也会根据事件类型自动推导。
-
-## 区分事件与指令 {#events-and-commands}
-
-前面我们有提到，机器人是通过事件驱动的，任何动作都会产生与之相对应的事件，消息也不例外。
-
-比如，你可以这样子去监听群聊中的 @ 消息事件：
-
-```typescript {4}
-import { useEvent } from '@kokkoro/core';
-
-export default () => {
-  useEvent(console.log, ['GROUP_AT_MESSAGE_CREATE']);
-};
-```
-
-<ChatPanel self="2225151531" :bots="['2854205915']">
-  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /测试</ChatMessage>
-</ChatPanel>
-
-```javascript {7}
-{
-  author: {
-    id: 'member-openid',
-    member_openid: 'member-openid',
-    username: 'Yuki'
   },
-  content: ' /测试',
-  group_openid: 'group-openid',
-  id: 'group-message-id',
-  timestamp: '2026-08-26T02:57:35.798Z'
-}
+  ['READY', 'RESUMED'],
+);
 ```
 
-这样一来，就可以直接获取到机器人收到指令消息的事件详情。
+省略第二个参数时，处理函数会接收所有受支持的 QQ Dispatch 事件：
+
+```typescript
+useEvent(context => {
+  console.log(context);
+});
+```
+
+传入空数组时，处理函数不再监听 QQ 事件，而是在插件挂载过程中执行一次：
+
+```typescript
+useEvent(() => {
+  console.log('插件已挂载');
+}, []);
+```
+
+这种写法通常用于插件挂载时需要等待的异步初始化，具体执行顺序见 [插件生命周期](/develop/lifecycle#mount-lifecycle)。
+
+## 事件处理函数 {#event-handlers}
+
+事件处理函数不能通过返回值回复消息。需要发送消息时，调用 `context.reply()` 或 `Bot` 上的消息 API。处理函数返回其他值时，Kokkoro 会将其视为错误，并在终端中记录 `TypeError`。
+
+同一个事件同时被多个 `useEvent()` 监听时，Kokkoro 会并发执行这些处理函数，并等待它们全部结束。这些处理函数无法通过注册顺序安排前后步骤。有先后关系的操作应当写在同一个处理函数中，并通过 `await` 明确执行顺序。
+
+插件内部需要传递自己的事件时，可以使用 `bot.on()` 和 `bot.emit()`。自定义事件涉及类型声明和手动清理，进阶用法见 [自定义事件](/develop/custom-events)。
+
+## 支持的事件 {#supported-events}
+
+QQ 通过 Dispatch 推送事件，Kokkoro 支持下面的事件类型：
+
+| 事件名                       | 触发场景                                          |
+| ---------------------------- | ------------------------------------------------- |
+| **C2C_MESSAGE_CREATE**       | 用户向机器人发送私聊消息                          |
+| **FRIEND_ADD**               | 用户添加机器人                                    |
+| **FRIEND_DEL**               | 用户删除机器人                                    |
+| **C2C_MSG_RECEIVE**          | 用户开启私聊主动消息                              |
+| **C2C_MSG_REJECT**           | 用户关闭私聊主动消息                              |
+| **GROUP_AT_MESSAGE_CREATE**  | 未开启「获取群内全部消息」时，用户在群内 @ 机器人 |
+| **GROUP_MESSAGE_CREATE**     | 开启「获取群内全部消息」后，收到群内的每一条消息  |
+| **GROUP_ADD_ROBOT**          | 机器人被添加到群                                  |
+| **GROUP_DEL_ROBOT**          | 机器人被移出群                                    |
+| **GROUP_MSG_RECEIVE**        | 群消息接收设置被开启                              |
+| **GROUP_MSG_REJECT**         | 群消息接收设置被关闭                              |
+| **GROUP_MEMBER_ADD**         | 群成员加入群                                      |
+| **GROUP_MEMBER_REMOVE**      | 群成员离开或被移出群                              |
+| **SUBSCRIBE_MESSAGE_STATUS** | 订阅消息授权状态发生变更                          |
+| **GROUP_JOIN_REQUEST**       | 用户申请加入群，机器人需要是群管理员              |
+| **INTERACTION_CREATE**       | 用户点击消息按钮、变更授权或进入群机器人管理      |
+| **READY**                    | WebSocket 会话准备完成                            |
+| **RESUMED**                  | WebSocket 会话恢复完成                            |
+
+表格中的触发场景来自 QQ 官方文档。当前实际测试中，切换私聊主动消息权限时收到的是 `INTERACTION_CREATE`，没有收到 `C2C_MSG_RECEIVE` 或 `C2C_MSG_REJECT`。`GROUP_JOIN_REQUEST` 和 `SUBSCRIBE_MESSAGE_STATUS` 目前也没有取得真实事件数据。Kokkoro 仍然保留这些官方事件的类型，以便 QQ 推送时直接监听。
+
+QQ Dispatch 的通用结构和事件分类见官方 [通用数据结构](https://bot.q.qq.com/wiki/develop/api-v2/dev-prepare/event-emit/payload.html)。Kokkoro 不支持 QQ 频道事件，具体原因见 [为什么不兼容 QQ 频道？](/about/faq#qq-channel-support)。
+
+## 事件与指令 {#events-and-commands}
+
+用户发送消息时，QQ 也会向机器人推送事件。监听 `GROUP_AT_MESSAGE_CREATE`，就能从 `context.content` 读取群聊中 @ 机器人的消息。
 
 <ChatPanel self="2225151531" :bots="['2854205915']">
-  <ChatMessage qq="437402067" nickname="友人A">Yuki Yuki，听你这么一说，我完全懂了</ChatMessage>
-  <ChatMessage qq="2225151531" nickname="Yuki">啊？懂...懂什么哦？</ChatMessage>
-  <ChatMessage qq="437402067" nickname="友人A">既然通过事件就能获取到消息内容，那么指令的响应我是不是就可以这样去写？</ChatMessage>
+  <ChatMessage qq="437402067" nickname="友人A">Yuki Yuki，听你这么一说，我完全懂了！</ChatMessage>
+  <ChatMessage qq="2225151531" nickname="Yuki">啊？懂……懂什么了？</ChatMessage>
+  <ChatMessage qq="437402067" nickname="友人A">既然事件里能读取消息内容，那我是不是可以直接这样写指令？</ChatMessage>
 </ChatPanel>
 
-```typescript {5-12}
+```typescript
 import { useEvent } from '@kokkoro/core';
 
 export default () => {
@@ -176,113 +179,19 @@ export default () => {
 <ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="437402067" nickname="友人A">@可可萝 /ping</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">pong</ChatMessage>
-  <ChatMessage qq="437402067" nickname="友人A">将将～怎么样，是不是这样就可以解决问题了？</ChatMessage>
+  <ChatMessage qq="437402067" nickname="友人A">将将～你看，完全可以正常回复嘛！</ChatMessage>
   <ChatMessage qq="2225151531" nickname="Yuki">哈？！</ChatMessage>
   <ChatMessage qq="2225151531" nickname="Yuki">
     <img width="200" src="/images/meme/西内.jpg" />
   </ChatMessage>
 </ChatPanel>
 
-::: danger 不要这样做！
-我们一定要避免将**指令逻辑**的代码，直接写到 `useEvent()` 里！<br>
-为什么说是避免，而不是禁止？ ~~你非要写我也拦不住呀，而且这样确实能达到效果。~~
+::: danger 不要这样实现指令
+这段代码确实能够回复 `/ping`，~~你非要这样写，框架也拦不住。~~
+
+问题在于，它只处理了群聊 @ 消息。要让同一条指令支持私聊和群聊全量消息，还要继续监听另外两种消息事件。代码还要分别处理 @ 机器人、消息开头的空白、指令参数和异常。
+
+如果每条指令都把这些步骤重新实现一遍，消息事件很快就会堆满重复的判断分支。代码虽然暂时能够运行，后续添加指令时却很容易出现三种消息场景行为不一致的问题。
 :::
 
-可千万不要觉得这样做很麻烦，养成一个良好的编码习惯，能让我们的开发效率事半功倍。
-
-## 使用 `useCommand()` {#use-command}
-
-虽然刚刚在 `useEvent()` 里去手动处理消息匹配，也实现自定义指令的效果，但是会导致插件后续的可维护性极差，不利于维护。
-
-所以，Kokkoro 提供了 `useCommand()` 来进行指令处理，这其实与 `useEvent()` 去手动监听**消息事件**实现的效果是等价的，但是能让代码更为简洁。
-
-Kokkoro 的机器人指令必须以 `/` 开头，用户直接发送 `/ping` 就能触发匹配。如果希望 QQ 客户端在输入 `/` 时显示指令面板，还需要提前在 [QQ 开放平台](https://q.qq.com) 配置对应指令。
-
-```typescript {4}
-import { useCommand } from '@kokkoro/core';
-
-export default () => {
-  useCommand('/ping', () => 'pong');
-};
-```
-
-`useCommand()` 会自动处理 `C2C_MESSAGE_CREATE`、`GROUP_AT_MESSAGE_CREATE` 和 `GROUP_MESSAGE_CREATE` 三个消息事件，并在此基础上完成指令匹配、参数校验与消息回复。
-
-回调函数返回 `undefined` 时不会回复消息。返回含有 `msg_type` 字段，并符合 QQ 官方的 [单聊消息](https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_users_user_openid_messages.post.html) 或 [群聊消息](https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_groups_group_openid_messages.post.html) 结构的对象时，Kokkoro 会直接调用 `context.reply()`。返回其他对象或数组时，会通过 `JSON.stringify()` 转为文本。其余返回值则通过 `String()` 转为文本。
-
-下面的三个指令分别返回数组、普通对象和 QQ 消息对象：
-
-```typescript
-import { useCommand } from '@kokkoro/core';
-
-export default () => {
-  useCommand('/小小甜心', () => {
-    return ['镜华', '美美', '未奏希'];
-  });
-
-  useCommand('/状态', () => {
-    return {
-      name: '可可萝',
-      protocol: 'websocket',
-    };
-  });
-
-  useCommand('/ping', () => {
-    return {
-      msg_type: 0,
-      content: 'pong',
-    };
-  });
-};
-```
-
-数组和普通对象会转换成 JSON 文本。QQ 消息对象则会按照 `msg_type` 指定的消息类型发送：
-
-<ChatPanel self="2225151531" :bots="['2854205915']">
-  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /小小甜心</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">["镜华","美美","未奏希"]</ChatMessage>
-  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /状态</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">{"name":"可可萝","protocol":"websocket"}</ChatMessage>
-  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /ping</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">pong</ChatMessage>
-</ChatPanel>
-
-## `useEvent()` 还是 `useCommand()`？ {#choose-hook}
-
-尽管 `useCommand()` 看起来使用的会更加频繁，但是 `useEvent()` 也同样重要，分别用于处理不同的业务场景。
-
-例如你想在机器人连接成功时发送 HTTP 请求，或者在群内有新成员加入时发送消息提示，`useCommand()` 肯定是实现不了的。
-
-## 自定义事件 {#custom-events}
-
-`useEvent()` 只负责 QQ Dispatch 事件。如果插件需要在自己的代码中传递**自定义事件**，可以先声明事件名和回调参数，再将事件类型写入 `Bot<Events>`。
-
-```typescript
-import { type Bot, useCommand } from '@kokkoro/core';
-
-type Events = {
-  notice: [content: string];
-};
-
-export default (bot: Bot<Events>) => {
-  const handleNotice = (content: string) => {
-    console.log(content);
-  };
-
-  bot.on('notice', handleNotice);
-
-  useCommand('/通知 <content>', async context => {
-    await bot.emit('notice', context.args.content);
-
-    return '通知已发送';
-  });
-
-  return () => {
-    bot.off('notice', handleNotice);
-  };
-};
-```
-
-`Events` 中的属性名表示事件名称，元组表示监听器接收的完整参数列表。上面的 `notice` 事件只有一个 `string` 参数，因此 `bot.emit()` 和 `bot.on()` 都能得到对应的类型提示。
-
-通过 `bot.on()` 注册的监听器不属于 Hook，需要在插件取消挂载时移除。相关规则请参阅 [副作用清理](/develop/side-effects)。
+`useCommand()` 正是对这些消息事件和处理步骤的封装，具体写法见 [指令处理](/develop/command)。
