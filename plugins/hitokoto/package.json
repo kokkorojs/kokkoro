@@ -17,7 +17,10 @@
   "license": "MIT",
   "author": "Yuki <admin@yuki.sh>",
   "type": "module",
-  "exports": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./service": "./src/service.ts"
+  },
   "files": [
     "src"
   ],

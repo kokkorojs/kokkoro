@@ -44,10 +44,10 @@ bun add kokkoro-plugin-hitokoto
 
 ## API
 
-其他插件可以从包入口导入 `fetchSentence()` 使用，该函数返回一言接口的完整语句对象：
+其他插件可以从 `service` 入口导入 `fetchSentence()` 使用，该函数返回一言接口的完整语句对象：
 
 ```typescript
-import { fetchSentence } from 'kokkoro-plugin-hitokoto';
+import { fetchSentence } from 'kokkoro-plugin-hitokoto/service';
 
 const sentence = await fetchSentence('i');
 ```

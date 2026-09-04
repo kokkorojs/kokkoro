@@ -1,8 +1,6 @@
 import { useCommand, useLogger } from '@kokkoro/core';
 
-import { fetchSentence, HITOKOTO_API, resolveTypeCodes } from './hitokoto';
-
-export * from './hitokoto';
+import { fetchSentence, HITOKOTO_API, resolveTypeCodes } from './service';
 
 const logger = useLogger();
 
