@@ -116,7 +116,7 @@ export async function createProject(directory: string, isForced = false): Promis
       start: 'bun run main.ts',
     },
     dependencies: {
-      kokkoro: '^3.0.2',
+      kokkoro: '^3.0.3',
     },
     devEngines: {
       runtime: {
