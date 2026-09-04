@@ -200,7 +200,7 @@ export const launch = async (config: ResolvedConfig, logger: Journal, directory 
       let plugin: Plugin;
 
       try {
-        plugin = await loadPlugin(entry.loader);
+        plugin = await loadPlugin(entry.loader, log.withScope(entry.name.replace(/^kokkoro-plugin-/u, '')));
       } catch (error) {
         log.error('加载失败', entry.name, error);
         continue;

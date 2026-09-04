@@ -119,6 +119,26 @@ test('WebHook 路径冲突', async () => {
   expect(events).toEqual([]);
 });
 
+test('插件日志作用域', async () => {
+  const info = spyOn(console, 'info').mockImplementation(() => {});
+  const logger = new Journal({ scope: 'kokkoro' });
+  const config: ResolvedConfig = {
+    server: serverConfig,
+    logger: { level: 'info' },
+    bots: [{ ...botConfig, protocol: 'webhook', webhook: { path: '/webhook' } }],
+  };
+
+  spyOn(logger, 'info').mockImplementation(() => {
+    throw new Error('停止测试');
+  });
+  await expect(launch(config, logger, `${import.meta.dir}/fixtures/logger`)).rejects.toThrow();
+  const output = info.mock.calls.flat().join(' ');
+
+  expect(output).toContain('kokkoro:plugin:example');
+  expect(output).toContain('kokkoro:plugin:plain');
+  expect(output).not.toContain('kokkoro:plugin:kokkoro-plugin-example');
+});
+
 test('插件清理异常日志', async () => {
   const error = spyOn(console, 'error').mockImplementation(() => {});
   const logger = new Journal({ scope: 'kokkoro', level: LevelError });
