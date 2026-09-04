@@ -4,11 +4,11 @@
 [![license](https://img.shields.io/github/license/kokkorojs/kokkoro?style=flat-square&labelColor=FAFAFA&color=181717&logo=github&logoColor=181717)](https://github.com/kokkorojs/kokkoro/blob/master/LICENSE)
 [![typescript](https://img.shields.io/badge/TypeScript-%5E6.0.3-3178c6?style=flat-square&labelColor=FAFAFA&logo=typescript&logoColor=3178c6)](https://www.typescriptlang.org)
 
-如果你想快速开发机器人，建议直接使用 [Kokkoro](https://kokkoro.js.org) 框架，`@kokkoro/core` 不包含 web、database、desktop client 等服务，数据交互逻辑需要手动管理。
+如果需要从配置文件启动完整的机器人项目，可以直接使用 [Kokkoro](https://kokkoro.js.org)。`@kokkoro/core` 只提供 `Bot`、Hook 和 Command API，不负责读取 `kokkoro.json`、检索插件或启动 HTTP 服务。
 
-Core 基于 [Chobits](https://github.com/xueelf/chobits) 开发，保留 QQ 官方事件与 OpenAPI，并提供 Hook 插件系统和 Command API。
+`Bot` 继承 [Chobits](https://github.com/xueelf/chobits) 的 `Client`，可以直接监听 QQ 官方事件并调用 OpenAPI。Core 在此基础上增加了 Hook 插件系统和 Command API。
 
-该包直接发布 TypeScript 代码，因为 Kokkoro 官方工具链使用 [Bun](https://bun.com) 进行开发。不过 Core 本身并不调用 Runtime 独有的 API，所以如果你只想在 Node 项目中使用 Core，也可以通过 [tsx](https://github.com/privatenumber/tsx) 来运行。
+该包直接发布 TypeScript 源码。Core 不调用 Bun 专属 API，但当前仓库只在 [Bun](https://bun.com) 中测试。在 Node.js 项目中，可以通过 [tsx](https://github.com/privatenumber/tsx) 运行源码，实际兼容性取决于 Node.js 是否支持当前版本使用的 ECMAScript 特性。
 
 ## 安装
 
@@ -16,7 +16,7 @@ Core 基于 [Chobits](https://github.com/xueelf/chobits) 开发，保留 QQ 官�
 bun add @kokkoro/core
 ```
 
-在 Node 项目中使用 Core：
+在使用 ESM 的 Node.js 项目中，可以通过 `tsx` 运行 Core：
 
 ```bash
 npm install -D tsx
@@ -25,7 +25,7 @@ npm install @kokkoro/core
 node --import=tsx main.ts
 ```
 
-下面的示例按照 Bun 环境编写，在 Node 项目读取环境变量时，请将 `import.meta.env` 换成 `process.env`。
+下文使用 Bun。项目运行在 Node.js 上时，需要改用 `process.env` 读取环境变量。
 
 ## 使用
 
@@ -47,6 +47,8 @@ await bot.online();
 
 `Bot` 直接继承 Chobits 的 `Client` 类，特性与 SDK 保持一致。原生 QQ 事件、`online()`、`offline()`、`callback()` 和所有 OpenAPI 方法都可以直接使用。
 
+`Bot` 的构造参数沿用 Chobits 的 `ClientOptions`。
+
 ### 发送图片
 
 `sendUserImage()` 向指定用户发送图片，`sendGroupImage()` 向指定群聊发送图片。第一个参数是用户或群聊的 OpenID，第二个参数是图片 URL。可选的第三个参数用于附加 `msg_id` 等消息字段。
@@ -63,7 +65,7 @@ Core 会先上传图片，再使用上传结果发送富媒体消息。
 
 ## 插件
 
-你可以在项目根目录创建 `plugins` 文件夹，用于存放插件代码。
+直接使用 Core 时，插件文件可以放在任意目录。下面的 `plugins` 文件夹只用于分类管理：
 
 ```text
 ./
@@ -71,8 +73,6 @@ Core 会先上传图片，再使用上传结果发送富媒体消息。
 │   └── example.ts
 └── main.ts
 ```
-
-当然，这并不是强制要求，推荐这么做只是为了方便插件的分类与管理。
 
 插件模块默认导出一个同步函数，这个函数称为 `PluginSetup`。挂载插件时，Core 会将当前 `Bot` 作为参数传入。在函数中使用 `useEvent()` 监听 QQ 事件，使用 `useCommand()` 注册消息指令和快捷方式：
 
@@ -120,7 +120,7 @@ await bot.mount(Example);
 await bot.online();
 ```
 
-`PluginSetup` 只在挂载时执行，真正处理事件和指令的是其内部的 Hook 函数。
+`PluginSetup` 只在挂载时执行，之后由它注册的事件和指令处理函数响应事件。
 
 Core 使用 `PluginSetup` 的函数引用识别挂载，因此 `bot.unmount()` 必须接收同一个函数：
 
@@ -128,7 +128,7 @@ Core 使用 `PluginSetup` 的函数引用识别挂载，因此 `bot.unmount()` �
 await bot.unmount(Example);
 ```
 
-如果插件创建了例如定时器之类的副作用代码，可以从 `PluginSetup` 返回清理函数。在调用 `bot.unmount()` 时会自动执行它：
+如果插件创建了定时器等副作用，可以从 `PluginSetup` 返回清理函数。`bot.unmount()` 会自动执行该函数：
 
 ```typescript
 export default () => {
@@ -138,9 +138,9 @@ export default () => {
 };
 ```
 
-### 事件
+### 监听事件
 
-使用 `useEvent()` 时，第二个参数将会决定回调函数的执行时机：
+`useEvent()` 的第二个参数是事件依赖列表，用于选择处理函数监听的事件：
 
 ```typescript
 useEvent(context => {
@@ -161,28 +161,23 @@ useEvent(
 
 `Client` 的 `error` 和自定义事件仍通过 `bot.on()` 监听，不会交给 `useEvent()` 处理。
 
-`useEvent()` 回调函数的 `context` 只包含对应 QQ 事件的 Payload 字段。需要调用 `Bot` 方法时，可以使用 `PluginSetup` 接收的参数：
+`context` 保存当前 QQ 事件的数据。事件支持回复时，它还会提供 `reply()`。需要调用其他 QQ OpenAPI 时，可以使用 `PluginSetup` 接收的 `bot` 参数：
 
 ```typescript
 import { type Bot, useEvent } from '@kokkoro/core';
 
 export default (bot: Bot) => {
-  useEvent(
-    async context => {
-      await bot.sendGroupMessage(context.group_openid, {
-        msg_type: 0,
-        content: '收到',
-        msg_id: context.id,
-      });
-    },
-    ['GROUP_MESSAGE_CREATE'],
-  );
+  useEvent(async () => {
+    const info = await bot.getBotInfo();
+
+    console.log(info);
+  }, ['READY']);
 };
 ```
 
-### 指令
+### 注册指令
 
-机器人指令需要在 [QQ 开放平台](https://q.qq.com) 进行配置，必须以 `/` 开头，这是平台的强制要求。配置好后，在 QQ 聊天框内输入斜杠后会弹出对应的菜单面板。
+`useCommand()` 的指令语法必须以 `/` 开头，并在斜杠后包含指令名称。QQ 开放平台的指令面板只负责在客户端展示指令，并将用户点击的内容填入输入框，不会替 Core 注册指令。
 
 使用 `useCommand()` 定义指令。指令参数使用 `<name>`、`[name]`、`<name>...` 和 `[name]...` 声明，`context.args` 会根据字符串字面量自动推导类型。
 
@@ -195,15 +190,17 @@ export default (bot: Bot) => {
 
 必填参数必须位于可选参数之前，剩余参数必须位于末尾。消息内容按空白分隔参数，不解析 Shell 引号。指令缺少必填参数时，Core 会回复正确的指令语法。没有对应声明的多余参数会被忽略。
 
-Command 的 `context` 会直接展开消息事件，并添加解析后的 `context.args` 和触发方式 `context.trigger`。`trigger` 的值为 `command` 或 `shortcut`。事件字段与 `context.reply()` 可以直接使用，需要调用 `Bot` 方法时则使用 `PluginSetup` 接收的参数。
+指令上下文包含当前消息的数据，并增加 `args` 和 `trigger`。可以直接读取事件字段或调用 `context.reply()`。其他 `Bot` 方法通过 `PluginSetup` 接收的 `bot` 调用。
 
-处理函数返回 `undefined` 时不会自动回复。返回 QQ 消息对象时会原样交给 `context.reply()`，返回其他对象或数组时使用 `JSON.stringify()` 转为文本，其他返回值使用 `String()` 转为文本。
+处理函数的返回值是文本回复的简写。无返回值时不会自动回复。返回对象或数组时，Core 使用 `JSON.stringify()` 转为文本。返回其他值时，Core 使用 `String()` 转为文本。QQ 消息对象通过 `context.reply()` 发送。
 
-处理函数抛出 `Error` 时，Core 会将 `error.message` 回复给消息来源，错误会继续向上传播。该行为不受 `context.trigger` 影响。需要让 Shortcut 的预期失败保持静默时，可以根据 `context.trigger` 返回 `undefined`。处理函数不得抛出 `Error` 以外的值。
+调用 `context.reply()` 后，处理函数应当保持无返回值。直接返回 `context.reply()` 的结果时，Core 会把消息发送结果再次转换为文本回复。
+
+处理函数抛出 `Error` 时，Core 会将 `error.message` 回复给消息来源，错误会继续向上传播。该行为不受 `context.trigger` 影响。某个快捷方式需要静默处理预期失败时，处理函数需要捕获该错误，并在 `context.trigger === 'shortcut'` 时不再抛出。处理函数不得抛出 `Error` 以外的值。
 
 `shortcut()` 可以使用字符串或正则表达式匹配自然语言。正则表达式中的命名捕获组会写入 `context.args` 的同名字段。
 
-字符串 Shortcut 只能用于没有必填参数的 Command。Command 包含必填参数时，正则表达式必须通过同名捕获组提供对应的值。
+指令含有必填参数时，正则快捷方式必须声明同名的命名捕获组，否则插件挂载会失败。该捕获组还要保证每次匹配都能得到非空内容。字符串快捷方式无法提取参数，只能用于没有必填参数的指令。
 
 下面的示例通过 `city` 命名捕获组提供必填参数：
 
@@ -211,16 +208,17 @@ Command 的 `context` 会直接展开消息事件，并添加解析后的 `conte
 import { useCommand } from '@kokkoro/core';
 
 export default () => {
-  // 收到「/天气 北京」或「查询北京天气」时回复「北京天气晴」
-  useCommand('/天气 <city>', context => `${context.args.city}天气晴`).shortcut(/^查询(?<city>.+)天气$/);
+  // 收到「/天气 北京」或「查询北京天气」时回复「北京天气：晴」
+  useCommand('/天气 <city>', context => `${context.args.city}天气：晴`).shortcut(/^查询(?<city>.+)天气$/);
 };
 ```
 
-### 日志
+### 记录日志
 
-`useLogger()` 获取 `loadPlugin()` 提供的日志记录器。它只能在插件模块加载期间调用，因此需要写在模块顶层。获取到的日志记录器可以在 `PluginSetup`、事件回调和指令处理函数中使用。
+`useLogger()` 获取 `loadPlugin()` 提供的日志记录器。包含 `useLogger()` 的插件必须通过 `loadPlugin()` 动态导入，Kokkoro 完整框架会自动完成这个过程。直接使用 Core 时，需要先加载插件，再挂载返回的 `plugin.setup`：
 
 ```typescript
+// plugins/example.ts
 import { useLogger } from '@kokkoro/core';
 
 const logger = useLogger();
@@ -230,15 +228,29 @@ logger.info('插件模块已加载');
 export default () => {};
 ```
 
+```typescript
+import { loadPlugin } from '@kokkoro/core';
+
+const plugin = await loadPlugin(() => import('./plugins/example'));
+
+await bot.mount(plugin.setup);
+```
+
+`useLogger()` 只能在插件模块加载期间调用，因此需要写在模块顶层。获取到的日志记录器可以在 `PluginSetup`、事件回调和指令处理函数中使用。
+
 `loadPlugin()` 的第二个参数可以传入自定义 `Logger`。省略该参数时，Core 使用 `console`。
 
-### 副作用清理
+### 清理模块资源
 
 插件模块的顶层代码只在首次导入时执行一次。在这里建立的数据库连接等资源会由所有 `Bot` 共享，不属于任何一次 `Bot` 挂载，因此 `bot.unmount()` 不会释放它们。
 
-使用 `useDispose()` 可以为这类共享资源声明清理函数。调用 `useDispose()` 的插件必须通过 `loadPlugin()` 动态导入，未使用 `useDispose()` 的插件仍然可以像前文一样静态导入。
+`useDispose()` 和 `useLogger()` 都属于模块级 Hook。插件调用其中任意一个时，必须通过 `loadPlugin()` 动态导入。不调用模块级 Hook 时，仍然可以像前文一样静态导入 `PluginSetup` 函数。
 
-例如，下面的签到插件会在模块首次导入时连接 MongoDB，并通过 `useDispose()` 声明关闭连接的清理函数：
+例如，下面的签到插件使用 MongoDB 保存记录。安装 `mongodb` 后，插件会在模块首次导入时建立连接，并通过 `useDispose()` 声明关闭连接的清理函数：
+
+```shell
+bun add mongodb
+```
 
 ```typescript
 // plugins/check-in.ts
@@ -293,9 +305,9 @@ await plugin.dispose();
 
 `loadPlugin()` 不能并发执行，加载多个插件时需要逐个 `await`。
 
-### 社区插件
+### 发布社区插件
 
-社区插件与项目内插件使用相同的模块结构和 API。将默认导出 `PluginSetup` 的插件模块发布到 npm 即可。社区插件推荐使用 `kokkoro-plugin-` 包名前缀，便于在 [npm](https://www.npmjs.com/search?q=kokkoro-plugin) 中搜索。安装前请确认插件的 `peerDependencies` 支持当前 `@kokkoro/core` 版本。
+社区插件与项目内插件使用相同的模块结构和 API。将默认导出 `PluginSetup` 的插件模块发布到 npm 即可。社区插件推荐使用 `kokkoro-plugin-` 包名前缀，便于在 [npm](https://www.npmjs.com/search?q=kokkoro-plugin) 中搜索。插件的 `peerDependencies` 应当支持当前使用的 `@kokkoro/core` 版本。
 
 以下使用 `kokkoro-plugin-example` 代表任意社区插件：
 
@@ -313,11 +325,7 @@ await bot.mount(plugin.setup);
 
 调用方无法预先确定社区插件是否包含需要清理的副作用，因此社区插件应始终通过 `loadPlugin()` 导入，不推荐静态导入 `PluginSetup` 函数。
 
-## 配置项
-
-`Bot` 直接使用 Chobits 的 `ClientOptions`，字段完全保持一致。
-
-## 注意事项
+## 生命周期约束
 
 每个 `Bot` 实例都单独管理 `PluginSetup` 的挂载状态：
 
@@ -328,17 +336,17 @@ await bot.unmount(Example);
 
 `PluginSetup` 接收当前 `Bot`，并且必须同步执行。`bot.unmount()` 只会执行该次挂载返回的清理函数，`plugin.dispose()` 只会执行通过 `useDispose()` 收集的清理函数。其他副作用由开发者自行管理。
 
-`loadPlugin()`、`bot.mount()`、`bot.unmount()` 和 `plugin.dispose()` 不会静默捕获错误，任何失败都会通过 Promise rejection 交给调用方。错误记录与插件隔离由完整的 Kokkoro 框架处理。
+`loadPlugin()`、`bot.mount()`、`bot.unmount()` 和 `plugin.dispose()` 失败时都会抛出错误，调用方可以通过 `await` 捕获。完整的 Kokkoro 框架会记录插件加载和挂载错误，并继续处理其他插件或机器人。启动回滚期间的取消挂载或资源释放失败时，错误仍会导致启动失败。
 
-`bot.unmount()` 会等待该次挂载当前的任务全部结束。不要在通过同一个 `PluginSetup` 声明的 Event 或 Command 处理函数中执行 `await bot.unmount(Example)`，如果需要卸载当前插件，应交给应用层处理。
+`bot.unmount()` 会等待该插件正在执行的事件和指令。不要在同一插件的处理函数中 `await bot.unmount(Example)`，否则取消挂载会一直等待当前处理函数结束。需要卸载当前插件时，先结束处理函数，再由应用层调用 `bot.unmount()`。
 
 ## 示例
 
-仓库中的 [examples](./examples) 提供简单的代码示例，包含 Echo 和 Eval 插件。运行前，请在 `packages/core/.env` 中填写机器人 AppID 与 AppSecret：
+仓库中的 [examples](./examples) 提供简单的代码示例，包含 Echo 和 Eval 插件。运行这些示例前，需要在 `packages/core/.env` 中填写机器人 AppID 与 ClientSecret：
 
 ```env
 APP_ID=机器人 AppID
-CLIENT_SECRET=机器人 AppSecret
+CLIENT_SECRET=机器人 ClientSecret
 ```
 
 ```shell
