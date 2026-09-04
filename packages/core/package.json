@@ -1,6 +1,6 @@
 {
   "name": "@kokkoro/core",
-  "version": "3.1.3",
+  "version": "3.1.4",
   "description": "The core of the Kokkoro QQ bot framework.",
   "keywords": [
     "bot",
@@ -23,7 +23,7 @@
     "src"
   ],
   "dependencies": {
-    "chobits": "^1.1.3"
+    "chobits": "^1.2.0"
   },
   "peerDependencies": {
     "typescript": "^6.0.3"

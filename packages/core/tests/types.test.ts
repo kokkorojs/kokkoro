@@ -33,6 +33,7 @@ test('公开类型', () => {
   expectType<Equal<Plugin['setup'], PluginSetup>>();
   expectType<Equal<ReturnType<Plugin['dispose']>, Promise<void>>>();
   expectType<Equal<SendImagePayload['msg_id'], string | undefined>>();
+  expectType<Equal<'image' extends keyof SendImagePayload ? true : false, false>>();
 
   expectType<
     Equal<
