@@ -12,13 +12,18 @@
   </p>
 </div>
 
-Kokkoro 是一个使用 Bun 和 TypeScript 开发的 QQ 机器人框架。它通过项目统一管理多个机器人和插件，并使用 Hook API 声明事件与指令。
+Kokkoro 是一个运行在 Bun 上的 TypeScript QQ 机器人框架。它可以在同一个项目中管理多个机器人和插件，插件通过 Hook API 监听事件并注册指令。
 
 框架直接对接 QQ 官方服务，不依赖 OneBot、Satori 等社区协议。每个机器人都可以通过 WebSocket 或 WebHook 接入。
 
 ## 快速上手
 
-运行脚手架，并按照提示填写项目名称、服务端口、接入方式和机器人凭证：
+在运行 Kokkoro 前，需要做好以下准备：
+
+- 安装 [Bun](https://bun.com/docs/installation) 运行时
+- 在 [QQ 开放平台](https://q.qq.com) 创建机器人
+
+项目可以通过脚手架创建。运行以下命令后，脚手架会依次询问项目名称、服务端口和 QQ 接入方式，并允许在初始化时添加机器人：
 
 ```shell
 bun create kokkoro
@@ -33,13 +38,13 @@ bun install
 bun start
 ```
 
-完整的项目结构、配置方式和插件开发流程请参阅 [Kokkoro 文档](https://kokkoro.js.org)。
+后续内容见 [快速上手](https://kokkoro.js.org/guide/quick-start)、[配置文件](https://kokkoro.js.org/guide/config) 和 [插件开发](https://kokkoro.js.org/develop/overview)。
 
 ## Packages
 
 | Package                                         | 说明                                                        |
 | ----------------------------------------------- | ----------------------------------------------------------- |
-| **[kokkoro](./packages/kokkoro)**               | 加载配置、机器人和插件，并启动 Kokkoro 服务                 |
+| **[kokkoro](./packages/kokkoro)**               | 读取配置，加载插件，并启动机器人和 HTTP 服务                |
 | **[@kokkoro/core](./packages/core)**            | 基于 QQ 官方事件与 OpenAPI 提供 Hook 插件系统和 Command API |
 | **[@kokkoro/cli](./packages/cli)**              | 初始化项目、创建插件和启动 Kokkoro                          |
 | **[create-kokkoro](./packages/create-kokkoro)** | 为 `bun create kokkoro` 提供项目脚手架                      |
