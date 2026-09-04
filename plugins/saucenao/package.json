@@ -1,7 +1,7 @@
 {
   "name": "kokkoro-plugin-saucenao",
-  "version": "2.0.0",
-  "description": "SauceNAO 图片搜索",
+  "version": "2.0.1",
+  "description": "SauceNAO 图片搜索，查找动漫、漫画、插画等图片的来源。",
   "keywords": [
     "bot",
     "kokkoro",
@@ -17,12 +17,16 @@
   "license": "MIT",
   "author": "Yuki <admin@yuki.sh>",
   "type": "module",
-  "exports": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./service": "./src/service.ts",
+    "./util": "./src/util.ts"
+  },
   "files": [
     "src"
   ],
   "peerDependencies": {
-    "@kokkoro/core": "^3.1.3",
+    "@kokkoro/core": "^3.1.4",
     "typescript": "^6.0.3"
   }
 }

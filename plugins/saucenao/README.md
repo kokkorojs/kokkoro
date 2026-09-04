@@ -1,6 +1,6 @@
 # kokkoro-plugin-saucenao
 
-使用 SauceNAO 搜索图片来源。
+SauceNAO 图片搜索，查找动漫、漫画、插画等图片的来源。
 
 ## 安装
 
@@ -37,3 +37,17 @@ SAUCENAO_SIMILARITY_THRESHOLD=50
 `SAUCENAO_NUMRES` 表示返回结果数量，默认值为 `3`。
 
 `SAUCENAO_SIMILARITY_THRESHOLD` 表示显示原缩略图的最低相似度，默认值为 `50`。低于该数值时，插件会使用表情包替换缩略图，避免搜出奇怪的图社死。
+
+## API
+
+其他插件可以从 `service` 入口导入 `fetchImageSources()` 搜索图片来源，再从 `util` 入口导入 `createMarkdown()` 生成 QQ Markdown：
+
+```typescript
+import { fetchImageSources } from 'kokkoro-plugin-saucenao/service';
+import { createMarkdown } from 'kokkoro-plugin-saucenao/util';
+
+const { results } = await fetchImageSources('https://example.com/image.jpg');
+const markdown = await createMarkdown(results);
+```
+
+`fetchImageSources()` 返回 SauceNAO 的完整响应。`service` 入口同时导出 `SauceNao` 和 `ImageSource` 类型。
