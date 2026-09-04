@@ -66,7 +66,7 @@
     },
     "packages/kokkoro": {
       "name": "kokkoro",
-      "version": "3.0.2",
+      "version": "3.0.3",
       "dependencies": {
         "@kokkoro/core": "^3.1.4",
         "annal": "^0.2.1",
