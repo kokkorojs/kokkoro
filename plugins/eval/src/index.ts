@@ -1,36 +1,20 @@
-import { spawn } from 'bun';
+import { useCommand, useLogger } from '@kokkoro/core';
 
-import { useCommand } from '@kokkoro/core';
+import { evaluate } from './service';
 
-const { EVAL_TIMEOUT: TIMEOUT = 1000 * 60, EVAL_MAX_BUFFER: MAX_BUFFER = 1024 * 64 } = import.meta.env;
-
-async function execute(parts: string[]) {
-  const source = parts.join(' ');
-  const signal = AbortSignal.timeout(Number(TIMEOUT));
-  const subprocess = spawn(['bun', '--print', source], {
-    stderr: 'pipe',
-    signal,
-    killSignal: 'SIGKILL',
-    maxBuffer: Number(MAX_BUFFER),
-  });
-  const [stdout, stderr, exitCode] = await Promise.all([
-    subprocess.stdout.text(),
-    subprocess.stderr.text(),
-    subprocess.exited,
-  ]);
-
-  if (signal.aborted) {
-    throw new Error('代码执行超时');
-  }
-
-  if (exitCode) {
-    throw new Error(stderr.trim() || `代码执行失败，退出码 ${exitCode}`);
-  }
-  return [stdout.trim(), stderr.trim()].filter(Boolean).join('\n') || undefined;
-}
+const logger = useLogger();
 
 export default () => {
-  useCommand('/执行 <parts>...', context => {
-    return execute(context.args.parts);
+  useCommand('/执行 <parts>...', async context => {
+    const source = context.args.parts.join(' ');
+
+    logger.debug('开始执行代码', { source });
+
+    const output = await evaluate(source);
+
+    logger.debug('代码执行结果', { output });
+    logger.info('已执行代码');
+
+    return output;
   }).shortcut(/^>\s*(?<parts>.+)$/s);
 };

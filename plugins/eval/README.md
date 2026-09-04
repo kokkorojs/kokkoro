@@ -1,6 +1,6 @@
 # kokkoro-plugin-eval
 
-在聊天中执行 JavaScript 或 TypeScript 代码。
+代码执行，运行 JavaScript 或 TypeScript 代码并返回执行结果。
 
 ## 安装
 
@@ -17,7 +17,7 @@ bun add kokkoro-plugin-eval
 `parts` 表示需要执行的代码。发送指令后，插件会返回执行结果。
 
 ```text
-/执行 1 + 1
+/执行 0.1 + 0.2
 ```
 
 ## 快捷方式
@@ -37,6 +37,16 @@ bun add kokkoro-plugin-eval
 ```ini
 EVAL_TIMEOUT=60000
 EVAL_MAX_BUFFER=65536
+```
+
+## API
+
+其他插件可以从 `service` 入口导入 `evaluate()`，在独立的 Bun 子进程中执行代码：
+
+```typescript
+import { evaluate } from 'kokkoro-plugin-eval/service';
+
+const output = await evaluate('0.1 + 0.2');
 ```
 
 ## 安全
