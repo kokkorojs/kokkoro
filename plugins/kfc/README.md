@@ -1,6 +1,6 @@
 # kokkoro-plugin-kfc
 
-vivo 50
+肯德基网络梗，随机获取一条疯狂星期四文案。
 
 ## 安装
 
@@ -26,4 +26,17 @@ bun add kokkoro-plugin-kfc
 
 北京时间每周四，消息中出现「麦当劳」、「金拱门」、「华莱士」、「汉堡王」、「德克士」或「塔斯汀」时，也会随机返回一条疯狂星期四文案。
 
+> [!WARNING]
+> 快捷方式会在整段消息中查找关键词，因此链接地址中包含 `v50` 或 `kfc` 时也可能触发插件。该问题将在后续版本中优化。
+
 群聊需要开启「获取群内全部消息」权限。
+
+## API
+
+其他插件可以从 `service` 入口导入 `fetchCrazyThursday()`。该函数返回疯狂星期四接口的完整响应：
+
+```typescript
+import { fetchCrazyThursday } from 'kokkoro-plugin-kfc/service';
+
+const result = await fetchCrazyThursday();
+```

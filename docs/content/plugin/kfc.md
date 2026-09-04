@@ -31,6 +31,10 @@ bun add kokkoro-plugin-kfc
 
 北京时间每周四，消息中出现麦当劳、金拱门、华莱士、汉堡王、德克士或塔斯汀时，也会触发插件。
 
+::: warning 已知问题
+快捷方式会在整段消息中查找关键词，因此链接地址中包含 `v50` 或 `kfc` 时也可能触发插件。该问题将在后续版本中优化。
+:::
+
 <ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">今天星期四，V 我 50</ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">
