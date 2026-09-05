@@ -43,7 +43,7 @@
     },
     "packages/core": {
       "name": "@kokkoro/core",
-      "version": "3.1.4",
+      "version": "3.1.5",
       "dependencies": {
         "chobits": "^1.2.0",
       },
