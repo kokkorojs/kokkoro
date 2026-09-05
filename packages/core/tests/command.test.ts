@@ -126,6 +126,22 @@ test('Shortcut 必填参数', async () => {
   expect(args).toEqual(['value']);
 });
 
+test('Shortcut 原型同名参数', async () => {
+  for (const pattern of ['example', /^example$/]) {
+    const bot = createBot();
+    const args: unknown[] = [];
+
+    await bot.mount(() => {
+      useCommand('/example [constructor] [__proto__]', context => {
+        args.push(context.args);
+      }).shortcut(pattern);
+    });
+    await bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('example'));
+
+    expect(args).toEqual([{ constructor: undefined, ['__proto__']: undefined }]);
+  }
+});
+
 test('Shortcut 并发', async () => {
   const bot = createBot();
   const gate = Promise.withResolvers<void>();

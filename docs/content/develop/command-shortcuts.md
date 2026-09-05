@@ -4,7 +4,7 @@
 
 ## 字符串匹配 {#string-matching}
 
-将字符串传给 `shortcut()` 时，只有消息内容与该字符串相同才会触发指令：
+字符串快捷方式忽略消息两侧的空白，其余内容必须与声明的字符串相同：
 
 ```typescript
 import { useCommand } from '@kokkoro/core';

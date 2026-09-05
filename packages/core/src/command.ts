@@ -211,11 +211,10 @@ const matchShortcut = (
   if (!match) {
     return null;
   }
-  const groups = match.groups ?? {};
   const args = createDefaultArgs(command.parameters);
 
   for (const parameter of command.parameters) {
-    const value = groups[parameter.name];
+    const value = match.groups?.[parameter.name];
 
     if (parameter.required && !value) {
       return null;

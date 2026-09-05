@@ -186,6 +186,8 @@ test('PluginSetup 返回值', async () => {
 test('挂载失败回滚', async () => {
   const bot = createBot();
   const calls: string[] = [];
+  const started = Promise.withResolvers<void>();
+  const gate = Promise.withResolvers<void>();
   let isFailing = true;
 
   function setup() {
@@ -198,12 +200,21 @@ test('挂载失败回滚', async () => {
       }
     }, []);
 
-    return () => {
+    return async () => {
       calls.push('cleanup');
+      started.resolve();
+      await gate.promise;
     };
   }
 
-  await expect(bot.mount(setup)).rejects.toThrow('mount failed');
+  const mounting = bot.mount(setup).catch((error: unknown) => error);
+
+  await started.promise;
+  const concurrent = bot.mount(setup);
+
+  gate.resolve();
+  await expect(concurrent).rejects.toThrow('Plugin setup is already mounted');
+  expect(await mounting).toEqual(new Error('mount failed'));
   expect(calls).toEqual(['setup', 'cleanup']);
 
   isFailing = false;

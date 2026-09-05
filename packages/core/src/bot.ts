@@ -82,9 +82,9 @@ export class Bot<
     const scope = createMountScope();
 
     this.scopes.set(setup, scope);
-    await using disposables = new AsyncDisposableStack();
 
     try {
+      await using disposables = new AsyncDisposableStack();
       const cleanup = await render(scope, setup, this);
 
       if (cleanup) {
