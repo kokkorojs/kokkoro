@@ -50,7 +50,7 @@ async function createPlugin(name: string, isForced: boolean): Promise<void> {
     files: ['src'],
     exports: './src/index.ts',
     peerDependencies: {
-      '@kokkoro/core': '^3.1.3',
+      '@kokkoro/core': '^3.1.5',
       typescript: '^6.0.3',
     },
   };
