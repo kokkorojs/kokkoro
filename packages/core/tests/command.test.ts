@@ -73,17 +73,22 @@ test('Shortcut 匹配', async () => {
       args.push(context.args);
     })
       .shortcut('来点涩图')
+      .shortcut('来点涩图.')
       .shortcut(/^来点(?<tag>.+)单图$/)
       .shortcut(/^来点(?<tags>.+)涩图$/);
   }
 
   await bot.mount(setup);
-  await bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('没有命中'));
+  await bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('来点涩图x'));
   await bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('来点涩图'));
+  await bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('  来点涩图 \t'));
+  await bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('来点涩图.\n'));
   await bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('来点可可萝单图'));
   await bot.emit('GROUP_MESSAGE_CREATE', createGroupMessageEvent('来点可可萝、萝莉涩图'));
 
   expect(args).toEqual([
+    { tag: undefined, tags: [] },
+    { tag: undefined, tags: [] },
     { tag: undefined, tags: [] },
     { tag: '可可萝', tags: [] },
     { tag: undefined, tags: ['可可萝、萝莉'] },

@@ -110,7 +110,7 @@ export interface CommandRegistration {
   readonly prefix: string;
   readonly parameters: readonly Parameter[];
   readonly handler: CommandHandler<Record<string, string | string[] | undefined>>;
-  readonly shortcuts: (string | RegExp)[];
+  readonly shortcuts: RegExp[];
 }
 
 export interface MountedCommand {
@@ -202,12 +202,9 @@ const parseArgs = (
 
 const matchShortcut = (
   command: CommandRegistration,
-  pattern: string | RegExp,
+  pattern: RegExp,
   content: string,
 ): Record<string, string | string[] | undefined> | null => {
-  if (typeof pattern === 'string') {
-    return pattern === content ? createDefaultArgs(command.parameters) : null;
-  }
   pattern.lastIndex = 0;
   const match = pattern.exec(content);
 
@@ -235,13 +232,13 @@ const getCaptureNames = (pattern: RegExp): Set<string> => {
   return new Set(Object.keys(match?.groups ?? {}));
 };
 
-const validateShortcut = (command: CommandRegistration, pattern: string | RegExp): void => {
+const validateShortcut = (command: CommandRegistration, pattern: RegExp): void => {
   const requiredNames = command.parameters.filter(parameter => parameter.required).map(parameter => parameter.name);
 
   if (requiredNames.length === 0) {
     return;
   }
-  const captureNames = typeof pattern === 'string' ? new Set<string>() : getCaptureNames(pattern);
+  const captureNames = getCaptureNames(pattern);
   const missingNames = requiredNames.filter(name => !captureNames.has(name));
 
   if (missingNames.length > 0) {
@@ -394,8 +391,11 @@ export function useCommand<const Syntax extends `/${string}`>(
       if (typeof pattern !== 'string' && !(pattern instanceof RegExp)) {
         throw new TypeError('Command shortcut must be a string or RegExp');
       }
-      validateShortcut(registration, pattern);
-      registration.shortcuts.push(pattern);
+      const regex =
+        typeof pattern === 'string' ? new RegExp(String.raw`^\s*${RegExp.escape(pattern)}\s*$`, 'u') : pattern;
+
+      validateShortcut(registration, regex);
+      registration.shortcuts.push(regex);
 
       return this;
     },
