@@ -1,6 +1,6 @@
 {
   "name": "kokkoro-plugin-eval",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "代码执行，运行 JavaScript 或 TypeScript 代码并返回执行结果。",
   "keywords": [
     "bot",

@@ -87,7 +87,7 @@
     },
     "plugins/eval": {
       "name": "kokkoro-plugin-eval",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "peerDependencies": {
         "@kokkoro/core": "^3.1.4",
         "typescript": "^6.0.3",

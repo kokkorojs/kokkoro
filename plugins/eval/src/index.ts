@@ -5,8 +5,8 @@ import { evaluate } from './service';
 const logger = useLogger();
 
 export default () => {
-  useCommand('/执行 <parts>...', async context => {
-    const source = context.args.parts.join(' ');
+  useCommand('/执行 <code>', async context => {
+    const source = context.trigger === 'shortcut' ? context.args.code : context.content.replace(/^.*?\/执行\s+/s, '');
 
     logger.debug('开始执行代码', { source });
 
@@ -16,5 +16,5 @@ export default () => {
     logger.info('已执行代码');
 
     return output;
-  }).shortcut(/^>\s*(?<parts>.+)$/s);
+  }).shortcut(/^>\s*(?<code>.+)$/s);
 };

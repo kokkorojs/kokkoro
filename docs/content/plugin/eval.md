@@ -21,12 +21,12 @@ bun add kokkoro-plugin-eval
 将代码写在 `/执行` 后面：
 
 ```text
-/执行 1 + 1
+/执行 0.1 + 0.2
 ```
 
 <ChatPanel self="2225151531" :bots="['2854205915']">
-  <ChatMessage qq="2225151531" nickname="Yuki">/执行 1 + 1</ChatMessage>
-  <ChatMessage qq="2854205915" nickname="可可萝">2</ChatMessage>
+  <ChatMessage qq="2225151531" nickname="Yuki">/执行 0.1 + 0.2</ChatMessage>
+  <ChatMessage qq="2854205915" nickname="可可萝">0.30000000000000004</ChatMessage>
 </ChatPanel>
 
 插件会在新的 Bun 子进程中执行代码。执行的代码可以使用 TypeScript 语法和顶层 `await`。
