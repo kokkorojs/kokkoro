@@ -33,7 +33,7 @@
         "kokkoro": "./src/index.ts",
       },
       "dependencies": {
-        "create-kokkoro": "^0.1.2",
+        "create-kokkoro": "^0.2.0",
         "kokkoro": "^3.0.2",
         "komut": "^0.3.1",
       },
