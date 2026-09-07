@@ -61,7 +61,7 @@ async function createPlugin(name: string, isForced: boolean): Promise<void> {
     write(join(source, 'index.ts'), TEMPLATE),
   ]);
 
-  console.log(`插件 ${name} 创建完成`);
+  console.log(`插件 ${name} 创建完成，请运行 bun i 同步工作区依赖`);
 }
 
 @Command({

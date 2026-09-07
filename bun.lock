@@ -28,7 +28,7 @@
     },
     "packages/cli": {
       "name": "@kokkoro/cli",
-      "version": "3.0.3",
+      "version": "3.0.4",
       "bin": {
         "kokkoro": "./src/index.ts",
       },
