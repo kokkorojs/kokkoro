@@ -7,6 +7,12 @@ test('类型代码', () => {
   expect(() => resolveTypeCodes(['黄油'])).toThrow('类型「黄油」不是有效值');
 });
 
+test('拒绝原型属性', () => {
+  for (const name of ['constructor', '__proto__', 'toString']) {
+    expect(() => resolveTypeCodes([name])).toThrow(`类型「${name}」不是有效值`);
+  }
+});
+
 test('类型参数', () => {
   import.meta.env.HITOKOTO_TYPES = 'a,b,c';
 

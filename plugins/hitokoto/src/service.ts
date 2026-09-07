@@ -27,6 +27,9 @@ export const TYPE_NAMES = Object.keys(TYPE_CODES).join('、');
 /** 一言接口 `c` 参数接受的句子类型代码。 */
 export type SentenceType = (typeof TYPE_CODES)[keyof typeof TYPE_CODES];
 
+/** 判断名称是否为 {@link TYPE_CODES} 自身定义的键。 */
+export const isTypeName = (name: string): name is keyof typeof TYPE_CODES => Object.hasOwn(TYPE_CODES, name);
+
 /**
  * 将中文句子类型名称转换为一言接口的类型代码。
  *
@@ -47,12 +50,10 @@ export type SentenceType = (typeof TYPE_CODES)[keyof typeof TYPE_CODES];
  */
 export function resolveTypeCodes(names: string[]): SentenceType[] {
   return names.map(name => {
-    const code: SentenceType = TYPE_CODES[<keyof typeof TYPE_CODES>name];
-
-    if (!code) {
+    if (!isTypeName(name)) {
       throw new Error(`类型「${name}」不是有效值，支持的句子类型有：${TYPE_NAMES}`);
     }
-    return code;
+    return TYPE_CODES[name];
   });
 }
 
