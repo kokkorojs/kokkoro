@@ -105,6 +105,7 @@ export default defineConfig({
             { text: '疯狂星期四', link: '/plugin/kfc' },
             { text: '代码执行', link: '/plugin/eval' },
             { text: 'SauceNAO 图片搜索', link: '/plugin/saucenao' },
+            { text: 'AnimeTrace 角色识别', link: '/plugin/animetrace' },
             { text: 'Open Graph 预览图', link: '/plugin/og' },
           ],
         },

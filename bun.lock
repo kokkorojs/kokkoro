@@ -79,10 +79,19 @@
       "name": "@kokkoro/examples",
       "dependencies": {
         "kokkoro": "workspace:*",
+        "kokkoro-plugin-animetrace": "workspace:*",
         "kokkoro-plugin-eval": "workspace:*",
         "kokkoro-plugin-hitokoto": "workspace:*",
         "kokkoro-plugin-kfc": "workspace:*",
         "kokkoro-plugin-saucenao": "workspace:*",
+      },
+    },
+    "plugins/animetrace": {
+      "name": "kokkoro-plugin-animetrace",
+      "version": "1.0.0",
+      "peerDependencies": {
+        "@kokkoro/core": "^3.1.4",
+        "typescript": "^6.0.3",
       },
     },
     "plugins/eval": {
@@ -568,6 +577,8 @@
     "keyv": ["keyv@4.5.4", "", { "dependencies": { "json-buffer": "3.0.1" } }, "sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw=="],
 
     "kokkoro": ["kokkoro@workspace:packages/kokkoro"],
+
+    "kokkoro-plugin-animetrace": ["kokkoro-plugin-animetrace@workspace:plugins/animetrace"],
 
     "kokkoro-plugin-eval": ["kokkoro-plugin-eval@workspace:plugins/eval"],
 

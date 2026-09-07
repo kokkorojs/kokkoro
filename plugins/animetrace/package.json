@@ -1,0 +1,32 @@
+{
+  "name": "kokkoro-plugin-animetrace",
+  "version": "1.0.0",
+  "description": "AnimeTrace 角色识别，查找图片中的动漫、游戏角色及所属作品。",
+  "keywords": [
+    "animetrace",
+    "bot",
+    "kokkoro",
+    "qq"
+  ],
+  "bugs": "https://github.com/kokkorojs/kokkoro/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kokkorojs/kokkoro.git",
+    "directory": "plugins/animetrace"
+  },
+  "license": "MIT",
+  "author": "Yuki <admin@yuki.sh>",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./service": "./src/service.ts",
+    "./util": "./src/util.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "peerDependencies": {
+    "@kokkoro/core": "^3.1.4",
+    "typescript": "^6.0.3"
+  }
+}

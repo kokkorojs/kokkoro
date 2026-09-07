@@ -7,6 +7,7 @@
   },
   "dependencies": {
     "kokkoro": "workspace:*",
+    "kokkoro-plugin-animetrace": "workspace:*",
     "kokkoro-plugin-eval": "workspace:*",
     "kokkoro-plugin-hitokoto": "workspace:*",
     "kokkoro-plugin-kfc": "workspace:*",
