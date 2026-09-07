@@ -39,7 +39,7 @@ bun add kokkoro-plugin-animetrace
 
 ## API {#api}
 
-`fetchCharacters(image: string)` 从公开可访问的图片 URL 获取识别结果，返回 `Promise<AnimeTrace>`。请求使用默认模型，返回多个候选结果。HTTP 请求失败、识别状态码不为 `0` 或人物结果为空时，Promise 会 reject。
+`fetchCharacters(url: string)` 从公开可访问的图片 URL 获取识别结果，返回 `Promise<AnimeTrace>`。请求使用默认模型，返回多个候选结果。HTTP 请求失败、识别状态码不为 `0` 或人物结果为空时，Promise 会 reject。
 
 ```typescript
 import { fetchCharacters } from 'kokkoro-plugin-animetrace/service';

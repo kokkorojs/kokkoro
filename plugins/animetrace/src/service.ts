@@ -35,10 +35,10 @@ export interface CharacterResult {
 }
 
 /** 使用 AnimeTrace 默认模型识别图片中的角色，并返回完整的接口响应。 */
-export async function fetchCharacters(image: string): Promise<AnimeTrace> {
+export async function fetchCharacters(url: string): Promise<AnimeTrace> {
   const form = new FormData();
 
-  form.set('url', image);
+  form.set('url', url);
   form.set('is_multi', '1');
   form.set('ai_detect', '0');
 

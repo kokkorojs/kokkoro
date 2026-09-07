@@ -120,7 +120,7 @@ const { SAUCENAO_API_KEY, SAUCENAO_NUMRES = 3 } = import.meta.env;
 export const SAUCENAO_API = 'https://saucenao.com/search.php';
 
 /** 使用 SauceNAO 搜索图片来源，并返回完整的接口响应。 */
-export async function fetchImageSources(image: string): Promise<SauceNao> {
+export async function fetchImageSources(url: string): Promise<SauceNao> {
   if (!SAUCENAO_API_KEY) {
     throw new Error('未配置 SAUCENAO_API_KEY 环境变量');
   }
@@ -130,7 +130,7 @@ export async function fetchImageSources(image: string): Promise<SauceNao> {
   form.set('output_type', '2');
   form.set('numres', String(SAUCENAO_NUMRES));
   form.set('db', '999');
-  form.set('url', image);
+  form.set('url', url);
 
   const response = await fetch(SAUCENAO_API, { method: 'POST', body: form });
 

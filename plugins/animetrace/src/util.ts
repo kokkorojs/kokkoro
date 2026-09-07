@@ -4,11 +4,11 @@ import { type CharacterResult } from './service';
 export function createMarkdown(results: readonly CharacterResult[]): string {
   const lines = ['## AnimeTrace 搜索结果'];
 
-  for (const [index, { character, not_confident: isNotConfident }] of results.entries()) {
+  for (const [index, { character: candidates, not_confident: isNotConfident }] of results.entries()) {
     if (results.length > 1) {
       lines.push(`**人物 ${index + 1}**`);
     }
-    lines.push(character.map(({ character, work }) => `- **${character}**  \n  ${work}`).join('\n'));
+    lines.push(candidates.map(({ character, work }) => `- **${character}**  \n  ${work}`).join('\n'));
 
     if (isNotConfident) {
       lines.push('> 识别置信度较低，请结合原图确认。');

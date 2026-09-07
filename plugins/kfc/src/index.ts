@@ -11,7 +11,7 @@ const BURGER_BRANDS = /(?:麦当劳|金拱门|华莱士|汉堡王|德克士|塔�
 
 const KEYWORDS = [PAYMENT, KFC, THURSDAY];
 const SHORTCUT = new RegExp([...KEYWORDS, BURGER_BRANDS].map(pattern => pattern.source).join('|'), 'i');
-const WEEKDAY_FORMAT = new Intl.DateTimeFormat('en-US', {
+const WEEKDAY_FORMATTER = new Intl.DateTimeFormat('en-US', {
   timeZone: 'Asia/Shanghai',
   weekday: 'long',
 });
@@ -20,7 +20,7 @@ function shouldTrigger(content: string) {
   if (KEYWORDS.some(pattern => pattern.test(content))) {
     return true;
   }
-  return WEEKDAY_FORMAT.format(new Date()) === 'Thursday' && BURGER_BRANDS.test(content);
+  return WEEKDAY_FORMATTER.format(new Date()) === 'Thursday' && BURGER_BRANDS.test(content);
 }
 
 export default () => {
