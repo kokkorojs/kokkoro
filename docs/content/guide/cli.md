@@ -87,4 +87,14 @@ kokkoro plugin example --force
 kokkoro start
 ```
 
-该命令读取当前目录中的 `kokkoro.json`，加载项目插件，启动 HTTP 服务，并启动配置中的全部机器人。
+该命令通过 Bun 执行当前目录中的 `main.ts`。
+
+### 自定义入口 {#custom-entry}
+
+如果入口文件的名称或位置发生变化，可以在 `start` 命令后指定文件路径：
+
+```shell
+kokkoro start src/main.ts
+```
+
+可以使用相对路径或绝对路径，相对路径以当前目录为基准。指定入口不会改变工作目录，`kokkoro.json` 仍从项目根目录读取。
