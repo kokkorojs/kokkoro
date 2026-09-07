@@ -110,8 +110,6 @@ ClientSecret 是敏感凭证。不要向他人公开，也不要将包含真实 
 https://bot.example.com/callback
 ```
 
-在这个示例中，`kokkoro.json` 中填写 `/callback`，QQ 机器人管理后台中填写 `https://bot.example.com/callback`。
-
 ## HTTP 服务 {#http-server}
 
 `server` 用于设置 Kokkoro 自带的 HTTP 服务：

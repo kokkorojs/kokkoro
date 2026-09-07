@@ -58,7 +58,11 @@ export default () => {
 };
 ```
 
-其他事件的 `context` 不会提供 `reply()`，调用时 TypeScript 会提示错误。
+<ChatPanel self="2225151531" :bots="['2854205915']">
+  <ChatMessage qq="2854205915" nickname="可可萝">很高兴认识你</ChatMessage>
+</ChatPanel>
+
+不支持回复的事件不会提供 `reply()`，调用时 TypeScript 会提示错误。
 
 ## 调用 QQ API {#qq-api}
 

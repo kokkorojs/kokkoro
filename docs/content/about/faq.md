@@ -68,21 +68,4 @@ QQ 消息本身是文本。Kokkoro 会按照 `useCommand()` 中声明的参数�
 
 框架本可以引入 `<count:number>` 这样的专用语法，自动转换参数类型。但这种写法不符合常见的指令参数习惯，还会增加 Kokkoro 独有的学习成本。即使框架完成了类型转换，插件仍然需要根据业务要求检查数字范围。
 
-Kokkoro 负责解析指令参数，类型转换和业务校验则由插件完成：
-
-```typescript
-import { useCommand } from '@kokkoro/core';
-
-export default () => {
-  useCommand('/抽卡 <count>', context => {
-    const count = Number(context.args.count);
-
-    if (!Number.isInteger(count) || count < 1) {
-      throw new Error('抽卡次数必须是正整数');
-    }
-    return `抽取 ${count} 次`;
-  });
-};
-```
-
-详细语法参阅 [转换参数类型](/develop/command-arguments#convert-types)。
+Kokkoro 负责解析指令参数，类型转换和业务校验则由插件完成。具体示例见 [转换参数类型](/develop/command-arguments#convert-types)。

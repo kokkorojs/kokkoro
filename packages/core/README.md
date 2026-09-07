@@ -236,7 +236,7 @@ const plugin = await loadPlugin(() => import('./plugins/example'));
 await bot.mount(plugin.setup);
 ```
 
-`useLogger()` 只能在插件模块加载期间调用，因此需要写在模块顶层。获取到的日志记录器可以在 `PluginSetup`、事件回调和指令处理函数中使用。
+`useLogger()` 必须在插件模块加载期间调用，通常放在模块顶层。获取到的日志记录器可以在 `PluginSetup`、事件回调和指令处理函数中使用。
 
 `loadPlugin()` 的第二个参数可以传入自定义 `Logger`。省略该参数时，Core 使用 `console`。
 

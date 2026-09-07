@@ -107,7 +107,7 @@ Kokkoro 会加载本地插件和社区插件。
 └── package.json
 ```
 
-加载本地插件时，Kokkoro 会根据插件目录中的 `package.json` 确定程序入口。如果目录中没有这个文件，则会根据 [模块解析规则](https://bun.com/docs/runtime/module-resolution) 查找 `index.ts` 等入口文件。`package.json` 中的 `name` 字段只用于确定插件标识，与程序入口无关。
+本地插件的 `package.json` 声明了 `name` 时，Kokkoro 会按照其中的 `exports` 等模块配置解析程序入口。没有 `package.json`，或未声明 `name` 时，则按照 [Bun 的模块解析规则](https://bun.com/docs/runtime/module-resolution) 解析插件目录，并查找 `index.ts` 等入口文件。
 
 插件使用 `package.json` 中的 `name` 作为标识。本地插件没有 `package.json`，或 `package.json` 中未声明 `name` 字段时，则使用一级子目录名称。
 

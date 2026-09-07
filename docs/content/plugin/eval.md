@@ -39,7 +39,7 @@ bun add kokkoro-plugin-eval
 > ((value: number) => value * 2)(21)
 ```
 
-只有在群聊中开启「获取群内全部消息」权限后，普通群消息才能触发快捷方式。未开启该权限时，需要在消息中 @ 机器人。
+要让普通群消息触发快捷方式，需要开启「获取群内全部消息」权限。
 
 ## 环境变量 {#environment-variables}
 

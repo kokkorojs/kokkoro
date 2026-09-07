@@ -50,7 +50,7 @@ bun add kokkoro-plugin-hitokoto
   <ChatMessage qq="2854205915" nickname="可可萝">『能哭的地方，只有厕所和爸爸的怀里。』——「CLANNAD」</ChatMessage>
 </ChatPanel>
 
-只有在群聊中开启「获取群内全部消息」权限后，普通群消息才能触发快捷方式。未开启该权限时，需要在消息中 @ 机器人。
+要让普通群消息触发快捷方式，需要开启「获取群内全部消息」权限。
 
 ## 在其他插件中获取一言 {#fetch-sentence}
 

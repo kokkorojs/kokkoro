@@ -19,18 +19,9 @@ const database = new Database('check-in.sqlite', { create: true });
 
 useDispose(() => database.close());
 
-database.run(`
-  CREATE TABLE IF NOT EXISTS check_ins (
-    user_id TEXT PRIMARY KEY,
-    checked_at TEXT NOT NULL
-  )
-`);
+database.run('CREATE TABLE IF NOT EXISTS check_ins (user_id TEXT PRIMARY KEY, checked_at TEXT NOT NULL)');
 
-const checkIn = database.query(`
-  INSERT INTO check_ins (user_id, checked_at)
-  VALUES (?, ?)
-  ON CONFLICT (user_id) DO UPDATE SET checked_at = excluded.checked_at
-`);
+const checkIn = database.query('INSERT OR REPLACE INTO check_ins (user_id, checked_at) VALUES (?, ?)');
 
 export default () => {
   useCommand('/签到', context => {
@@ -41,9 +32,14 @@ export default () => {
 };
 ```
 
+<ChatPanel self="2225151531" :bots="['2854205915']">
+  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /签到</ChatMessage>
+  <ChatMessage qq="2854205915" nickname="可可萝">签到成功</ChatMessage>
+</ChatPanel>
+
 `useDispose()` 注册了关闭数据库的清理函数。释放插件模块时，该函数会执行并关闭数据库。如果不执行这一步，数据库连接仍会占用文件和内存资源。
 
-`useDispose()` 只能在模块顶层调用，清理函数可以同步执行，也可以返回 `Promise`。注册多个清理函数时，后注册的函数会先执行。
+`useDispose()` 必须在插件模块加载期间调用，通常放在模块顶层。清理函数可以同步执行，也可以返回 `Promise`。注册多个清理函数时，后注册的函数会先执行。
 
 Kokkoro v3 的数据持久化方案仍在评估，旧版方案和当前状态见 [数据持久化](/develop/persistence)。
 

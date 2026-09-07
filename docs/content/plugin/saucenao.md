@@ -2,6 +2,10 @@
 
 `kokkoro-plugin-saucenao` 使用 [SauceNAO](https://saucenao.com/) 搜索图片来源，并通过 QQ Markdown 消息展示结果。
 
+::: important
+使用 SauceNAO API 前，需要先[申请 API Key](https://saucenao.com/user.php?page=search-api)，并完成[环境变量配置](#configuration)。
+:::
+
 ## 安装 {#installation}
 
 在 Kokkoro 项目目录中安装插件：
@@ -11,22 +15,6 @@ bun add kokkoro-plugin-saucenao
 ```
 
 安装完成后，重新启动项目，Kokkoro 会自动加载插件。
-
-## 配置 {#configuration}
-
-使用插件前，需要从 [SauceNAO](https://saucenao.com/user.php?page=search-api) 获取 API Key，并写入项目根目录的 `.env`：
-
-```ini
-SAUCENAO_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-SAUCENAO_NUMRES=3
-SAUCENAO_SIMILARITY_THRESHOLD=50
-```
-
-- **SAUCENAO_API_KEY**：SauceNAO API Key，必须填写。
-- **SAUCENAO_NUMRES**：返回的搜索结果数量，默认值为 `3`。
-- **SAUCENAO_SIMILARITY_THRESHOLD**：显示 SauceNAO 缩略图所需的最低相似度，默认值为 `50`。低于该数值时，插件会用表情包替换缩略图，避免展示不相关的图片。
-
-修改 `.env` 后，需要重新启动项目。
 
 ## 搜索图片来源 {#search-image-source}
 
@@ -56,4 +44,20 @@ SAUCENAO_SIMILARITY_THRESHOLD=50
 
 ## 快捷方式 {#shortcut}
 
-发送带有图片的「搜图」消息，也会执行相同的搜索。只有在群聊中开启「获取群内全部消息」权限后，普通群消息才能触发快捷方式。未开启该权限时，需要在消息中 @ 机器人。
+发送带有图片的「搜图」消息，也会执行相同的搜索。要让普通群消息触发快捷方式，需要开启「获取群内全部消息」权限。
+
+## 配置 {#configuration}
+
+使用插件前，需要从 [SauceNAO](https://saucenao.com/user.php?page=search-api) 获取 API Key，并写入项目根目录的 `.env`：
+
+```ini
+SAUCENAO_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+SAUCENAO_NUMRES=3
+SAUCENAO_SIMILARITY_THRESHOLD=50
+```
+
+- **SAUCENAO_API_KEY**：SauceNAO API Key，必须填写。
+- **SAUCENAO_NUMRES**：返回的搜索结果数量，默认值为 `3`。
+- **SAUCENAO_SIMILARITY_THRESHOLD**：显示 SauceNAO 缩略图所需的最低相似度，默认值为 `50`。低于该数值时，插件会用表情包替换缩略图，避免展示不相关的图片。
+
+修改 `.env` 后，需要重新启动项目。

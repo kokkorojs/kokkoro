@@ -41,7 +41,7 @@ export default (bot: Bot<Events>) => {
 };
 ```
 
-`bot.emit()` 会直接执行该事件的所有监听器，并等待它们执行完成。自定义事件不会重新进入 `Bot` 的中间件链。
+`bot.emit()` 会直接执行该事件的所有监听器，并等待它们执行完成。
 
 监听器抛出错误时，`bot.emit()` 返回的 Promise 会被拒绝。示例通过 `await` 等待结果，因此错误会继续由 Kokkoro 的事件处理流程记录。
 
@@ -51,13 +51,20 @@ export default (bot: Bot<Events>) => {
 
 通过 `bot.on()` 注册的监听器不属于 Hook，插件取消挂载时不会自动移除。插件可以在 `PluginSetup` 返回的清理函数中调用 `bot.off()`：
 
-```typescript
+```typescript {15-17}
 export default (bot: Bot<Events>) => {
   const handleNotice = (content: string) => {
     console.log(content);
   };
 
   bot.on('notice', handleNotice);
+
+  useEvent(
+    async context => {
+      await bot.emit('notice', `机器人 ${context.user.username} 已连接`);
+    },
+    ['READY'],
+  );
 
   return () => {
     bot.off('notice', handleNotice);

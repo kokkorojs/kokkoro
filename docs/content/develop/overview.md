@@ -52,7 +52,7 @@ Kokkoro 将 `useCommand()` 和 `useEvent()` 这类注册插件功能的函数称
 
 `useCommand()` 和 `useEvent()` 只能在 `PluginSetup` 执行期间调用。调用语句可以直接写在函数体中，也可以写在它同步调用的其他函数中。`PluginSetup` 不能是异步函数。
 
-`useLogger()` 用于获取插件日志记录器，`useDispose()` 用于注册模块资源的清理函数。它们属于模块加载阶段的 Hook，只能写在模块顶层。不同阶段的执行顺序参阅 [插件生命周期](/develop/lifecycle)。
+`useLogger()` 用于获取插件日志记录器，`useDispose()` 用于注册模块资源的清理函数。它们必须在插件模块加载期间调用，通常放在模块顶层。不同阶段的执行顺序参阅 [插件生命周期](/develop/lifecycle)。
 
 `PluginSetup` 的参数是当前挂载插件的 `Bot`。插件需要调用 QQ API 时，可以使用这个参数：
 

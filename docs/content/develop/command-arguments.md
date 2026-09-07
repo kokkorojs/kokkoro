@@ -65,7 +65,12 @@ useCommand('/问候 [name]', context => {
 });
 ```
 
-发送 `/问候 可可萝` 会回复「你好，可可萝」，只发送 `/问候` 则会回复「你好，朋友」。
+<ChatPanel self="2225151531" :bots="['2854205915']">
+  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /问候 可可萝</ChatMessage>
+  <ChatMessage qq="2854205915" nickname="可可萝">你好，可可萝</ChatMessage>
+  <ChatMessage qq="2225151531" nickname="Yuki">@可可萝 /问候</ChatMessage>
+  <ChatMessage qq="2854205915" nickname="可可萝">你好，朋友</ChatMessage>
+</ChatPanel>
 
 必填参数必须写在可选参数之前，否则插件无法挂载。这样可以确保每个值都能对应到明确的参数。
 
