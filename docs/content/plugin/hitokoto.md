@@ -54,11 +54,11 @@ bun add kokkoro-plugin-hitokoto
 
 ## 在其他插件中获取一言 {#fetch-sentence}
 
-插件同时导出 `fetchSentence()`，其他插件可以通过它取得一言接口返回的完整数据：
+插件通过 `service` 子路径导出 `fetchSentence()`，其他插件可以通过它取得一言接口返回的完整数据：
 
 ```typescript
 import { useCommand } from '@kokkoro/core';
-import { fetchSentence } from 'kokkoro-plugin-hitokoto';
+import { fetchSentence } from 'kokkoro-plugin-hitokoto/service';
 
 export default () => {
   useCommand('/诗词', async () => {
