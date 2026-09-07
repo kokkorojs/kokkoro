@@ -1,4 +1,4 @@
-import { Glob, write } from 'bun';
+import { $, file, Glob, write } from 'bun';
 import { existsSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { basename, join, resolve } from 'node:path';
@@ -15,6 +15,15 @@ const MAIN = [
   '',
 ].join('\n');
 
+const PLUGIN = [
+  "import { useCommand } from '@kokkoro/core';",
+  '',
+  'export default () => {',
+  "  useCommand('/ping', () => 'pong');",
+  '};',
+  '',
+].join('\n');
+
 async function hasEntries(directory: string): Promise<boolean> {
   if (!existsSync(directory)) {
     return false;
@@ -24,8 +33,7 @@ async function hasEntries(directory: string): Promise<boolean> {
     dot: true,
     onlyFiles: false,
   });
-  const iterator = entries[Symbol.asyncIterator]();
-  const { done } = await iterator.next();
+  const { done } = await entries.next();
 
   return !done;
 }
@@ -100,7 +108,7 @@ function promptBots(protocol: Protocol) {
 
 /** 在指定目录创建 Kokkoro 项目。 */
 export async function createProject(directory: string, isForced = false): Promise<void> {
-  if ((await hasEntries(directory)) && !isForced) {
+  if (!isForced && (await hasEntries(directory))) {
     throw new Error(`目标目录不是空目录，如需继续，请使用 --force 选项覆盖模板文件\n${directory}`);
   }
   const port = promptPort();
@@ -117,6 +125,9 @@ export async function createProject(directory: string, isForced = false): Promis
     },
     dependencies: {
       kokkoro: '^3.0.3',
+    },
+    peerDependencies: {
+      typescript: '^6.0.3',
     },
     devEngines: {
       runtime: {
@@ -147,8 +158,43 @@ export async function createProject(directory: string, isForced = false): Promis
   console.log('\n项目创建完成，请依次运行以下命令：\n');
 
   if (directory !== '.') {
-    console.log(`  cd ${directory}`);
+    console.log(`  cd ${$.escape(resolve(directory))}`);
   }
   console.log('  bun install');
   console.log('  bun start');
+}
+
+/** 在当前 Kokkoro 项目中创建本地插件。 */
+export async function createPlugin(name: string, isForced = false): Promise<void> {
+  if (!/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/.test(name)) {
+    throw new Error('插件名称必须以小写字母开头，且只能包含小写字母、数字和连字符');
+  }
+
+  if (!(await file('kokkoro.json').exists())) {
+    throw new Error('当前目录不是 Kokkoro 项目，请先运行 init 命令');
+  }
+  const destination = join('plugins', name);
+
+  if (!isForced && (await hasEntries(destination))) {
+    throw new Error(`目标插件目录不是空目录，如需继续，请使用 --force 选项覆盖模板文件\n${destination}`);
+  }
+  const source = join(destination, 'src');
+  const manifest = {
+    name: `kokkoro-plugin-${name}`,
+    version: '0.0.0',
+    type: 'module',
+    files: ['src'],
+    exports: './src/index.ts',
+    peerDependencies: {
+      '@kokkoro/core': '^3.1.5',
+      typescript: '^6.0.3',
+    },
+  };
+
+  await Promise.all([
+    write(join(destination, 'package.json'), `${JSON.stringify(manifest, null, 2)}\n`),
+    write(join(source, 'index.ts'), PLUGIN),
+  ]);
+
+  console.log(`插件 ${name} 创建完成，请运行 bun i 同步工作区依赖`);
 }
