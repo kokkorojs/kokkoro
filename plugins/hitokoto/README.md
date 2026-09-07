@@ -48,7 +48,9 @@ const sentence = await fetchSentence('i');
 
 `fetchSentence()` 接收一言接口的类型代码或代码数组。`'i'` 表示诗词，`['a', 'b']` 表示动画和漫画。传入空数组时，函数不限制语句类型。
 
-请求失败时，`fetchSentence()` 会抛出 `Error`。一言错误响应使用上游的 `message`，其他请求错误使用 HTTP 状态码。包同时导出 `Sentence`、`SentenceType` 和 `ErrorResponse` 类型，以及 `isErrorResponse()` 类型守卫。
+收到非 2xx 响应时，`fetchSentence()` 会抛出 `Error`，优先使用一言错误响应中的 `message`，否则使用 HTTP 状态码。网络请求或成功响应的 JSON 解析失败时，函数直接传播原始错误。
+
+包同时导出 `Sentence`、`SentenceType` 和 `ErrorResponse` 类型，以及 `isErrorResponse()` 类型守卫。
 
 ## 环境变量
 

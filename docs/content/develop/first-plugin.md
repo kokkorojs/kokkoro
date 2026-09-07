@@ -14,10 +14,10 @@ kokkoro plugin example
 
 命令会创建 `plugins/example` 文件夹，并生成 `package.json` 和 `src/index.ts`。
 
-创建插件后，在项目根目录再次安装依赖，让 Bun 将新插件链接到当前项目：
+创建插件后，在项目根目录或任意子目录中执行 `bun i` 同步工作区依赖，无需进入插件目录：
 
 ```shell
-bun install
+bun i
 ```
 
 ## 新增指令 {#add-command}

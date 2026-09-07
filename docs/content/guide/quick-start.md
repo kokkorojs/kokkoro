@@ -93,6 +93,8 @@ bun install
 
 安装完成后，Bun 会创建 `node_modules` 目录和 `bun.lock` 文件。项目依赖和 `start` 脚本已经由初始化工具写入 `package.json`，不需要手动添加。
 
+`bun i` 是 `bun install` 的简写，可以在项目根目录或任意子目录中执行，无需进入插件目录。
+
 ## 启动项目 {#start-project}
 
 在项目目录中运行 `start` 脚本：
@@ -155,10 +157,10 @@ Kokkoro 可以加载项目中的本地插件，也可以加载通过 npm 安装�
 kokkoro plugin example
 ```
 
-该命令会在 `plugins/example` 中创建插件。创建完成后，再安装一次依赖，让 Bun 将新插件链接到当前项目：
+该命令会在 `plugins/example` 中创建插件。创建完成后，再运行一次 `bun i` 同步工作区依赖，无需进入 `plugins/example`：
 
 ```shell
-bun install
+bun i
 ```
 
 重新启动项目：

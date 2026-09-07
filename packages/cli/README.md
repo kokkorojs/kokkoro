@@ -33,6 +33,12 @@ kokkoro init
 kokkoro init --force
 ```
 
+初始化完成后，在项目根目录安装依赖：
+
+```shell
+bun install
+```
+
 ## 创建插件
 
 在项目根目录运行以下命令：
@@ -42,6 +48,12 @@ kokkoro plugin example
 ```
 
 该命令会创建 `plugins/example/package.json` 和 `plugins/example/src/index.ts`。如果插件目录不是空目录，命令将中止。使用 `--force` 或 `-f` 选项可以覆盖模板文件，目录中的其他内容不受影响。
+
+创建完成后，运行 `bun i`（`bun install` 的简写）同步工作区依赖。可以在项目根目录或任意子目录中执行，无需进入插件目录：
+
+```shell
+bun i
+```
 
 ## 启动
 

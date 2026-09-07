@@ -71,7 +71,7 @@ kokkoro init --force
 kokkoro plugin example
 ```
 
-命令会生成 `plugins/example/package.json` 和 `plugins/example/src/index.ts`。创建完成后，再运行一次 `bun install`，让 Bun 将新插件链接到当前项目。
+命令会生成 `plugins/example/package.json` 和 `plugins/example/src/index.ts`。创建完成后，再运行一次 `bun i`（`bun install` 的简写）同步工作区依赖。`bun i` 可以在项目根目录或任意子目录中执行，无需进入插件目录。
 
 如果插件目录不为空，创建过程会停止。使用 `--force` 或 `-f` 时，模板会覆盖已有的 `package.json` 和 `src/index.ts`，插件目录中的其他文件会保留：
 

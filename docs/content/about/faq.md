@@ -48,7 +48,7 @@ Kokkoro 只会检索 `plugins` 目录下的一级子目录。Kokkoro CLI 创建�
 └── package.json
 ```
 
-通过 `kokkoro plugin` 创建本地插件后，还需要在项目根目录运行一次 `bun install`，Bun 才会将新插件链接到工作区。
+通过 `kokkoro plugin` 创建本地插件后，还需要运行一次 `bun i` 同步工作区依赖。可以在项目根目录或任意子目录中执行，无需进入插件目录。
 
 通过 npm 安装的插件必须在项目根目录 `package.json` 的 `dependencies` 中声明，且包名必须以 `kokkoro-plugin-` 开头：
 
