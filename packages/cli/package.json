@@ -1,6 +1,6 @@
 {
   "name": "@kokkoro/cli",
-  "version": "3.0.4",
+  "version": "3.0.5",
   "description": "The command-line interface of the Kokkoro QQ bot framework.",
   "keywords": [
     "bot",
@@ -26,7 +26,6 @@
   ],
   "dependencies": {
     "create-kokkoro": "^0.2.0",
-    "kokkoro": "^3.0.2",
     "komut": "^0.3.1"
   },
   "peerDependencies": {

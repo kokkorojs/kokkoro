@@ -28,13 +28,12 @@
     },
     "packages/cli": {
       "name": "@kokkoro/cli",
-      "version": "3.0.4",
+      "version": "3.0.5",
       "bin": {
         "kokkoro": "./src/index.ts",
       },
       "dependencies": {
         "create-kokkoro": "^0.2.0",
-        "kokkoro": "^3.0.2",
         "komut": "^0.3.1",
       },
       "peerDependencies": {
