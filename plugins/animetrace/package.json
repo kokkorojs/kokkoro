@@ -1,6 +1,6 @@
 {
   "name": "kokkoro-plugin-animetrace",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "AnimeTrace 角色识别，查找图片中的动漫、游戏角色及所属作品。",
   "keywords": [
     "animetrace",

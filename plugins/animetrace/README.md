@@ -12,6 +12,16 @@ bun add kokkoro-plugin-animetrace
 
 完整使用说明见 [AnimeTrace 角色识别](https://kokkoro.js.org/plugin/animetrace)。
 
+## 环境变量
+
+在项目根目录的 `.env` 中设置每个人物展示的候选角色数量上限：
+
+```ini
+ANIMETRACE_LIMIT=3
+```
+
+`ANIMETRACE_LIMIT` 必须为正整数，默认值为 `3`。
+
 ## API
 
 通过 `service` 入口导入 `fetchCharacters()` 获取完整响应，通过 `util` 入口导入 `createMarkdown()` 生成 QQ Markdown：
@@ -23,5 +33,7 @@ import { createMarkdown } from 'kokkoro-plugin-animetrace/util';
 const { data } = await fetchCharacters('https://kokkoro.js.org/logo.png');
 const markdown = createMarkdown(data);
 ```
+
+`fetchCharacters()` 的第二个参数可传入日志记录器，记录完整请求参数和接口响应。
 
 `service` 入口同时导出 `ANIMETRACE_API`、`AnimeTrace` 和 `CharacterResult`。参数、响应字段和错误行为见 [插件 API 文档](https://kokkoro.js.org/plugin/animetrace#api)。
