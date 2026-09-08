@@ -60,6 +60,10 @@ export default defineConfig({
             { text: '环境变量', link: '/guide/environment-variables' },
           ],
         },
+        {
+          text: '进阶',
+          items: [{ text: '部署', link: '/guide/deployment' }],
+        },
       ],
       '/develop/': [
         {

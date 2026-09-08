@@ -89,6 +89,8 @@ kokkoro start
 
 该命令通过 Bun 执行当前目录中的 `main.ts`。
 
+如果希望在 Linux 服务器上长期运行机器人，参阅 [部署](/guide/deployment)。
+
 ### 自定义入口 {#custom-entry}
 
 如果入口文件的名称或位置发生变化，可以在 `start` 命令后指定文件路径：

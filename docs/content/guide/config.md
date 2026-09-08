@@ -19,10 +19,6 @@
 
 示例中的 `APP_ID` 和 `CLIENT_SECRET` 需要替换为 [QQ 机器人管理后台](https://q.qq.com/qqbot/dashboard) 中的机器人凭证。`$schema` 不参与项目运行，只为编辑器提供字段提示和配置检查。Kokkoro 启动时不会根据该 Schema 校验配置，因此编辑器提示配置错误时，应当先修正对应字段。
 
-::: warning
-ClientSecret 是敏感凭证。不要向他人公开，也不要将包含真实 ClientSecret 的配置提交到公开仓库。
-:::
-
 ## 顶层配置 {#top-level-config}
 
 | 字段         | 类型                     | 必填 | 说明                                 |
@@ -39,7 +35,7 @@ ClientSecret 是敏感凭证。不要向他人公开，也不要将包含真实 
 
 顶层的 `protocol` 设置所有机器人的默认接入方式，可选值如下：
 
-- **WebSocket**：主动连接 QQ 服务，适合本地开发和能够持续运行的部署环境。
+- **WebSocket**：由 Kokkoro 主动连接 QQ 服务，通过这条连接接收事件，无需配置公网回调地址。
 - **WebHook**：通过 HTTP 路由接收 QQ 推送，需要一个可以从公网访问的 HTTPS 地址。
 
 选择 WebHook 时，还需要在对应的机器人配置中设置 `webhook.path`。具体写法参阅 [WebHook 回调路径](#webhook-path)。

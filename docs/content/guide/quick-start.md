@@ -61,7 +61,7 @@ kokkoro init
 4. **机器人 AppID** 和 **机器人 ClientSecret**：填写从 QQ 开放平台获取的凭证。
 
 ::: warning
-ClientSecret 是敏感凭证。不要向他人公开，也不要将包含真实 ClientSecret 的 `kokkoro.json` 提交到公开仓库。
+ClientSecret 是敏感凭证，不要向他人公开。在提交代码时，注意不要将包含隐私信息的 `kokkoro.json` 文件提交到公开仓库。
 :::
 
 向导完成后，项目目录中会生成以下内容：
