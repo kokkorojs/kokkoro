@@ -1,6 +1,6 @@
 {
   "name": "kokkoro-plugin-kfc",
-  "version": "3.0.2",
+  "version": "3.0.3",
   "description": "肯德基网络梗，随机获取一条疯狂星期四文案。",
   "keywords": [
     "bot",

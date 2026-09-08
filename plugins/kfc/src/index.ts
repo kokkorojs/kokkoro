@@ -1,6 +1,6 @@
 import { useCommand, useLogger } from '@kokkoro/core';
 
-import { fetchCrazyThursday, KFC_API } from './service';
+import { fetchCrazyThursday } from './service';
 
 const logger = useLogger();
 
@@ -26,11 +26,8 @@ function shouldTrigger(content: string) {
 export default () => {
   useCommand('/疯狂星期四', async context => {
     if (shouldTrigger(context.content)) {
-      logger.debug('发送疯狂星期四请求', { method: 'GET', url: KFC_API });
+      const result = await fetchCrazyThursday(logger);
 
-      const result = await fetchCrazyThursday();
-
-      logger.debug('收到疯狂星期四响应', result);
       logger.info('已获取疯狂星期四文案');
 
       return result.success ? result.text : result.message;

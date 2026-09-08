@@ -111,7 +111,7 @@
     },
     "plugins/kfc": {
       "name": "kokkoro-plugin-kfc",
-      "version": "3.0.2",
+      "version": "3.0.3",
       "peerDependencies": {
         "@kokkoro/core": "^3.1.4",
         "typescript": "^6.0.3",
