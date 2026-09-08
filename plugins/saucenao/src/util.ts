@@ -36,11 +36,11 @@ export async function createMarkdown(results: readonly ImageSource[]): Promise<s
       const platform = getPlatform(indexName);
       const title = getTitle(data) || platform;
       const url = getUrl(data);
-      const lines = ['### 标题', `- ${title}`, '### 平台', `- ${platform}`, '### 相似度', `- ${similarity}%`];
+      const lines = [`### ${index + 1}. ${title}`, `- 相似度：${similarity}%`, `- 平台：${platform}`];
 
       if (thumbnail) {
         if (Number(similarity) < similarityThreshold) {
-          lines.push('### 缩略图', `![缩略图 #168px #142px](${LOW_SIMILARITY_THUMBNAIL})`);
+          lines.push('', `![缩略图 #168px #142px](${LOW_SIMILARITY_THUMBNAIL})`);
         } else {
           const response = await fetch(thumbnail);
 
@@ -49,20 +49,16 @@ export async function createMarkdown(results: readonly ImageSource[]): Promise<s
           }
           const { height, width } = await new Image(await response.blob()).metadata();
 
-          lines.push('### 缩略图', `![缩略图 #${width}px #${height}px](${thumbnail})`);
+          lines.push('', `![缩略图 #${width}px #${height}px](${thumbnail})`);
         }
       }
 
       if (url) {
-        lines.push(`[查看来源](${url})`);
-      }
-
-      if (index < results.length - 1) {
-        lines.push('***');
+        lines.push('', `[查看来源](${url})`);
       }
       return lines.join('\n');
     }),
   );
 
-  return ['## SauceNAO 搜图结果', '***', ...content].join('\n\n');
+  return ['## SauceNAO 搜图结果', ...content].join('\n***\n');
 }

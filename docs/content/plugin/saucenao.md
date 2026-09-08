@@ -28,13 +28,11 @@ bun add kokkoro-plugin-saucenao
   <ChatMessage qq="2854205915" nickname="可可萝">
     <h3>SauceNAO 搜图结果</h3>
     <hr />
-    <h4>标题</h4>
-    <ul><li>猫耳コッコロちゃん</li></ul>
-    <h4>平台</h4>
-    <ul><li>Pixiv Images</li></ul>
-    <h4>相似度</h4>
-    <ul><li>98.3%</li></ul>
-    <h4>缩略图</h4>
+    <h4>1. 猫耳コッコロちゃん</h4>
+    <ul>
+      <li>相似度：98.3%</li>
+      <li>平台：Pixiv Images</li>
+    </ul>
     <img width="200" src="/74237509.jpg" />
     <a href="https://www.pixiv.net/artworks/74237509">查看来源</a>
   </ChatMessage>

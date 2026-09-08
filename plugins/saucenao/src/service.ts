@@ -1,3 +1,5 @@
+import { type Logger } from '@kokkoro/core';
+
 /**
  * SauceNAO JSON API 搜索响应。
  *
@@ -23,7 +25,7 @@ export interface SauceNao {
     /** 请求失败时返回的错误信息。 */
     readonly message?: string;
     /** `numres` 请求的结果数量。 */
-    readonly results_requested: string;
+    readonly results_requested: number;
     /** 参与搜索的索引状态，以索引编号为键。 */
     readonly index: Readonly<
       Record<
@@ -115,30 +117,41 @@ export interface ImageSource {
   };
 }
 
-const { SAUCENAO_API_KEY, SAUCENAO_NUMRES = 3 } = import.meta.env;
+const { SAUCENAO_API_KEY, SAUCENAO_NUMRES = '3' } = import.meta.env;
 /** SauceNAO JSON API 的请求地址。 */
 export const SAUCENAO_API = 'https://saucenao.com/search.php';
 
 /** 使用 SauceNAO 搜索图片来源，并返回完整的接口响应。 */
-export async function fetchImageSources(url: string): Promise<SauceNao> {
+export async function fetchImageSources(url: string, logger?: Logger): Promise<SauceNao> {
   if (!SAUCENAO_API_KEY) {
     throw new Error('未配置 SAUCENAO_API_KEY 环境变量');
   }
-  const form = new FormData();
+  const endpoint = new URL(SAUCENAO_API);
+  const payload = {
+    api_key: SAUCENAO_API_KEY,
+    output_type: '2',
+    numres: SAUCENAO_NUMRES,
+    db: '999',
+    url,
+  };
+  const params = new URLSearchParams(payload);
 
-  form.set('api_key', SAUCENAO_API_KEY);
-  form.set('output_type', '2');
-  form.set('numres', String(SAUCENAO_NUMRES));
-  form.set('db', '999');
-  form.set('url', url);
+  endpoint.search = params.toString();
+  logger?.debug('发送 SauceNAO 请求', {
+    method: 'GET',
+    url: SAUCENAO_API,
+    payload,
+  });
 
-  const response = await fetch(SAUCENAO_API, { method: 'POST', body: form });
+  const response = await fetch(endpoint);
 
   if (!response.ok) {
     throw new Error(`接口请求失败，状态码 ${response.status}`);
   }
   const result = <SauceNao>await response.json();
   const { header, results } = result;
+
+  logger?.debug('收到 SauceNAO 响应', result);
 
   if (header.status !== 0) {
     throw new Error(header.message ?? `SauceNAO 搜索失败，状态码 ${header.status}`);

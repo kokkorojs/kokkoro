@@ -39,7 +39,7 @@ const { results } = await fetchImageSources('https://example.com/image.jpg');
 const markdown = await createMarkdown(results);
 ```
 
-`fetchImageSources()` 返回 SauceNAO 的完整响应。`service` 入口同时导出 `SauceNao` 和 `ImageSource` 类型。
+`fetchImageSources()` 返回 SauceNAO 的完整响应，可通过第二个参数传入日志记录器，记录完整请求参数和接口响应。`service` 入口同时导出 `SauceNao` 和 `ImageSource` 类型。
 
 ## 环境变量
 
