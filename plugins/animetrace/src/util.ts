@@ -1,6 +1,6 @@
 import { type CharacterResult } from './service';
 
-const { ANIMETRACE_LIMIT = 3 } = import.meta.env;
+const { ANIMETRACE_LIMIT = '3' } = import.meta.env;
 const limit = Number(ANIMETRACE_LIMIT);
 
 if (!Number.isInteger(limit) || limit <= 0) {

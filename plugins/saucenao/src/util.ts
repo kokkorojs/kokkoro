@@ -2,7 +2,7 @@ import { Image } from 'bun';
 
 import { type ImageSource } from './service';
 
-const { SAUCENAO_SIMILARITY_THRESHOLD = 50 } = import.meta.env;
+const { SAUCENAO_SIMILARITY_THRESHOLD = '50' } = import.meta.env;
 const LOW_SIMILARITY_THUMBNAIL = 'https://kokkoro.js.org/saucenao-low-similarity.jpg';
 const similarityThreshold = Number(SAUCENAO_SIMILARITY_THRESHOLD);
 
