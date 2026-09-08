@@ -103,7 +103,7 @@
     },
     "plugins/hitokoto": {
       "name": "kokkoro-plugin-hitokoto",
-      "version": "3.0.3",
+      "version": "3.0.4",
       "peerDependencies": {
         "@kokkoro/core": "^3.1.4",
         "typescript": "^6.0.3",

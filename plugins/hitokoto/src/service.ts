@@ -1,3 +1,5 @@
+import { type Logger } from '@kokkoro/core';
+
 /** 一言 v1 语句接口的请求地址。 */
 export const HITOKOTO_API = 'https://v1.hitokoto.cn';
 
@@ -151,6 +153,7 @@ export function isErrorResponse(value: unknown): value is ErrorResponse {
  * 显式传入空数组时，不会读取环境变量，也不会发送 `c` 查询参数。
  *
  * @param types - 单个句子类型代码或句子类型代码数组。
+ * @param logger - 在 debug 日志中记录实际请求参数和解析后的接口响应。
  * @returns 一个 Promise，成功时返回完整的 {@link Sentence}。
  * @throws 收到非 2xx 响应时抛出 `Error`。如果响应体符合 {@link ErrorResponse}，错误信息使用其 `message`，
  * 否则错误信息包含 HTTP 状态码。
@@ -165,18 +168,27 @@ export function isErrorResponse(value: unknown): value is ErrorResponse {
  *
  * @see {@link https://developer.hitokoto.cn/sentence/ | 一言语句接口}
  */
-export async function fetchSentence(types?: SentenceType | SentenceType[]): Promise<Sentence> {
+export async function fetchSentence(types?: SentenceType | SentenceType[], logger?: Logger): Promise<Sentence> {
+  const payload = { c: resolveTypes(types) };
   const url = new URL(HITOKOTO_API);
 
-  for (const type of resolveTypes(types)) {
+  for (const type of payload.c) {
     url.searchParams.append('c', type);
   }
+  logger?.debug('发送 Hitokoto 请求', {
+    method: 'GET',
+    url: HITOKOTO_API,
+    payload,
+  });
+
   const response = await fetch(url);
+  const body = response.ok ? await response.json() : await response.json().catch(() => null);
+
+  logger?.debug('收到 Hitokoto 响应', body);
 
   if (response.ok) {
-    return <Sentence>await response.json();
+    return <Sentence>body;
   }
-  const body = await response.json().catch(() => null);
 
   if (isErrorResponse(body)) {
     throw new Error(body.message);
