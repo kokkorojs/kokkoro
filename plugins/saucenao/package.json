@@ -1,6 +1,6 @@
 {
   "name": "kokkoro-plugin-saucenao",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "SauceNAO 图片搜索，查找动漫、漫画、插画等图片的来源。",
   "keywords": [
     "bot",

@@ -146,7 +146,7 @@ export async function fetchImageSources(url: string, logger?: Logger): Promise<S
   const response = await fetch(endpoint);
 
   if (!response.ok) {
-    throw new Error(`接口请求失败，状态码 ${response.status}`);
+    throw new Error(`SauceNAO 请求失败，HTTP 状态码 ${response.status}`);
   }
   const result = <SauceNao>await response.json();
   const { header, results } = result;
@@ -158,7 +158,7 @@ export async function fetchImageSources(url: string, logger?: Logger): Promise<S
   }
 
   if (results.length === 0) {
-    throw new Error('没有找到图片来源');
+    throw new Error('未找到图片来源');
   }
   return result;
 }

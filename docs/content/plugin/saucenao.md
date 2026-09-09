@@ -18,15 +18,19 @@ bun add kokkoro-plugin-saucenao
 
 ## 搜索图片来源 {#search-image-source}
 
-发送带有图片的 `/搜图` 指令后，插件会搜索消息中的第一张图片。下面的聊天记录只展示第一条搜索结果：
+发送 `/搜图` 指令时附带图片，或引用包含图片的消息回复该指令。
+
+单次搜索仅处理一张图片。检测到多张图片时，插件选取首张图片，并在结果标题下方显示提示。以下示例仅展示首条搜索结果：
 
 <ChatPanel self="2225151531" :bots="['2854205915']">
   <ChatMessage qq="2225151531" nickname="Yuki">
     <span>/搜图</span>
     <img width="200" src="/74237509.jpg" />
+    <img width="200" src="/logo.png" />
   </ChatMessage>
   <ChatMessage qq="2854205915" nickname="可可萝">
     <h3>SauceNAO 搜图结果</h3>
+    <blockquote>检测到消息中包含多张图片，已选取首张图片进行识别。</blockquote>
     <hr />
     <h4>1. 猫耳コッコロちゃん</h4>
     <ul>
@@ -42,7 +46,7 @@ bun add kokkoro-plugin-saucenao
 
 ## 快捷方式 {#shortcut}
 
-发送带有图片的「搜图」消息，也会执行相同的搜索。要让普通群消息触发快捷方式，需要开启「获取群内全部消息」权限。
+「搜图」与 `/搜图` 的用法相同。在普通群消息中使用快捷方式，需要开启「获取群内全部消息」权限。
 
 ## 配置 {#configuration}
 

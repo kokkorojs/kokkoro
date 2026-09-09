@@ -28,8 +28,13 @@ function getUrl(data: ImageSource['data']) {
   }
 }
 
-/** 将 SauceNAO 搜索结果转换为 QQ Markdown。 */
-export async function createMarkdown(results: readonly ImageSource[]): Promise<string> {
+/** 将 SauceNAO 搜索结果转换为 QQ Markdown，可在标题下方展示提示。 */
+export async function createMarkdown(results: readonly ImageSource[], notice?: string): Promise<string> {
+  const lines = ['## SauceNAO 搜图结果'];
+
+  if (notice) {
+    lines.push('', `> ${notice}`);
+  }
   const content = await Promise.all(
     results.map(async ({ data, header }, index) => {
       const { index_name: indexName, similarity, thumbnail } = header;
@@ -45,7 +50,7 @@ export async function createMarkdown(results: readonly ImageSource[]): Promise<s
           const response = await fetch(thumbnail);
 
           if (!response.ok) {
-            throw new Error(`缩略图请求失败，状态码 ${response.status}`);
+            throw new Error(`缩略图下载失败，HTTP 状态码 ${response.status}`);
           }
           const { height, width } = await new Image(await response.blob()).metadata();
 
@@ -60,5 +65,5 @@ export async function createMarkdown(results: readonly ImageSource[]): Promise<s
     }),
   );
 
-  return ['## SauceNAO 搜图结果', ...content].join('\n***\n');
+  return [lines.join('\n'), ...content].join('\n***\n');
 }
