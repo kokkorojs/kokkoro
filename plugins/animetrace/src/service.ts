@@ -53,7 +53,7 @@ export async function fetchCharacters(url: string, logger?: Logger): Promise<Ani
   const response = await fetch(ANIMETRACE_API, { method: 'POST', body: form });
 
   if (!response.ok) {
-    throw new Error(`接口请求失败，状态码 ${response.status}`);
+    throw new Error(`AnimeTrace 请求失败，HTTP 状态码 ${response.status}`);
   }
   const result = <AnimeTrace>await response.json();
 
@@ -64,7 +64,7 @@ export async function fetchCharacters(url: string, logger?: Logger): Promise<Ani
   }
 
   if (result.data.length === 0) {
-    throw new Error('没有识别到角色');
+    throw new Error('未识别到角色');
   }
   return result;
 }

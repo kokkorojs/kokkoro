@@ -7,12 +7,16 @@ if (!Number.isInteger(limit) || limit <= 0) {
   throw new Error('ANIMETRACE_LIMIT 必须为正整数');
 }
 
-/** 将 AnimeTrace 识别结果转换为 QQ Markdown。 */
-export function createMarkdown(results: readonly CharacterResult[]): string {
-  const lines = ['## AnimeTrace 搜索结果'];
+/** 将 AnimeTrace 识别结果转换为 QQ Markdown，可在标题下方展示提示。 */
+export function createMarkdown(results: readonly CharacterResult[], notice?: string): string {
+  const lines = ['## AnimeTrace 识别结果'];
+
+  if (notice) {
+    lines.push('', `> ${notice}`);
+  }
 
   if (results.some(({ not_confident: isNotConfident }) => isNotConfident)) {
-    lines.push('', '> 带 ＊ 的人物可能识别不准确。');
+    lines.push('', '> 标有 ＊ 的识别结果可能不准确，请注意甄别。');
   }
 
   for (const [index, { character: candidates, not_confident: isNotConfident }] of results.entries()) {

@@ -8,13 +8,13 @@
 bun add kokkoro-plugin-animetrace
 ```
 
-发送「/搜角色」时附带图片，插件会识别消息中的第一张图片，并通过 QQ Markdown 展示结果。发送带图的「搜角色」也可以触发识别。
+发送「/搜角色」指令时附带图片，或引用包含图片的消息回复该指令。插件识别首张图片中的角色，并通过 QQ Markdown 返回结果。「搜角色」与「/搜角色」的用法相同。
 
 完整使用说明见 [AnimeTrace 角色识别](https://kokkoro.js.org/plugin/animetrace)。
 
 ## 环境变量
 
-在项目根目录的 `.env` 中设置每个人物展示的候选角色数量上限：
+在项目根目录的 `.env` 中配置每个人物最多显示的候选角色数量：
 
 ```ini
 ANIMETRACE_LIMIT=3
